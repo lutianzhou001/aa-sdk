@@ -1,0 +1,26 @@
+node_modules
+.env
+coverage
+.coverage.json
+ContractAddress.json
+types
+typechain
+abi
+.DS_Store
+.npmrc
+package-lock.json
+yarn.lock
+.idea/
+
+# Hardhat files
+cache
+artifacts
+deployed/local/hardhat/*
+!deployed/local/hardhat/index.ts
+# scripts/*
+# !scripts/deploy.js
+# !scripts/smokeTest.js
+# !scripts/Utils.js
+# !scripts/createTestingEnvironment.js
+# !scripts/testInTestingEnvironment.js
+
