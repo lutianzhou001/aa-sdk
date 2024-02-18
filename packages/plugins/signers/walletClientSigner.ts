@@ -28,6 +28,10 @@ export class walletClientSigner implements OKXSmartAccountSigner<WalletClient> {
     this.validatorTemplate = validatorTemplate;
   }
 
+  getWalletClient(): WalletClient {
+    return this.signer;
+  }
+
   async getAddress(): Promise<Hex> {
     const addresses = await this.signer.getAddresses();
     return getAddress(addresses[0]);

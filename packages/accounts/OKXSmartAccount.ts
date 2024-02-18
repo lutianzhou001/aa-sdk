@@ -13,6 +13,7 @@ import {
   PublicClient,
   SignTypedDataParameters,
   type Transport,
+  WalletClient,
 } from "viem";
 import { EntryPointABI } from "../abis/EntryPoint.abi";
 import {
@@ -32,6 +33,7 @@ import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
 import { predictDeterministicAddress } from "../common/utils";
 import { boolean } from "hardhat/internal/core/params/argumentTypes";
+import { applyProviderWrappers } from "hardhat/internal/core/providers/construction";
 
 export class OKXSmartContractAccount<
   TTransport extends Transport = Transport,
@@ -51,7 +53,6 @@ export class OKXSmartContractAccount<
   constructor(params: createOKXSmartAccountParams<TTransport, TChain, TOwner>) {
     this.owner = params.owner as TOwner;
     this.publicClient = params.publicClient;
-    // this.walletClient = params.walletClient;
     this.entryPointAddress =
       params.entryPointAddress ?? configuration.ENTRYPOINT_ADDRESS;
     this.factoryAddress =
@@ -233,16 +234,36 @@ export class OKXSmartContractAccount<
     }
   }
 
+  async execute(request: any): Promise<any> {
+    await this.owner.getWalletClient().writeContract(request);
+  }
+
   async sendUserOperationSimulation(
-    account: Address,
     userOperation: UserOperation
   ): Promise<any> {
+    const account = await this.owner.getAddress();
     return await this.publicClient.simulateContract({
       account: account,
       address: this.entryPointAddress,
       abi: EntryPointABI,
       functionName: "handleOps",
       args: [[userOperation], account],
+    });
+  }
+
+  async sendFromEOASimulation(
+    account: Address,
+    to: Address,
+    value: bigint,
+    data: Hex
+  ): Promise<any> {
+    const sender = await this.owner.getAddress();
+    return await this.publicClient.simulateContract({
+      account: sender,
+      address: account,
+      abi: smartAccountV3ABI,
+      functionName: "executeFromEOA",
+      args: [to, value, data],
     });
   }
 

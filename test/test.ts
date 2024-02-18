@@ -7,6 +7,7 @@ import {
   PublicClient,
   WalletClient,
   parseEther,
+  zeroAddress,
 } from "viem";
 import { hardhat } from "viem/chains";
 import { walletClientSigner } from "../packages/plugins/signers/walletClientSigner";
@@ -73,27 +74,37 @@ async function smokeTest() {
     );
 
   // transfer 0.1ETH to the address
-  await walletClient.sendTransaction({
-    to: preparedUserOperation.sender,
-    value: parseEther("0.1"),
-    account: walletAddress,
-    data: "0x",
-    chain: hardhat,
-  });
+  await smartAccount
+    .getOwner()
+    .getWalletClient()
+    .sendTransaction({
+      to: preparedUserOperation.sender,
+      value: parseEther("0.1"),
+      account: walletAddress,
+      data: "0x",
+      chain: hardhat,
+    });
 
-  const { request } = await smartAccount.sendUserOperationSimulation(
-    walletAddress,
-    preparedUserOperation
+  const userOperationSimulationResponse =
+    await smartAccount.sendUserOperationSimulation(preparedUserOperation);
+
+  // STEP10: execute.
+  await smartAccount.execute(userOperationSimulationResponse.request);
+
+  // FOR EOA EXECUTION:
+  const userOperationFromEOAResponse = await smartAccount.sendFromEOASimulation(
+    smartAccount.getAccountInfos()[0].accountAddress,
+    "0x0000000000000000000000000000000000000001" as Address,
+    BigInt(1000),
+    "0x"
   );
+  await smartAccount.execute(userOperationFromEOAResponse.request);
 
   // check balance
   const balance = await publicClient.getBalance({
     address: "0x0000000000000000000000000000000000000001",
   });
   console.log(balance);
-
-  // STEP10: execute.
-  await walletClient.writeContract(request);
 
   // we support batch generate new account information.
   const batchNewInfos = await smartAccount.batchGenerateNewAccountInfo(10, []);

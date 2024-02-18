@@ -3,9 +3,10 @@
 ## Introduction
 a generic smart account SDK that can be used to interact with okx smart account v3 and later. Developed with viem.sh to minimize the package
 
-☑️one-click to create an modular smart account  
-☑️batch modular smart account creation  
-☑️only focus on the calldata logic, will do everything for you to set the gas price, nonce, etc.
+✅️one-click to create a modular smart account  
+✅️batch modular smart account creation  
+✅️only focus on the calldata logic, will do everything for you to set the gas price, nonce, etc.  
+✅local calculation instead of on chain querying  
 
 ## install dependencies
 ```bash
