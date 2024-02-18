@@ -69,6 +69,11 @@ export interface ISmartContractAccount<
     validatorAddress?: Address
   ): Promise<UserOperation>;
 
+  sendUserOperationSimulation(
+    sender: Address,
+    userOperation: UserOperation
+  ): Promise<any>;
+
   getNonce(
     accountAddress: Address,
     role: Hex,

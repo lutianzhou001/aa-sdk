@@ -223,6 +223,19 @@ export class OKXSmartContractAccount<
     return userOperation;
   }
 
+  async sendUserOperationSimulation(
+    account: Address,
+    userOperation: UserOperation
+  ): Promise<any> {
+    return await this.publicClient.simulateContract({
+      account: account,
+      address: this.entryPointAddress,
+      abi: EntryPointABI,
+      functionName: "handleOps",
+      args: [[userOperation], account],
+    });
+  }
+
   private async getSigTime(isPaymaster: boolean) {
     if (isPaymaster) {
       // sigTime = sigTime * (BigInt("2") ** BigInt(160));

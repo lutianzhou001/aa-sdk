@@ -6,6 +6,7 @@ import {
   http,
   PublicClient,
   WalletClient,
+  parseEther,
 } from "viem";
 import { hardhat } from "viem/chains";
 import { walletClientSigner } from "../packages/plugins/signers/walletClientSigner";
@@ -15,34 +16,43 @@ import { Address } from "abitype";
 import { UserOperation } from "permissionless/types/userOperation";
 
 async function smokeTest() {
+  // STEP1: create a account from privateKey
   const account = privateKeyToAccount(
     "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
   );
 
+  // STEP2: create a walletClient with rpc and chain specified.
   const walletClient: WalletClient = createWalletClient({
     account,
     chain: hardhat,
     transport: http("http://127.0.0.1:8545"),
   });
 
+  // STEP3: get the walletAddress(EOS address)
+  const [walletAddress] = await walletClient.getAddresses();
+
+  // STEP4: create a publicClient with rpc and chain specified.
   // @ts-ignore
   const publicClient: PublicClient = createPublicClient({
     chain: hardhat,
     transport: http("http://127.0.0.1:8545"),
   });
 
-  // first convert the client to the validator
+  // STEP5: convert the client to the validator
   const owner = new walletClientSigner(walletClient, "SUDO");
 
-  // now convert the client to the smart account
+  // STEP6: create a OKXSmartContractAccount with the publicClient and owner
   // @ts-ignore
   const smartAccount = new OKXSmartContractAccount({
     publicClient: publicClient,
     owner: owner,
   });
 
-  await smartAccount.generateNewAccountInfo(toBigInt(2));
+  // STEP7: create a new account with index specified. You can use any number you like.
+  // now we only get the new account information without deploy it on chain.
+  await smartAccount.generateNewAccountInfo(toBigInt(1325));
 
+  // STEP8: when we want to do a transaction, say, transfer some token to other people, we then deploy this smart account.
   const simpleTransferCalldata = await smartAccount.encodeExecute({
     to: "0x0000000000000000000000000000000000000001" as Address,
     value: BigInt(1000),
@@ -50,33 +60,37 @@ async function smokeTest() {
     callType: "call",
   });
 
-  // const u = await smartAccount.getNonce(
-  //   "0x",
-  //   smartAccount.getInitializationInfos()[0].accountAddress,
-  //   smartAccount.getInitializationInfos()[0].accountAddress
-  // );
-  // console.log(u);
-
+  // STEP9: generate a userOperation and packed it.
   const preparedUserOperation: UserOperation =
     await smartAccount.generateUserOperationAndPacked(
       "EIP191",
       smartAccount.getAccountInfos()[0].accountAddress,
+      // this is a ROLE message, will be useful in the smart-account v4
       "0xDEADBEEF" as Hex,
       {
         callData: simpleTransferCalldata,
       }
     );
 
-  const added = await smartAccount.batchGenerateNewAccountInfo(10, []);
+  // transfer 0.1ETH to the address
+  await walletClient.sendTransaction({
+    to: preparedUserOperation.sender,
+    value: parseEther("0.1"),
+    account: walletAddress,
+    data: "0x",
+    chain: hardhat,
+  });
 
-  // only for test case, in real transaction, we don't deploy the samrt account unless the user has a real userop.
-  // const accountFactory = getContract({
-  //     abi: accountFactoryV3ABI,
-  //     address: "0xC3fCA52FFec158948C8E88D43f59eAc0587dA7CB" as Address,
-  //     client: walletClient as Client
-  // });
-  //
-  // await accountFactory.write.createAccount([configuration.SMART_ACCOUNT_TEMPLATE_ADDRESS,u.initCode,u.index])
+  const { request } = await smartAccount.sendUserOperationSimulation(
+    walletAddress,
+    preparedUserOperation
+  );
+
+  // STEP10: execute.
+  await walletClient.writeContract(request);
+
+  // we support batch generate new account information.
+  const batchNewInfos = await smartAccount.batchGenerateNewAccountInfo(10, []);
 }
 
 smokeTest();
