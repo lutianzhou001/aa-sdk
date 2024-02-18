@@ -153,75 +153,84 @@ export class OKXSmartContractAccount<
       _sigTime == toBigInt(0)
         ? await this.getSigTime(userOperationDraft.paymasterAndData == "0x")
         : _sigTime;
-    // TODO: 712 impl
-    // if (signType == "EIP712") {
-    //     let domain = {
-    //         name: this.name,
-    //         version: this.version,
-    //         chainId: await getChainId(this.publicClient as Client),
-    //         verifyingContract: authenticationManager.target,
-    //     };
-    //
-    //     let types = {
-    //         SignMessage: [
-    //             {name: "sender", type: "address"},
-    //             {name: "nonce", type: "uint256"},
-    //             {name: "initCode", type: "bytes"},
-    //             {name: "callData", type: "bytes"},
-    //             {name: "callGasLimit", type: "uint256"},
-    //             {name: "verificationGasLimit", type: "uint256"},
-    //             {name: "preVerificationGas", type: "uint256"},
-    //             {name: "maxFeePerGas", type: "uint256"},
-    //             {name: "maxPriorityFeePerGas", type: "uint256"},
-    //             {name: "paymasterAndData", type: "bytes"},
-    //             {name: "EntryPoint", type: "address"},
-    //             {name: "sigTime", type: "uint256"},
-    //         ],
-    //     };
-    //     const value = {
-    //         ...userOperation,
-    //         EntryPoint: configuration.ENTRYPOINT_ADDRESS,
-    //         sigTime: sigTime
-    //     };
-    // } else {
-    const encodedUserOperationData = encodeAbiParameters(
-      [
-        { name: "chainId", type: "uint256" },
-        { name: "sender", type: "address" },
-        { name: "nonce", type: "uint256" },
-        { name: "initCodeHash", type: "bytes32" },
-        { name: "callDataHash", type: "bytes32" },
-        { name: "callGasLimit", type: "uint256" },
-        { name: "verificationGasLimit", type: "uint256" },
-        { name: "preVerificationGas", type: "uint256" },
-        { name: "maxFeePerGas", type: "uint256" },
-        { name: "maxPriorityFeePerGas", type: "uint256" },
-        { name: "paymasterAndDataHash", type: "bytes32" },
-        { name: "EntryPoint", type: "address" },
-        { name: "sigTime", type: "uint256" },
-      ],
-      [
-        toBigInt(await getChainId(this.publicClient as Client)),
-        userOperation.sender,
-        userOperation.nonce,
-        keccak256(userOperation.initCode),
-        keccak256(userOperation.callData),
-        userOperation.callGasLimit,
-        userOperation.verificationGasLimit,
-        userOperation.preVerificationGas,
-        userOperation.maxFeePerGas,
-        userOperation.maxPriorityFeePerGas,
-        keccak256(userOperation.paymasterAndData),
-        configuration.ENTRYPOINT_ADDRESS,
-        sigTime,
-      ]
-    );
-    const userOperationHash = keccak256(encodedUserOperationData);
-    userOperation.signature = encodePacked(
-      ["uint8", "uint256", "bytes"],
-      [1, sigTime, await this.owner.signMessage(userOperationHash)]
-    );
-    return userOperation;
+    if (signType == "EIP712") {
+      let domain = {
+        name: this.name,
+        version: this.version,
+        chainId: await getChainId(this.publicClient as Client),
+        verifyingContract: accountInfo.authenticationManagerAddress,
+      };
+      const types = {
+        SignMessage: [
+          { name: "sender", type: "address" },
+          { name: "nonce", type: "uint256" },
+          { name: "initCode", type: "bytes" },
+          { name: "callData", type: "bytes" },
+          { name: "callGasLimit", type: "uint256" },
+          { name: "verificationGasLimit", type: "uint256" },
+          { name: "preVerificationGas", type: "uint256" },
+          { name: "maxFeePerGas", type: "uint256" },
+          { name: "maxPriorityFeePerGas", type: "uint256" },
+          { name: "paymasterAndData", type: "bytes" },
+          { name: "EntryPoint", type: "address" },
+          { name: "sigTime", type: "uint256" },
+        ],
+      };
+      const value = {
+        ...userOperation,
+        EntryPoint: configuration.ENTRYPOINT_ADDRESS,
+        sigTime: sigTime,
+      };
+      const signature = this.owner.signer.signTypedData({
+        domain: domain,
+        types: types,
+        message: value,
+      });
+      userOperation.signature = encodePacked(
+        ["uint8", "uint256", "bytes"],
+        [0, sigTime, signature]
+      );
+      return userOperation;
+    } else {
+      const encodedUserOperationData = encodeAbiParameters(
+        [
+          { name: "chainId", type: "uint256" },
+          { name: "sender", type: "address" },
+          { name: "nonce", type: "uint256" },
+          { name: "initCodeHash", type: "bytes32" },
+          { name: "callDataHash", type: "bytes32" },
+          { name: "callGasLimit", type: "uint256" },
+          { name: "verificationGasLimit", type: "uint256" },
+          { name: "preVerificationGas", type: "uint256" },
+          { name: "maxFeePerGas", type: "uint256" },
+          { name: "maxPriorityFeePerGas", type: "uint256" },
+          { name: "paymasterAndDataHash", type: "bytes32" },
+          { name: "EntryPoint", type: "address" },
+          { name: "sigTime", type: "uint256" },
+        ],
+        [
+          toBigInt(await getChainId(this.publicClient as Client)),
+          userOperation.sender,
+          userOperation.nonce,
+          keccak256(userOperation.initCode),
+          keccak256(userOperation.callData),
+          userOperation.callGasLimit,
+          userOperation.verificationGasLimit,
+          userOperation.preVerificationGas,
+          userOperation.maxFeePerGas,
+          userOperation.maxPriorityFeePerGas,
+          keccak256(userOperation.paymasterAndData),
+          configuration.ENTRYPOINT_ADDRESS,
+          sigTime,
+        ]
+      );
+      const userOperationHash = keccak256(encodedUserOperationData);
+      userOperation.signature = encodePacked(
+        ["uint8", "uint256", "bytes"],
+        [1, sigTime, await this.owner.signMessage(userOperationHash)]
+      );
+      return userOperation;
+    }
   }
 
   async sendUserOperationSimulation(

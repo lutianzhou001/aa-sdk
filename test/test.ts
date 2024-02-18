@@ -16,7 +16,7 @@ import { Address } from "abitype";
 import { UserOperation } from "permissionless/types/userOperation";
 
 async function smokeTest() {
-  // STEP1: create a account from privateKey
+  // STEP1: create an account from privateKey
   const account = privateKeyToAccount(
     "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
   );
