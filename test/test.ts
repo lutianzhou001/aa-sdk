@@ -86,6 +86,12 @@ async function smokeTest() {
     preparedUserOperation
   );
 
+  // check balance
+  const balance = await publicClient.getBalance({
+    address: "0x0000000000000000000000000000000000000001",
+  });
+  console.log(balance);
+
   // STEP10: execute.
   await walletClient.writeContract(request);
 

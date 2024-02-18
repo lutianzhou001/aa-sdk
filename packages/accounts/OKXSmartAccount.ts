@@ -16,8 +16,8 @@ import {
 } from "viem";
 import { EntryPointABI } from "../abis/EntryPoint.abi";
 import {
-  ExecuteCallDataArgs,
   AccountInfo,
+  ExecuteCallDataArgs,
   ISmartContractAccount,
   SignType,
 } from "./types.js";
@@ -31,6 +31,7 @@ import { initializeAccountABI } from "../abis/initializeAccount.abi";
 import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
 import { predictDeterministicAddress } from "../common/utils";
+import { boolean } from "hardhat/internal/core/params/argumentTypes";
 
 export class OKXSmartContractAccount<
   TTransport extends Transport = Transport,
@@ -248,18 +249,34 @@ export class OKXSmartContractAccount<
     }
   }
 
+  private async updateDeployment(
+    publicClient: PublicClient,
+    accountAddress: Address
+  ): Promise<boolean> {
+    const contractCode =
+      (await publicClient.getBytecode({
+        address: accountAddress,
+      })) ?? "0x";
+
+    return contractCode.length > 2;
+  }
+
   async generateUserOperation(
     role: Hex,
     accountAddress: Address,
     validatorAddress: Address,
     userOperationDraft: UserOperationDraft
   ): Promise<UserOperation> {
-    const accountInfo = this.getAccountInfo(accountAddress);
+    const accountInfo: AccountInfo = this.getAccountInfo(accountAddress);
+    const isDeployed: boolean = await this.updateDeployment(
+      this.publicClient,
+      accountAddress
+    );
     const nonce = await this.getNonce(accountAddress, role, validatorAddress);
     return {
       sender: accountAddress,
       nonce: nonce,
-      initCode: accountInfo.initCode,
+      initCode: isDeployed ? "0x" : accountInfo.initCode,
       callData: userOperationDraft.callData
         ? userOperationDraft.callData
         : "0x",
@@ -384,12 +401,10 @@ export class OKXSmartContractAccount<
       authenticationManagerAddress
     );
 
-    const contractCode =
-      (await this.publicClient.getBytecode({
-        address: accountAddress,
-      })) ?? "0x";
-
-    const isDeployed = contractCode.length > 2;
+    const isDeployed = await this.updateDeployment(
+      this.publicClient,
+      accountAddress
+    );
 
     const _accountInfo: AccountInfo = {
       initializeAccountData,
