@@ -10,7 +10,6 @@ import {
   type Hex,
   hexToBytes,
   keccak256,
-  maxUint256,
   PublicClient,
   SignTypedDataParameters,
   type Transport,
@@ -133,20 +132,154 @@ export class OKXSmartContractAccount<
     });
   }
 
-  async generateUserOperationAndPacked(
+  async generateUserOperationAndPackedWithFreeGasPayMaster(
     signType: SignType,
-    accountAddress: Address,
     role: Hex,
-    userOperationDraft: UserOperationDraft,
-    _sigTime: bigint = toBigInt(0),
-    validatorAddress?: Address
+    userOperationDraft: Omit<UserOperationDraft, "paymasterAndData">,
+    freeGasPayMaster: Address
   ): Promise<UserOperation> {
-    const accountInfo = this.getAccountInfo(accountAddress);
-    validatorAddress = validatorAddress ?? accountInfo.defaultECDSAValidator;
     const userOperation = await this.generateUserOperation(
       role,
-      accountAddress,
-      validatorAddress,
+      userOperationDraft
+    );
+    const sigTime = toBigInt(
+      "0x000000000000ffffffffffff0000000000000000000000000000000000000000"
+    );
+    const encodedUserOperationDataWithFreeGasPayMaster = encodeAbiParameters(
+      [
+        { name: "sender", type: "address" },
+        { name: "nonce", type: "uint256" },
+        { name: "initCodeHash", type: "bytes32" },
+        { name: "callDataHash", type: "bytes32" },
+        { name: "callGasLimit", type: "uint256" },
+        { name: "verificationGasLimit", type: "uint256" },
+        { name: "preVerificationGas", type: "uint256" },
+        { name: "maxFeePerGas", type: "uint256" },
+        { name: "maxPriorityFeePerGas", type: "uint256" },
+        { name: "chainId", type: "uint256" },
+        { name: "freeGasPayMaster", type: "address" },
+        { name: "sigTime", type: "uint256" },
+      ],
+      [
+        userOperation.sender,
+        userOperation.nonce,
+        keccak256(userOperation.initCode),
+        keccak256(userOperation.callData),
+        userOperation.callGasLimit,
+        userOperation.verificationGasLimit,
+        userOperation.preVerificationGas,
+        userOperation.maxFeePerGas,
+        userOperation.maxPriorityFeePerGas,
+        toBigInt(await getChainId(this.publicClient as Client)),
+        freeGasPayMaster,
+        sigTime,
+      ]
+    );
+    const userOperationHashInFreeGasPayMaster = keccak256(
+      encodedUserOperationDataWithFreeGasPayMaster
+    );
+
+    userOperation.paymasterAndData = encodePacked(
+      ["address", "uint256", "bytes"],
+      [
+        freeGasPayMaster,
+        sigTime,
+        await this.owner.signMessage(userOperationHashInFreeGasPayMaster),
+      ]
+    );
+    return this.generateUserOperationAndPacked(
+      signType,
+      role,
+      userOperation,
+      sigTime
+    );
+  }
+
+  async generateUserOperationAndPackedWithTokenPayMaster(
+    signType: SignType,
+    role: Hex,
+    userOperationDraft: Omit<UserOperationDraft, "paymasterAndData">,
+    tokenPayMaster: Address,
+    tokenAddress: Address,
+    exchangeRate: bigint
+  ): Promise<UserOperation> {
+    const userOperation = await this.generateUserOperation(
+      role,
+      userOperationDraft
+    );
+    const sigTime = toBigInt(
+      "0x000000000000ffffffffffff0000000000000000000000000000000000000000"
+    );
+    const additionHashData = encodeAbiParameters(
+      [
+        { name: "token", type: "address" },
+        { name: "exchangeRate", type: "uint256" },
+        { name: "sigTime", type: "uint256" },
+      ],
+      [tokenAddress, exchangeRate, sigTime]
+    );
+
+    const encodedUserOperationDataWithTokenPayMaster = encodeAbiParameters(
+      [
+        { name: "sender", type: "address" },
+        { name: "nonce", type: "uint256" },
+        { name: "initCodeHash", type: "bytes32" },
+        { name: "callDataHash", type: "bytes32" },
+        { name: "callGasLimit", type: "uint256" },
+        { name: "verificationGasLimit", type: "uint256" },
+        { name: "preVerificationGas", type: "uint256" },
+        { name: "maxFeePerGas", type: "uint256" },
+        { name: "maxPriorityFeePerGas", type: "uint256" },
+        { name: "chainId", type: "uint256" },
+        { name: "tokenPayMaster", type: "address" },
+        { name: "additionHashData", type: "bytes" },
+      ],
+      [
+        userOperation.sender,
+        userOperation.nonce,
+        keccak256(userOperation.initCode),
+        keccak256(userOperation.callData),
+        userOperation.callGasLimit,
+        userOperation.verificationGasLimit,
+        userOperation.preVerificationGas,
+        userOperation.maxFeePerGas,
+        userOperation.maxPriorityFeePerGas,
+        toBigInt(await getChainId(this.publicClient as Client)),
+        tokenPayMaster,
+        additionHashData,
+      ]
+    );
+    const userOperationHashInTokenPayMaster = keccak256(
+      encodedUserOperationDataWithTokenPayMaster
+    );
+
+    userOperation.paymasterAndData = encodePacked(
+      ["address", "address", "uint256", "uint256", "bytes"],
+      [
+        tokenPayMaster,
+        tokenAddress,
+        exchangeRate,
+        sigTime,
+        await this.owner.signMessage(userOperationHashInTokenPayMaster),
+      ]
+    );
+    return this.generateUserOperationAndPacked(
+      signType,
+      role,
+      userOperation,
+      sigTime
+    );
+  }
+
+  async generateUserOperationAndPacked(
+    signType: SignType,
+    role: Hex,
+    userOperationDraft: UserOperationDraft,
+    _sigTime: bigint = toBigInt(0)
+  ): Promise<UserOperation> {
+    const accountInfo = this.getAccountInfo(userOperationDraft.sender);
+    const userOperation = await this.generateUserOperation(
+      role,
       userOperationDraft
     );
     const sigTime =
@@ -292,20 +425,29 @@ export class OKXSmartContractAccount<
 
   async generateUserOperation(
     role: Hex,
-    accountAddress: Address,
-    validatorAddress: Address,
     userOperationDraft: UserOperationDraft
   ): Promise<UserOperation> {
-    const accountInfo: AccountInfo = this.getAccountInfo(accountAddress);
+    const accountInfo: AccountInfo = this.getAccountInfo(
+      userOperationDraft.sender
+    );
     const isDeployed: boolean = await this.updateDeployment(
       this.publicClient,
-      accountAddress
+      accountInfo.accountAddress
     );
-    const nonce = await this.getNonce(accountAddress, role, validatorAddress);
     return {
-      sender: accountAddress,
-      nonce: nonce,
-      initCode: isDeployed ? "0x" : accountInfo.initCode,
+      sender: accountInfo.accountAddress,
+      nonce: userOperationDraft.nonce
+        ? userOperationDraft.nonce
+        : await this.getNonce(
+            accountInfo.accountAddress,
+            role,
+            accountInfo.defaultECDSAValidator
+          ),
+      initCode: userOperationDraft.initCode
+        ? userOperationDraft.initCode
+        : isDeployed
+        ? "0x"
+        : accountInfo.initCode,
       callData: userOperationDraft.callData
         ? userOperationDraft.callData
         : "0x",

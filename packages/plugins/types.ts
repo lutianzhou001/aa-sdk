@@ -15,6 +15,9 @@ export interface OKXSmartAccountSigner<TSinger = any> {
 }
 
 export type UserOperationDraft = {
+  sender: Address;
+  nonce?: bigint;
+  initCode?: Hex;
   callData: Hex;
   paymasterAndData?: Hex;
   callGasLimit?: bigint;

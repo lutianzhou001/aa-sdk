@@ -50,7 +50,7 @@ async function smokeTest() {
 
   // STEP7: create a new account with index specified. You can use any number you like.
   // now we only get the new account information without deploy it on chain.
-  await smartAccount.createNewAccountInfo(toBigInt(8899));
+  await smartAccount.createNewAccountInfo(toBigInt(18899));
 
   // STEP8: when we want to do a transaction, say, transfer some token to other people, we then deploy this smart account.
   const simpleTransferCalldata = await smartAccount.encodeExecute({
@@ -64,10 +64,10 @@ async function smokeTest() {
   const preparedUserOperation: UserOperation =
     await smartAccount.generateUserOperationAndPacked(
       "EIP191",
-      smartAccount.getAccountInfos()[0].accountAddress,
       // this is a ROLE message, will be useful in the smart-account v4
       "0xDEADBEEF" as Hex,
       {
+        sender: smartAccount.getAccountInfos()[0].accountAddress,
         callData: simpleTransferCalldata,
       }
     );
@@ -115,10 +115,10 @@ async function smokeTest() {
   const preparedUserOperationNewValidator: UserOperation =
     await smartAccount.generateUserOperationAndPacked(
       "EIP191",
-      smartAccount.getAccountInfos()[0].accountAddress,
       // this is a ROLE message, will be useful in the smart-account v4
       "0xDEADBEEF" as Hex,
       {
+        sender: smartAccount.getAccountInfos()[0].accountAddress,
         callData: newValidator,
       }
     );

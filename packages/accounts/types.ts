@@ -53,18 +53,30 @@ export interface ISmartContractAccount<
 
   generateUserOperation(
     role: Hex,
-    accountAddress: Address,
-    validatorAddress: Address,
     userOperationDraft: UserOperationDraft
   ): Promise<UserOperation>;
 
   generateUserOperationAndPacked(
     signType: SignType,
-    accountAddress: Address,
     role: Hex,
     userOperationDraft: UserOperationDraft,
-    _sigTime?: bigint,
-    validatorAddress?: Address
+    _sigTime?: bigint
+  ): Promise<UserOperation>;
+
+  generateUserOperationAndPackedWithFreeGasPayMaster(
+    signType: SignType,
+    role: Hex,
+    userOperationDraft: Omit<UserOperationDraft, "paymasterAndData">,
+    freeGasPayMaster: Address
+  ): Promise<UserOperation>;
+
+  generateUserOperationAndPackedWithTokenPayMaster(
+    signType: SignType,
+    role: Hex,
+    userOperationDraft: Omit<UserOperationDraft, "paymasterAndData">,
+    tokenPayMaster: Address,
+    tokenAddress: Address,
+    exchangeRate: bigint
   ): Promise<UserOperation>;
 
   sendUserOperationSimulation(userOperation: UserOperation): Promise<any>;
