@@ -10,6 +10,7 @@ import {
   type Hex,
   hexToBytes,
   keccak256,
+  maxUint256,
   PublicClient,
   SignTypedDataParameters,
   type Transport,
@@ -32,8 +33,6 @@ import { initializeAccountABI } from "../abis/initializeAccount.abi";
 import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
 import { predictDeterministicAddress } from "../common/utils";
-import { boolean } from "hardhat/internal/core/params/argumentTypes";
-import { applyProviderWrappers } from "hardhat/internal/core/providers/construction";
 
 export class OKXSmartContractAccount<
   TTransport extends Transport = Transport,
@@ -355,7 +354,7 @@ export class OKXSmartContractAccount<
     return maxIndex;
   }
 
-  async batchGenerateNewAccountInfo(
+  async batchCreateNewAccountInfo(
     amount: number,
     executions: Hex[]
   ): Promise<AccountInfo[]> {
@@ -367,13 +366,13 @@ export class OKXSmartContractAccount<
       i++
     ) {
       accountInfos.push(
-        await this.generateNewAccountInfo(toBigInt(i), executions)
+        await this.createNewAccountInfo(toBigInt(i), executions)
       );
     }
     return accountInfos;
   }
 
-  async generateNewAccountInfo(
+  async createNewAccountInfo(
     index: bigint = toBigInt(0),
     executions: Hex[] = []
   ): Promise<AccountInfo> {
@@ -457,6 +456,34 @@ export class OKXSmartContractAccount<
     this.accountInfos.push(_accountInfo);
 
     return _accountInfo;
+  }
+
+  installValidator(
+    accountAddress: Address,
+    newValidatorAddress: Address,
+    validatorTemplate: Address = configuration.ECDSA_VALIDATOR_TEMPLATE_ADDRESS
+  ): Hex {
+    // encode the installation data;
+    const installation: Hex = encodeAbiParameters(
+      [
+        { name: "validFrom", type: "uint256" },
+        { name: "validUntil", type: "uint256" },
+        { name: "credential", type: "bytes" },
+      ],
+      [toBigInt(0), toBigInt(10000000000), newValidatorAddress]
+    );
+
+    const installValidator = encodeFunctionData({
+      abi: smartAccountV3ABI,
+      functionName: "installValidator",
+      args: [validatorTemplate, installation],
+    });
+
+    return encodeFunctionData({
+      abi: smartAccountV3ABI,
+      functionName: "execute",
+      args: [accountAddress, 0, installValidator],
+    });
   }
 
   extend = <R>(fn: (self: this) => R): this & R => {

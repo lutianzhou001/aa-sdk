@@ -7,7 +7,6 @@ import {
   PublicClient,
   WalletClient,
   parseEther,
-  zeroAddress,
 } from "viem";
 import { hardhat } from "viem/chains";
 import { walletClientSigner } from "../packages/plugins/signers/walletClientSigner";
@@ -51,7 +50,7 @@ async function smokeTest() {
 
   // STEP7: create a new account with index specified. You can use any number you like.
   // now we only get the new account information without deploy it on chain.
-  await smartAccount.generateNewAccountInfo(toBigInt(1325));
+  await smartAccount.createNewAccountInfo(toBigInt(8899));
 
   // STEP8: when we want to do a transaction, say, transfer some token to other people, we then deploy this smart account.
   const simpleTransferCalldata = await smartAccount.encodeExecute({
@@ -106,8 +105,35 @@ async function smokeTest() {
   });
   console.log(balance);
 
+  // install a new validator
+  const newValidator = smartAccount.installValidator(
+    smartAccount.getAccountInfos()[0].accountAddress,
+    "0xc5062aA0a705c1eFd24C8A94B0Da026aF0022Db4"
+  );
+
+  // prepareUop
+  const preparedUserOperationNewValidator: UserOperation =
+    await smartAccount.generateUserOperationAndPacked(
+      "EIP191",
+      smartAccount.getAccountInfos()[0].accountAddress,
+      // this is a ROLE message, will be useful in the smart-account v4
+      "0xDEADBEEF" as Hex,
+      {
+        callData: newValidator,
+      }
+    );
+
+  const userOperationNewValidatorSimulationResponse =
+    await smartAccount.sendUserOperationSimulation(
+      preparedUserOperationNewValidator
+    );
+
+  await smartAccount.execute(
+    userOperationNewValidatorSimulationResponse.request
+  );
+
   // we support batch generate new account information.
-  const batchNewInfos = await smartAccount.batchGenerateNewAccountInfo(10, []);
+  const batchNewInfos = await smartAccount.batchCreateNewAccountInfo(10, []);
 }
 
 smokeTest();

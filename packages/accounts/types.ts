@@ -37,21 +37,19 @@ export interface ISmartContractAccount<
     | OKXSmartAccountSigner
     | undefined
 > {
+  getAccountInfo(accountAddress: Address, index: bigint): AccountInfo;
   getAccountInfos(): AccountInfo[];
 
-  getAccountInfo(accountAddress: Address, index: bigint): AccountInfo;
+  getOwner(): TOwner;
+  getFactoryAddress(): Address;
+  getEntryPointAddress(): Address;
 
-  generateNewAccountInfo(
-    index: bigint,
-    executions: Hex[]
-  ): Promise<AccountInfo>;
+  createNewAccountInfo(index: bigint, executions: Hex[]): Promise<AccountInfo>;
 
-  batchGenerateNewAccountInfo(
+  batchCreateNewAccountInfo(
     amount: number,
     executions: Hex[]
   ): Promise<AccountInfo[]>;
-
-  encodeExecute(args: ExecuteCallDataArgs): Promise<Hex>;
 
   generateUserOperation(
     role: Hex,
@@ -87,16 +85,17 @@ export interface ISmartContractAccount<
   ): Promise<bigint>;
 
   signUserOperationHash(uopHash: Hash): Promise<Hash>;
-
   signMessage(msg: string | Uint8Array | Hex): Promise<Hex>;
-
   signTypedData(params: SignTypedDataParameters): Promise<Hash>;
 
-  getOwner(): TOwner;
+  installValidator(
+    accountAddress: Address,
+    newValidatorAddress: Address,
+    validateTemplate: Address
+  ): Hex;
+  // uninstallValidator(): Promise<Hex>;
 
-  getFactoryAddress(): Address;
-
-  getEntryPointAddress(): Address;
+  encodeExecute(args: ExecuteCallDataArgs): Promise<Hex>;
 
   extend: <R>(extendFn: (self: this) => R) => this & R;
 
