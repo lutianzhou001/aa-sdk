@@ -14,7 +14,7 @@ export class createOKXSmartAccountParams<
 
   readonly name?: string;
 
-  readonly version?: string;
+  readonly version: Version;
 
   readonly owner: TSigner;
 
@@ -24,3 +24,5 @@ export class createOKXSmartAccountParams<
 
   readonly entryPointAddress?: Address;
 }
+
+export type Version = "2.0.0" | "3.0.0";

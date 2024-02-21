@@ -3,7 +3,7 @@ import { Address, Hex, SignTypedDataParameters, WalletClient } from "viem";
 export interface OKXSmartAccountSigner<TSinger = any> {
   signerType: string;
   signer: TSinger;
-  validatorTemplate: Address;
+  // validatorTemplate: Address;
 
   getAddress: () => Promise<Address>;
 

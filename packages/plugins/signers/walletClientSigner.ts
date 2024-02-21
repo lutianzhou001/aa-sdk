@@ -13,19 +13,14 @@ import { Address } from "abitype";
 export class walletClientSigner implements OKXSmartAccountSigner<WalletClient> {
   signerType: string;
   signer: WalletClient;
-  validatorTemplate: Address;
+  // validatorTemplate: Address;
 
-  constructor(
-    signer: WalletClient,
-    signerType: string,
-    validatorTemplate: Address = configuration.ECDSA_VALIDATOR_TEMPLATE_ADDRESS
-  ) {
+  constructor(signer: WalletClient, signerType: string) {
     this.signer = signer;
     if (!signerType) {
       throw new Error("Valid signerType param is required.");
     }
     this.signerType = signerType;
-    this.validatorTemplate = validatorTemplate;
   }
 
   getWalletClient(): WalletClient {

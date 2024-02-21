@@ -21,15 +21,22 @@ export type ExecuteCallDataArgs =
       callType: CallType | undefined;
     }[];
 
-export type AccountInfo = {
+export type AccountInfoV3 = AccountInfoV2 & {
+  authenticationManagerAddress: Address;
+};
+
+export type AccountInfoV2 = {
   initializeAccountData: Hex;
   initCode: Hex;
   index: bigint;
   accountAddress: Address;
   isDeployed: boolean;
-  authenticationManagerAddress: Address;
   defaultECDSAValidator: Address;
 };
+
+export type AccountInfo = AccountInfoV2 | AccountInfoV3;
+
+// export type ReturnGetEstimationGas = {};
 
 export interface ISmartContractAccount<
   TTransport extends Transport = Transport,
@@ -39,22 +46,27 @@ export interface ISmartContractAccount<
 > {
   getAccountInfo(accountAddress: Address, index: bigint): AccountInfo;
   getAccountInfos(): AccountInfo[];
+  generateUserOperationWithGasEstimation(
+    role: Hex,
+    userOperationDraft: UserOperationDraft
+  ): Promise<UserOperation>;
 
   getOwner(): TOwner;
   getFactoryAddress(): Address;
   getEntryPointAddress(): Address;
 
-  createNewAccountInfo(index: bigint, executions: Hex[]): Promise<AccountInfo>;
+  createNewAccountInfoV2(index: bigint): Promise<AccountInfoV2>;
+  batchCreateNewAccountInfoV2(amount: number): Promise<AccountInfoV2[]>;
 
-  batchCreateNewAccountInfo(
+  createNewAccountInfoV3(
+    index: bigint,
+    executions: Hex[]
+  ): Promise<AccountInfoV3>;
+
+  batchCreateNewAccountInfoV3(
     amount: number,
     executions: Hex[]
-  ): Promise<AccountInfo[]>;
-
-  generateUserOperation(
-    role: Hex,
-    userOperationDraft: UserOperationDraft
-  ): Promise<UserOperation>;
+  ): Promise<AccountInfoV3[]>;
 
   generateUserOperationAndPacked(
     signType: SignType,
@@ -79,7 +91,11 @@ export interface ISmartContractAccount<
     exchangeRate: bigint
   ): Promise<UserOperation>;
 
-  sendUserOperationSimulation(userOperation: UserOperation): Promise<any>;
+  sendUserOperationSimulationByPublicClient(
+    userOperation: UserOperation
+  ): Promise<any>;
+
+  sendUserOperationSimulationByAPI(userOperation: UserOperation): Promise<any>;
 
   sendFromEOASimulation(
     account: Address,
