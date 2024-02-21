@@ -92,6 +92,10 @@ async function smokeTest() {
   const userOperationSimulationResponse =
     await smartAccount.sendUserOperationSimulationByAPI(preparedUserOperation);
 
+  const userOperationRes = await smartAccount.sendUserOperationByAPI(
+    preparedUserOperation
+  );
+
   // estimateGase
   // await smartAccount.getEstimationGas(preparedUserOperation);
   //

@@ -432,8 +432,6 @@ export class OKXSmartContractAccount<
   async sendUserOperationSimulationByAPI(
     userOperation: UserOperation
   ): Promise<any> {
-    console.log([userOperation, this.entryPointAddress]);
-    console.log(userOperation);
     const req = {
       method: "post",
       maxBodyLength: Infinity,
@@ -447,12 +445,34 @@ export class OKXSmartContractAccount<
       data: JSON.stringify({
         id: 1,
         jsonrpc: "2.0",
-        method: "eth_estimateUserOperationGas",
+        method: "eth_simulateUserOperation",
         params: [userOperation, this.entryPointAddress],
       }),
     };
 
-    const res = await axios.request(req);
+    return await axios.request(req);
+  }
+
+  async sendUserOperationByAPI(userOperation: UserOperation): Promise<void> {
+    const req = {
+      method: "post",
+      maxBodyLength: Infinity,
+      url:
+        networkConfigurations.base_url +
+        "priapi/v5/wallet/smart-account/mp/137/eth_sendUserOperation",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: "locale=en-US",
+      },
+      data: JSON.stringify({
+        id: 1,
+        jsonrpc: "2.0",
+        method: "eth_sendUserOperation",
+        params: [userOperation, this.entryPointAddress],
+      }),
+    };
+
+    await axios.request(req);
   }
 
   async sendFromEOASimulation(
@@ -588,7 +608,7 @@ export class OKXSmartContractAccount<
         defaultUserOperationParams.CALL_GAS_LIMIT,
       verificationGasLimit:
         userOperationDraft.verificationGasLimit ??
-        res.data.result.preVerificationGas ??
+        res.data.result.verificationGasLimit ??
         defaultUserOperationParams.VERIFICATION_GAS_LIMIT,
       preVerificationGas:
         userOperationDraft.preVerificationGas ??

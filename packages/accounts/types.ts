@@ -96,6 +96,7 @@ export interface ISmartContractAccount<
   ): Promise<any>;
 
   sendUserOperationSimulationByAPI(userOperation: UserOperation): Promise<any>;
+  sendUserOperationByAPI(userOperation: UserOperation): Promise<void>;
 
   sendFromEOASimulation(
     account: Address,
