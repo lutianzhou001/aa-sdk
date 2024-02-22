@@ -1,6 +1,10 @@
 import type { Address } from "abitype";
 import type { Hash, Hex, SignTypedDataParameters, Transport } from "viem";
-import { OKXSmartAccountSigner, UserOperationDraft } from "../plugins/types";
+import {
+  OKXSmartAccountSigner,
+  Paymaster,
+  UserOperationDraft,
+} from "../plugins/types";
 import { UserOperation } from "permissionless/types/userOperation";
 
 export type CallType = "call" | "delegatecall";
@@ -23,6 +27,14 @@ export type ExecuteCallDataArgs =
 
 export type AccountInfoV3 = AccountInfoV2 & {
   authenticationManagerAddress: Address;
+};
+
+export type SupportedPayMaster = {
+  entryPoint: string;
+  paymaster: Address;
+  status: number;
+  tokens: Address[];
+  type: number;
 };
 
 export type AccountInfoV2 = {
@@ -48,7 +60,8 @@ export interface ISmartContractAccount<
   getAccountInfos(): AccountInfo[];
   generateUserOperationWithGasEstimation(
     role: Hex,
-    userOperationDraft: UserOperationDraft
+    userOperationDraft: UserOperationDraft,
+    paymaster?: Paymaster
   ): Promise<UserOperation>;
 
   getOwner(): TOwner;
@@ -72,37 +85,43 @@ export interface ISmartContractAccount<
     signType: SignType,
     role: Hex,
     userOperationDraft: UserOperationDraft,
-    _sigTime?: bigint
+    _sigTime?: bigint,
+    paymaster?: Paymaster
   ): Promise<UserOperation>;
 
-  generateUserOperationAndPackedWithFreeGasPayMaster(
-    signType: SignType,
-    role: Hex,
-    userOperationDraft: Omit<UserOperationDraft, "paymasterAndData">,
-    freeGasPayMaster: Address
-  ): Promise<UserOperation>;
-
-  generateUserOperationAndPackedWithTokenPayMaster(
-    signType: SignType,
-    role: Hex,
-    userOperationDraft: Omit<UserOperationDraft, "paymasterAndData">,
-    tokenPayMaster: Address,
-    tokenAddress: Address,
-    exchangeRate: bigint
-  ): Promise<UserOperation>;
-
-  sendUserOperationSimulationByPublicClient(
-    userOperation: UserOperation
-  ): Promise<any>;
+  // we get paymaster signature online.
+  // generateUserOperationAndPackedWithFreeGasPayMaster(
+  //   signType: SignType,
+  //   role: Hex,
+  //   userOperationDraft: Omit<UserOperationDraft, "paymasterAndData">,
+  //   freeGasPayMaster: Address
+  // ): Promise<UserOperation>;
+  //
+  // generateUserOperationAndPackedWithTokenPayMaster(
+  //   signType: SignType,
+  //   role: Hex,
+  //   userOperationDraft: Omit<UserOperationDraft, "paymasterAndData">,
+  //   tokenPayMaster: Address,
+  //   tokenAddress: Address,
+  //   exchangeRate: bigint
+  // ): Promise<UserOperation>;
 
   sendUserOperationSimulationByAPI(userOperation: UserOperation): Promise<any>;
   sendUserOperationByAPI(userOperation: UserOperation): Promise<void>;
+  generatePaymasterSignature(
+    userOperation: UserOperation,
+    paymaster: Paymaster
+  ): Promise<UserOperation>;
 
   sendFromEOASimulation(
     account: Address,
     to: Address,
     value: bigint,
     data: Hex
+  ): Promise<any>;
+
+  sendUserOperationSimulationByPublicClient(
+    userOperation: UserOperation
   ): Promise<any>;
 
   execute(request: any): Promise<any>;
@@ -123,6 +142,14 @@ export interface ISmartContractAccount<
     validateTemplate: Address
   ): Hex;
   // uninstallValidator(): Promise<Hex>;
+
+  getSupportedPaymasters(): Promise<SupportedPayMaster[]>;
+
+  getPaymasterSignature(
+    paymaster: Address,
+    token: Address,
+    userOperation: UserOperation
+  ): Promise<any>;
 
   encodeExecute(args: ExecuteCallDataArgs): Promise<Hex>;
 

@@ -1,6 +1,6 @@
-import { maxUint256, erc20Abi, encodeFunctionData, Address } from "viem";
+import { maxUint256, erc20Abi, encodeFunctionData, Address, Hex } from "viem";
 
-function approveCalldata(to: Address, amount: bigint = maxUint256) {
+export function approveCalldata(to: Address, amount: bigint = maxUint256): Hex {
   return encodeFunctionData({
     abi: erc20Abi,
     functionName: "approve",
@@ -8,7 +8,7 @@ function approveCalldata(to: Address, amount: bigint = maxUint256) {
   });
 }
 
-function transferCalldata(to: Address, amount: bigint = BigInt(0)) {
+export function transferCalldata(to: Address, amount: bigint = BigInt(0)): Hex {
   return encodeFunctionData({
     abi: erc20Abi,
     functionName: "transfer",

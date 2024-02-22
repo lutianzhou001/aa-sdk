@@ -14,6 +14,8 @@ import { OKXSmartContractAccount } from "../packages/accounts/OKXSmartAccount";
 import { toBigInt } from "ethers";
 import { Address } from "abitype";
 import { UserOperation } from "permissionless/types/userOperation";
+import { UserOperationDraft } from "../packages/plugins/types";
+import { approveCalldata } from "../packages/actions/erc20/erc20Calldata";
 
 async function smokeTest() {
   // STEP1: create an account from privateKey
@@ -60,8 +62,18 @@ async function smokeTest() {
   // STEP8: when we want to do a transaction, say, transfer some token to other people, we then deploy this smart account.
   const simpleTransferCalldata = await smartAccount.encodeExecute({
     to: "0x0000000000000000000000000000000000000001" as Address,
-    value: BigInt(1000),
+    value: BigInt(100),
     data: "0x",
+    callType: "call",
+  });
+
+  const simpleApproval = await smartAccount.encodeExecute({
+    to: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" as Address,
+    data: approveCalldata(
+      "0xfb4f3f12258976395b34304e2bfd76d15e0af44a",
+      parseEther("100")
+    ),
+    value: toBigInt(0),
     callType: "call",
   });
 
@@ -74,8 +86,15 @@ async function smokeTest() {
       {
         sender: smartAccount.getAccountInfos()[0].accountAddress,
         callData: simpleTransferCalldata,
+      },
+      undefined,
+      {
+        paymaster: "0xfb4f3f12258976395b34304e2bfd76d15e0af44a",
+        token: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
       }
     );
+
+  // const v = await smartAccount.getSupportedPaymasters();
 
   // transfer 0.1ETH to the address
   // await smartAccount
