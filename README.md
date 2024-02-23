@@ -27,4 +27,3 @@ yarn
 
 ## Usage
 feel free to use this smartAccount class
-![Screenshot 2024-02-18 at 00.08.51.png](..%2F..%2F..%2F..%2F..%2FDesktop%2FScreenshot%202024-02-18%20at%2000.08.51.png)

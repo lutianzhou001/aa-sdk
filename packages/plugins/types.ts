@@ -14,7 +14,7 @@ export interface OKXSmartAccountSigner<TSinger = any> {
   signTypedData: (params: SignTypedDataParameters) => Promise<Hex>;
 }
 
-export type Paymaster = {
+export type GeneratePaymasterSignatureType = {
   paymaster: Address;
   token: Address;
 };

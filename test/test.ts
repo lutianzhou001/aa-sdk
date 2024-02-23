@@ -8,13 +8,12 @@ import {
   WalletClient,
   parseEther,
 } from "viem";
-import { hardhat, polygon } from "viem/chains";
+import { polygon } from "viem/chains";
 import { walletClientSigner } from "../packages/plugins/signers/walletClientSigner";
 import { OKXSmartContractAccount } from "../packages/accounts/OKXSmartAccount";
 import { toBigInt } from "ethers";
 import { Address } from "abitype";
 import { UserOperation } from "permissionless/types/userOperation";
-import { UserOperationDraft } from "../packages/plugins/types";
 import { approveCalldata } from "../packages/actions/erc20/erc20Calldata";
 
 async function smokeTest() {
@@ -57,7 +56,7 @@ async function smokeTest() {
 
   // STEP7: create a new account with index specified. You can use any number you like.
   // now we only get the new account information without deploy it on chain.
-  await smartAccount.createNewAccountInfoV2(toBigInt(0));
+  await smartAccount.accountManager.createNewAccountInfoV2(toBigInt(0));
 
   // STEP8: when we want to do a transaction, say, transfer some token to other people, we then deploy this smart account.
   const simpleTransferCalldata = await smartAccount.encodeExecute({
@@ -84,7 +83,7 @@ async function smokeTest() {
       // this is a ROLE message, will be useful in the smart-account v4
       "0xDEADBEEF" as Hex,
       {
-        sender: smartAccount.getAccountInfos()[0].accountAddress,
+        sender: smartAccount.accountManager.getAccountInfos()[0].accountAddress,
         callData: simpleTransferCalldata,
       },
       undefined,
@@ -109,7 +108,9 @@ async function smokeTest() {
   //   });
 
   const userOperationSimulationResponse =
-    await smartAccount.sendUserOperationSimulationByAPI(preparedUserOperation);
+    await smartAccount.simulator.sendUserOperationSimulationByAPI(
+      preparedUserOperation
+    );
 
   const userOperationRes = await smartAccount.sendUserOperationByAPI(
     preparedUserOperation

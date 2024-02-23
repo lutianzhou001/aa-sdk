@@ -5,7 +5,6 @@ import {
   encodeAbiParameters,
   encodeFunctionData,
   encodePacked,
-  getCreate2Address,
   type Hash,
   type Hex,
   hexToBytes,
@@ -14,10 +13,8 @@ import {
   SignTypedDataParameters,
   toHex,
   type Transport,
-  WalletClient,
   zeroAddress,
 } from "viem";
-import { EntryPointABI } from "../abis/EntryPoint.abi";
 import {
   AccountInfo,
   AccountInfoV2,
@@ -28,8 +25,8 @@ import {
   SupportedPayMaster,
 } from "./types.js";
 import {
+  GeneratePaymasterSignatureType,
   OKXSmartAccountSigner,
-  Paymaster,
   UserOperationDraft,
 } from "../plugins/types";
 import {
@@ -37,26 +34,26 @@ import {
   defaultUserOperationParams,
   networkConfigurations,
 } from "../../configuration";
-import { smartAccountV3ABI } from "../abis/smartAccountV3.abi";
+import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
 import { createOKXSmartAccountParams } from "./createOKXSmartAccount.dto";
 import { toBigInt } from "ethers";
-import { accountFactoryV3ABI } from "../abis/accountFactoryV3.abi";
-import { initializeAccountABI } from "../abis/initializeAccount.abi";
 import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
-import { predictDeterministicAddress } from "../common/utils";
-import { smartAccountV2ABI } from "../abis/smartAccountV2.abi";
-import { accountFactoryV2ABI } from "../abis/accountFactoryV2.abi";
-import { network } from "hardhat";
+import { smartAccountV2ABI } from "../../abis/smartAccountV2.abi";
 import axios from "axios";
-import { getChain } from "@alchemy/aa-core";
+import { Simulator } from "./simulator/simulator";
+import { AccountManager } from "./acountMananger/accountManager";
+import { PaymasterManager } from "./paymasterManager/paymaster";
 
 export class OKXSmartContractAccount<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
   TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner
-> implements ISmartContractAccount<TTransport, TOwner>
+> implements ISmartContractAccount
 {
+  public accountManager: AccountManager;
+  public simulator: Simulator;
+  public paymasterManager: PaymasterManager;
   protected name: string;
   protected version: string;
   protected publicClient: PublicClient<TTransport, TChain>;
@@ -90,6 +87,23 @@ export class OKXSmartContractAccount<
       (params.version == "2.0.0"
         ? configuration.v2.VERSION
         : configuration.v3.VERSION);
+    // @ts-ignore
+    this.simulator = new Simulator({
+      publicClient: params.publicClient,
+      entryPointAddress: this.entryPointAddress,
+      owner: params.owner,
+    });
+    this.accountManager = new AccountManager({
+      publicClient: params.publicClient,
+      entryPointAddress: this.entryPointAddress,
+      owner: params.owner,
+      version: this.version,
+      factoryAddress: this.factoryAddress,
+    });
+    this.paymasterManager = new PaymasterManager({
+      publicClient: params.publicClient,
+      entryPointAddress: this.entryPointAddress,
+    });
   }
 
   async encodeExecute(args: ExecuteCallDataArgs): Promise<Hex> {
@@ -154,34 +168,16 @@ export class OKXSmartContractAccount<
     throw new Error("encodeUpgradeToAndCall not supported");
   };
 
-  async getNonce(
-    accountAddress: Address,
-    role: Hex, // for future use(v4)
-    validatorAddress?: Address
-  ): Promise<bigint> {
-    const accountInfo = this.getAccountInfo(accountAddress);
-    validatorAddress = validatorAddress ?? accountInfo.defaultECDSAValidator;
-    return await this.publicClient.readContract({
-      address: this.entryPointAddress,
-      abi: EntryPointABI,
-      functionName: "getNonce",
-      // TODO: add Role into consideration in the next version
-      args: [
-        accountInfo.accountAddress,
-        this.version == "2.0.0" ? toBigInt(0) : toBigInt(validatorAddress),
-      ],
-    });
-  }
-
   async generateUserOperationAndPacked(
     signType: SignType,
     role: Hex,
     userOperationDraft: UserOperationDraft,
     _sigTime: bigint = toBigInt(0),
-    paymaster?: Paymaster
+    paymaster?: GeneratePaymasterSignatureType
   ): Promise<UserOperation> {
-    const accountInfo = this.getAccountInfo(userOperationDraft.sender);
-
+    const accountInfo = this.accountManager.getAccountInfo(
+      userOperationDraft.sender
+    );
     const userOperationWithGasEstimated =
       await this.generateUserOperationWithGasEstimation(
         role,
@@ -189,7 +185,7 @@ export class OKXSmartContractAccount<
         paymaster
       );
     const userOperation = paymaster
-      ? await this.generatePaymasterSignature(
+      ? await this.paymasterManager.generatePaymasterSignature(
           userOperationWithGasEstimated,
           paymaster
         )
@@ -293,75 +289,6 @@ export class OKXSmartContractAccount<
     await this.owner.getWalletClient().writeContract(request);
   }
 
-  async generatePaymasterSignature(
-    userOperation: UserOperation,
-    paymaster: Paymaster
-  ): Promise<UserOperation> {
-    // query paymasterAndDataFrom the endpoint.
-    let config = {
-      method: "post",
-      maxBodyLength: Infinity,
-      url:
-        "https://www.okx.com/priapi/v5/wallet/smart-account/pm/" +
-        String(await getChainId(this.publicClient as Client)) +
-        "/getPaymasterSignature",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: "locale=en-US",
-      },
-      data: JSON.stringify({
-        entryPoint: this.entryPointAddress,
-        token: paymaster.token,
-        paymaster: paymaster.paymaster,
-        uop: userOperation,
-      }),
-    };
-
-    const res = await axios.request(config);
-    userOperation.paymasterAndData = res.data.result;
-    return userOperation;
-  }
-
-  async sendUserOperationSimulationByPublicClient(
-    userOperation: UserOperation
-  ): Promise<any> {
-    const account = await this.owner.getAddress();
-    return await this.publicClient.simulateContract({
-      account: account,
-      address: this.entryPointAddress,
-      abi: EntryPointABI,
-      functionName: "handleOps",
-      args: [[userOperation], account],
-    });
-  }
-
-  async sendUserOperationSimulationByAPI(
-    userOperation: UserOperation
-  ): Promise<any> {
-    const req = {
-      method: "post",
-      maxBodyLength: Infinity,
-      url:
-        networkConfigurations.base_url +
-        "priapi/v5/wallet/smart-account/mp/" +
-        String(await getChainId(this.publicClient as Client)) +
-        "/eth_simulateUserOperation",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: "locale=en-US",
-      },
-      data: JSON.stringify({
-        id: 1,
-        jsonrpc: "2.0",
-        method: "eth_simulateUserOperation",
-        params: [userOperation, this.entryPointAddress],
-      }),
-    };
-    const res = await axios.request(req);
-
-    return (await axios.request(req)).data.result;
-  }
-
   async sendUserOperationByAPI(userOperation: UserOperation): Promise<void> {
     const req = {
       method: "post",
@@ -386,22 +313,6 @@ export class OKXSmartContractAccount<
     await axios.request(req);
   }
 
-  async sendFromEOASimulation(
-    account: Address,
-    to: Address,
-    value: bigint,
-    data: Hex
-  ): Promise<any> {
-    const sender = await this.owner.getAddress();
-    return await this.publicClient.simulateContract({
-      account: sender,
-      address: account,
-      abi: smartAccountV3ABI,
-      functionName: "executeFromEOA",
-      args: [to, value, data],
-    });
-  }
-
   private async getSigTime(isPaymaster: boolean) {
     if (isPaymaster) {
       // sigTime = sigTime * (BigInt("2") ** BigInt(160));
@@ -414,27 +325,15 @@ export class OKXSmartContractAccount<
     }
   }
 
-  private async updateDeployment(
-    publicClient: PublicClient,
-    accountAddress: Address
-  ): Promise<boolean> {
-    const contractCode =
-      (await publicClient.getBytecode({
-        address: accountAddress,
-      })) ?? "0x";
-
-    return contractCode.length > 2;
-  }
-
   async generateUserOperationWithGasEstimation(
     role: Hex,
     userOperationDraft: UserOperationDraft,
-    paymaster?: Paymaster
+    paymaster?: GeneratePaymasterSignatureType
   ): Promise<UserOperation> {
-    const accountInfo: AccountInfo = this.getAccountInfo(
+    const accountInfo: AccountInfo = this.accountManager.getAccountInfo(
       userOperationDraft.sender
     );
-    const isDeployed: boolean = await this.updateDeployment(
+    const isDeployed: boolean = await this.accountManager.updateDeployment(
       this.publicClient,
       accountInfo.accountAddress
     );
@@ -445,7 +344,7 @@ export class OKXSmartContractAccount<
         const accountInfoV2 = accountInfo as AccountInfoV2;
         nonce = userOperationDraft.nonce
           ? userOperationDraft.nonce
-          : await this.getNonce(
+          : await this.accountManager.getNonce(
               accountInfoV2.accountAddress,
               role,
               zeroAddress
@@ -454,7 +353,7 @@ export class OKXSmartContractAccount<
         const accountInfoV3 = accountInfo as AccountInfoV3;
         nonce = userOperationDraft.nonce
           ? userOperationDraft.nonce
-          : await this.getNonce(
+          : await this.accountManager.getNonce(
               accountInfoV3.accountAddress,
               role,
               accountInfoV3.defaultECDSAValidator
@@ -547,266 +446,6 @@ export class OKXSmartContractAccount<
           : defaultUserOperationParams.MAX_PRIORITY_FEE_PER_GAS
       ) as any,
     };
-  }
-
-  getAccountInfos(): AccountInfo[] {
-    return this.accountInfos;
-  }
-
-  getAccountInfo(accountAddress: Address): AccountInfo {
-    for (const accountInfo of this.accountInfos) {
-      if (accountInfo.accountAddress === accountAddress) {
-        return accountInfo;
-      }
-    }
-    throw new Error("no initialization info found");
-  }
-
-  private getMaxAccountIndex(): bigint {
-    let maxIndex = toBigInt(0);
-    for (const accountInfo of this.accountInfos) {
-      if (accountInfo.index > maxIndex) {
-        maxIndex = accountInfo.index;
-      }
-    }
-    return maxIndex;
-  }
-
-  async batchCreateNewAccountInfoV2(amount: number): Promise<AccountInfoV2[]> {
-    const maxAccountIndex = this.getMaxAccountIndex();
-    let accountInfos: AccountInfoV2[] = [];
-    for (
-      let i = maxAccountIndex + toBigInt(1);
-      i < maxAccountIndex + toBigInt(1) + toBigInt(amount);
-      i++
-    ) {
-      accountInfos.push(await this.createNewAccountInfoV2(toBigInt(i)));
-    }
-    return accountInfos;
-  }
-
-  async createNewAccountInfoV2(
-    index: bigint = toBigInt(0)
-  ): Promise<AccountInfoV2> {
-    if (this.version == "3.0.0") {
-      throw new Error("This function is not supported in version 3.0.0");
-    }
-    const initializeAccountData = encodeAbiParameters(
-      [
-        {
-          name: "creator",
-          type: "address",
-        },
-        { name: "init", type: "bytes" },
-      ],
-      [await this.owner.getAddress(), "0x"]
-    );
-
-    const salt = keccak256(
-      encodePacked(
-        ["address", "uint256"],
-        [await this.owner.getAddress(), index]
-      )
-    );
-
-    const accountAddress = getCreate2Address({
-      from: this.factoryAddress,
-      salt: salt,
-      bytecodeHash: configuration.v2.CREATION_CODE,
-    });
-
-    const initCode = encodePacked(
-      ["address", "bytes"],
-      [
-        this.factoryAddress,
-        encodeFunctionData({
-          abi: accountFactoryV2ABI,
-          functionName: "createAccount",
-          args: [
-            configuration.v2.SMART_ACCOUNT_TEMPLATE_ADDRESS,
-            initializeAccountData,
-            index,
-          ],
-        }),
-      ]
-    );
-
-    const isDeployed = await this.updateDeployment(
-      this.publicClient,
-      accountAddress
-    );
-
-    const _accountInfo: AccountInfoV2 = {
-      initializeAccountData: initializeAccountData,
-      accountAddress: accountAddress,
-      index: index,
-      defaultECDSAValidator: await this.owner.getAddress(),
-      initCode: initCode,
-      isDeployed: isDeployed,
-    };
-
-    for (const accountInfo of this.accountInfos) {
-      if (accountInfo.index === index) {
-        accountInfo.accountAddress = _accountInfo.accountAddress;
-        accountInfo.initCode = _accountInfo.initCode;
-        accountInfo.initializeAccountData = _accountInfo.initializeAccountData;
-        accountInfo.isDeployed = _accountInfo.isDeployed;
-      }
-    }
-
-    this.accountInfos.push(_accountInfo);
-
-    return _accountInfo;
-  }
-
-  async batchCreateNewAccountInfoV3(
-    amount: number,
-    executions: Hex[]
-  ): Promise<AccountInfoV3[]> {
-    const maxAccountIndex = this.getMaxAccountIndex();
-    let accountInfos: AccountInfoV3[] = [];
-    for (
-      let i = maxAccountIndex + toBigInt(1);
-      i < maxAccountIndex + toBigInt(1) + toBigInt(amount);
-      i++
-    ) {
-      accountInfos.push(
-        await this.createNewAccountInfoV3(toBigInt(i), executions)
-      );
-    }
-    return accountInfos;
-  }
-
-  async createNewAccountInfoV3(
-    index: bigint = toBigInt(0),
-    executions: Hex[] = []
-  ): Promise<AccountInfoV3> {
-    if (this.version == "2.0.0") {
-      throw new Error("This function is not supported in version 2.0.0");
-    }
-    // @ts-ignore
-    const initializeData = encodeAbiParameters(initializeAccountABI[0].inputs, [
-      // @ts-ignore
-      await this.owner.getAddress(),
-      // @ts-ignore
-      configuration.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
-      // @ts-ignore
-      executions,
-    ]);
-
-    const initializeAccountData = encodeFunctionData({
-      abi: smartAccountV3ABI,
-      functionName: "initializeAccount",
-      args: [initializeData],
-    });
-
-    const initCode = encodePacked(
-      ["address", "bytes"],
-      [
-        this.factoryAddress,
-        encodeFunctionData({
-          abi: accountFactoryV3ABI,
-          functionName: "createAccount",
-          args: [
-            configuration.v3.SMART_ACCOUNT_TEMPLATE_ADDRESS,
-            initializeAccountData,
-            index,
-          ],
-        }),
-      ]
-    );
-
-    const salt: Hash = keccak256(
-      encodePacked(["bytes", "uint256"], [initializeAccountData, index])
-    );
-
-    const accountAddress = getCreate2Address({
-      from: this.factoryAddress,
-      salt: salt,
-      bytecodeHash: keccak256(configuration.v3.SMART_ACCOUNT_PROXY_CODE),
-    });
-
-    const authenticationManagerAddress: Address = predictDeterministicAddress(
-      configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
-      configuration.v3.VERSION_HASH,
-      accountAddress
-    );
-
-    const defaultECDSAValidator: Address = predictDeterministicAddress(
-      configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
-      keccak256(encodePacked(["bytes"], [await this.owner.getAddress()])),
-      authenticationManagerAddress
-    );
-
-    const isDeployed = await this.updateDeployment(
-      this.publicClient,
-      accountAddress
-    );
-
-    const _accountInfo: AccountInfoV3 = {
-      initializeAccountData,
-      initCode,
-      index,
-      accountAddress,
-      isDeployed,
-      authenticationManagerAddress,
-      defaultECDSAValidator: defaultECDSAValidator,
-    };
-
-    for (const accountInfo of this.accountInfos) {
-      if (accountInfo.index === index) {
-        accountInfo.accountAddress = _accountInfo.accountAddress;
-        accountInfo.initCode = _accountInfo.initCode;
-        accountInfo.initializeAccountData = _accountInfo.initializeAccountData;
-        accountInfo.isDeployed = _accountInfo.isDeployed;
-      }
-    }
-    this.accountInfos.push(_accountInfo);
-
-    return _accountInfo;
-  }
-
-  async getSupportedPaymasters(): Promise<SupportedPayMaster[]> {
-    const config = {
-      method: "get",
-      maxBodyLength: Infinity,
-      url:
-        "https://www.okx.com/priapi/v5/wallet/smart-account/pm/supportedPaymasters?chainBizId=" +
-        String(await getChainId(this.publicClient as Client)),
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: "locale=en-US",
-      },
-    };
-
-    return (await axios.request(config)).data.result;
-  }
-
-  async getPaymasterSignature(
-    paymaster: Address,
-    token: Address,
-    userOperation: UserOperation
-  ): Promise<any> {
-    const config = {
-      method: "post",
-      maxBodyLength: Infinity,
-      url:
-        "https://www.okx.com/priapi/v5/wallet/smart-account/mp/" +
-        String(await getChainId(this.publicClient as Client)) +
-        "/getPaymasterSignature",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: "locale=en-US",
-      },
-      data: {
-        entryPoint: this.entryPointAddress,
-        paymaster: paymaster,
-        token: token,
-        uop: userOperation,
-      },
-    };
-
-    const res = await axios.request(config);
   }
 
   installValidator(
@@ -1009,16 +648,4 @@ export class OKXSmartContractAccount<
     }
     return Object.assign(this, extended);
   };
-
-  getOwner(): TOwner {
-    return this.owner;
-  }
-
-  getFactoryAddress(): Address {
-    return this.factoryAddress;
-  }
-
-  getEntryPointAddress(): Address {
-    return this.entryPointAddress;
-  }
 }
