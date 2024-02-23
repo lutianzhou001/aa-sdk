@@ -49,6 +49,7 @@ import { smartAccountV2ABI } from "../abis/smartAccountV2.abi";
 import { accountFactoryV2ABI } from "../abis/accountFactoryV2.abi";
 import { network } from "hardhat";
 import axios from "axios";
+import { getChain } from "@alchemy/aa-core";
 
 export class OKXSmartContractAccount<
   TTransport extends Transport = Transport,
@@ -300,7 +301,10 @@ export class OKXSmartContractAccount<
     let config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://www.okx.com/priapi/v5/wallet/smart-account/pm/137/getPaymasterSignature",
+      url:
+        "https://www.okx.com/priapi/v5/wallet/smart-account/pm/" +
+        String(await getChainId(this.publicClient as Client)) +
+        "/getPaymasterSignature",
       headers: {
         "Content-Type": "application/json",
         Cookie: "locale=en-US",
@@ -339,7 +343,9 @@ export class OKXSmartContractAccount<
       maxBodyLength: Infinity,
       url:
         networkConfigurations.base_url +
-        "priapi/v5/wallet/smart-account/mp/137/eth_simulateUserOperation",
+        "priapi/v5/wallet/smart-account/mp/" +
+        String(await getChainId(this.publicClient as Client)) +
+        "/eth_simulateUserOperation",
       headers: {
         "Content-Type": "application/json",
         Cookie: "locale=en-US",
@@ -362,7 +368,9 @@ export class OKXSmartContractAccount<
       maxBodyLength: Infinity,
       url:
         networkConfigurations.base_url +
-        "priapi/v5/wallet/smart-account/mp/137/eth_sendUserOperation",
+        "priapi/v5/wallet/smart-account/mp/" +
+        String(await getChainId(this.publicClient as Client)) +
+        "/eth_sendUserOperation",
       headers: {
         "Content-Type": "application/json",
         Cookie: "locale=en-US",
@@ -492,7 +500,10 @@ export class OKXSmartContractAccount<
     const config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://www.okx.com/priapi/v5/wallet/smart-account/mp/137/eth_estimateUserOperationGas",
+      url:
+        "https://www.okx.com/priapi/v5/wallet/smart-account/mp/" +
+        String(await getChainId(this.publicClient as Client)) +
+        "/eth_estimateUserOperationGas",
       headers: {
         "Content-Type": "application/json",
         Cookie: "locale=en-US",
@@ -759,7 +770,9 @@ export class OKXSmartContractAccount<
     const config = {
       method: "get",
       maxBodyLength: Infinity,
-      url: "https://www.okx.com/priapi/v5/wallet/smart-account/pm/supportedPaymasters?chainBizId=137",
+      url:
+        "https://www.okx.com/priapi/v5/wallet/smart-account/pm/supportedPaymasters?chainBizId=" +
+        String(await getChainId(this.publicClient as Client)),
       headers: {
         "Content-Type": "application/json",
         Cookie: "locale=en-US",
@@ -777,7 +790,10 @@ export class OKXSmartContractAccount<
     const config = {
       method: "post",
       maxBodyLength: Infinity,
-      url: "https://www.okx.com/priapi/v5/wallet/smart-account/mp/137/getPaymasterSignature",
+      url:
+        "https://www.okx.com/priapi/v5/wallet/smart-account/mp/" +
+        String(await getChainId(this.publicClient as Client)) +
+        "/getPaymasterSignature",
       headers: {
         "Content-Type": "application/json",
         Cookie: "locale=en-US",
