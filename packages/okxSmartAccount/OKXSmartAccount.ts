@@ -9,34 +9,28 @@ import {
   type Hex,
   hexToBytes,
   keccak256,
-  PublicClient,
+  publicActions,
   SignTypedDataParameters,
   toHex,
   type Transport,
+  WalletClient,
   zeroAddress,
 } from "viem";
 import {
-  AccountInfo,
-  AccountInfoV2,
-  AccountInfoV3,
+  Account,
+  AccountV2,
+  AccountV3,
   ExecuteCallDataArgs,
   ISmartContractAccount,
-  SignType,
-  SupportedPayMaster,
 } from "./types.js";
-import {
-  GeneratePaymasterSignatureType,
-  OKXSmartAccountSigner,
-  UserOperationDraft,
-} from "../plugins/types";
+import { OKXSmartAccountSigner, UserOperationDraft } from "../plugins/types";
 import {
   configuration,
   defaultUserOperationParams,
   networkConfigurations,
 } from "../../configuration";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
-import { createOKXSmartAccountParams } from "./createOKXSmartAccount.dto";
-import { toBigInt } from "ethers";
+import { toBigInt, Wallet } from "ethers";
 import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
 import { smartAccountV2ABI } from "../../abis/smartAccountV2.abi";
@@ -44,6 +38,12 @@ import axios from "axios";
 import { Simulator } from "./simulator/simulator";
 import { AccountManager } from "./acountMananger/accountManager";
 import { PaymasterManager } from "./paymasterManager/paymaster";
+import {
+  GeneratePaymasterSignatureType,
+  GenerateUserOperationAndPackedParams,
+} from "./dto/generateUserOperationAndPackedParams.dto";
+import { CreateOKXSmartAccountParams } from "./dto/createOKXSmartAccount.dto";
+import { walletClientSigner } from "../plugins/signers/walletClientSigner";
 
 export class OKXSmartContractAccount<
   TTransport extends Transport = Transport,
@@ -56,19 +56,19 @@ export class OKXSmartContractAccount<
   public paymasterManager: PaymasterManager;
   protected name: string;
   protected version: string;
-  protected publicClient: PublicClient<TTransport, TChain>;
-  // protected walletClient: WalletClient<TTransport, TChain>;
-  protected factoryAddress: Address;
-  protected accountInfos: AccountInfo[];
   protected owner: TOwner;
+  protected factoryAddress: Address;
+  protected accounts: Account[];
   protected entryPointAddress: Address;
 
-  constructor(params: createOKXSmartAccountParams<TTransport, TChain, TOwner>) {
+  constructor(params: CreateOKXSmartAccountParams<TTransport, TChain, TOwner>) {
     if (!params.version) {
       throw new Error("version is required");
     }
-    this.owner = params.owner as TOwner;
-    this.publicClient = params.publicClient;
+    this.owner = new walletClientSigner(
+      params.walletClient as WalletClient,
+      "admin"
+    ) as TOwner;
     this.entryPointAddress =
       params.entryPointAddress ?? configuration.entryPoint.v0_6_0;
     this.factoryAddress =
@@ -76,7 +76,7 @@ export class OKXSmartContractAccount<
       (params.version == "2.0.0"
         ? configuration.v2.FACTORY_ADDRESS
         : configuration.v3.FACTORY_ADDRESS);
-    this.accountInfos = params.accountInfos ?? [];
+    this.accounts = params.accounts ?? [];
     this.name =
       params.name ??
       (params.version == "2.0.0"
@@ -89,19 +89,17 @@ export class OKXSmartContractAccount<
         : configuration.v3.VERSION);
     // @ts-ignore
     this.simulator = new Simulator({
-      publicClient: params.publicClient,
       entryPointAddress: this.entryPointAddress,
-      owner: params.owner,
+      owner: this.owner,
     });
     this.accountManager = new AccountManager({
-      publicClient: params.publicClient,
+      owner: this.owner,
       entryPointAddress: this.entryPointAddress,
-      owner: params.owner,
       version: this.version,
       factoryAddress: this.factoryAddress,
     });
     this.paymasterManager = new PaymasterManager({
-      publicClient: params.publicClient,
+      walletClient: this.owner.getWalletClient(),
       entryPointAddress: this.entryPointAddress,
     });
   }
@@ -169,47 +167,39 @@ export class OKXSmartContractAccount<
   };
 
   async generateUserOperationAndPacked(
-    signType: SignType,
-    role: Hex,
-    userOperationDraft: UserOperationDraft,
-    _sigTime: bigint = toBigInt(0),
-    paymaster?: GeneratePaymasterSignatureType
+    params: GenerateUserOperationAndPackedParams
   ): Promise<UserOperation> {
-    const accountInfo = this.accountManager.getAccountInfo(
-      userOperationDraft.sender
-    );
+    const account = this.accountManager.getAccount(params.uop.sender);
     const userOperationWithGasEstimated =
       await this.generateUserOperationWithGasEstimation(
-        role,
-        userOperationDraft,
-        paymaster
+        params.uop,
+        params.role as Hex,
+        params.paymaster
       );
-    const userOperation = paymaster
+    const userOperation = params.paymaster
       ? await this.paymasterManager.generatePaymasterSignature(
           userOperationWithGasEstimated,
-          paymaster
+          params.paymaster
         )
       : userOperationWithGasEstimated;
     const sigTime =
-      _sigTime == toBigInt(0)
-        ? await this.getSigTime(userOperationDraft.paymasterAndData == "0x")
-        : _sigTime;
-    if (signType == "EIP712") {
+      params._sigTime ?? (await this.getSigTime("paymaster" in params));
+    if (params.signType == "EIP712") {
       let domain: any;
       if (this.version == "2.0.0") {
-        const accountInfoV2 = accountInfo as AccountInfoV2;
+        const accountV2 = account as AccountV2;
         domain = {
           version: this.version,
-          chainId: await getChainId(this.publicClient as Client),
-          verifyingContract: accountInfoV2.accountAddress,
+          chainId: await getChainId(this.owner.getWalletClient() as Client),
+          verifyingContract: accountV2.accountAddress,
         };
       } else {
-        const accountInfoV3 = accountInfo as AccountInfoV3;
+        const accountV3 = account as AccountV3;
         domain = {
           name: this.name,
           version: this.version,
-          chainId: await getChainId(this.publicClient as Client),
-          verifyingContract: accountInfoV3.authenticationManagerAddress,
+          chainId: await getChainId(this.owner.getWalletClient() as Client),
+          verifyingContract: accountV3.authenticationManagerAddress,
         };
       }
       const types = {
@@ -233,7 +223,7 @@ export class OKXSmartContractAccount<
         EntryPoint: this.entryPointAddress,
         sigTime: sigTime,
       };
-      const signature = this.owner.signer.signTypedData({
+      const signature = await this.owner.signer.signTypedData({
         domain: domain,
         types: types,
         message: value,
@@ -261,7 +251,7 @@ export class OKXSmartContractAccount<
           { name: "sigTime", type: "uint256" },
         ],
         [
-          toBigInt(await getChainId(this.publicClient as Client)),
+          toBigInt(await getChainId(this.owner.getWalletClient() as Client)),
           userOperation.sender,
           userOperation.nonce,
           keccak256(userOperation.initCode),
@@ -289,14 +279,16 @@ export class OKXSmartContractAccount<
     await this.owner.getWalletClient().writeContract(request);
   }
 
-  async sendUserOperationByAPI(userOperation: UserOperation): Promise<void> {
+  async sendUserOperationByOKXBundler(
+    userOperation: UserOperation
+  ): Promise<void> {
     const req = {
       method: "post",
       maxBodyLength: Infinity,
       url:
         networkConfigurations.base_url +
         "priapi/v5/wallet/smart-account/mp/" +
-        String(await getChainId(this.publicClient as Client)) +
+        String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_sendUserOperation",
       headers: {
         "Content-Type": "application/json",
@@ -310,7 +302,12 @@ export class OKXSmartContractAccount<
       }),
     };
 
-    await axios.request(req);
+    const res = await axios.request(req);
+    if (res.data.error) {
+      throw new Error(res.data.error.message);
+    } else {
+      return res.data.result;
+    }
   }
 
   private async getSigTime(isPaymaster: boolean) {
@@ -320,43 +317,46 @@ export class OKXSmartContractAccount<
         "0x000000000000ffffffffffff0000000000000000000000000000000000000000"
       );
     } else {
-      const block = await this.publicClient.getBlock();
+      const block = await this.owner
+        .getWalletClient()
+        .extend(publicActions)
+        .getBlock();
       return toBigInt(block.timestamp) + toBigInt(100000);
     }
   }
 
   async generateUserOperationWithGasEstimation(
-    role: Hex,
     userOperationDraft: UserOperationDraft,
+    role: Hex,
     paymaster?: GeneratePaymasterSignatureType
   ): Promise<UserOperation> {
-    const accountInfo: AccountInfo = this.accountManager.getAccountInfo(
+    const account: Account = this.accountManager.getAccount(
       userOperationDraft.sender
     );
     const isDeployed: boolean = await this.accountManager.updateDeployment(
-      this.publicClient,
-      accountInfo.accountAddress
+      this.owner.getWalletClient(),
+      account.accountAddress
     );
 
     let nonce: bigint;
     if (isDeployed) {
       if (this.version == "2.0.0") {
-        const accountInfoV2 = accountInfo as AccountInfoV2;
+        const accountV2 = account as AccountV2;
         nonce = userOperationDraft.nonce
           ? userOperationDraft.nonce
           : await this.accountManager.getNonce(
-              accountInfoV2.accountAddress,
+              accountV2.accountAddress,
               role,
               zeroAddress
             );
       } else {
-        const accountInfoV3 = accountInfo as AccountInfoV3;
+        const accountV3 = account as AccountV3;
         nonce = userOperationDraft.nonce
           ? userOperationDraft.nonce
           : await this.accountManager.getNonce(
-              accountInfoV3.accountAddress,
+              accountV3.accountAddress,
               role,
-              accountInfoV3.defaultECDSAValidator
+              accountV3.defaultECDSAValidator
             );
       }
     } else {
@@ -365,11 +365,10 @@ export class OKXSmartContractAccount<
 
     const userOperationForEstimationGas = [
       {
-        sender: accountInfo.accountAddress,
+        sender: account.accountAddress,
         nonce: toHex(nonce),
         initCode:
-          userOperationDraft.initCode ??
-          (isDeployed ? "0x" : accountInfo.initCode),
+          userOperationDraft.initCode ?? (isDeployed ? "0x" : account.initCode),
         callData: userOperationDraft.callData ?? "0x",
         callGasLimit: "0x0",
         verificationGasLimit: "0x0",
@@ -401,7 +400,7 @@ export class OKXSmartContractAccount<
       maxBodyLength: Infinity,
       url:
         "https://www.okx.com/priapi/v5/wallet/smart-account/mp/" +
-        String(await getChainId(this.publicClient as Client)) +
+        String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_estimateUserOperationGas",
       headers: {
         "Content-Type": "application/json",
@@ -411,13 +410,15 @@ export class OKXSmartContractAccount<
     };
 
     const res = await axios.request(config);
+    if (res.data.error) {
+      throw new Error(res.data.error.message);
+    }
 
     return {
-      sender: accountInfo.accountAddress,
+      sender: account.accountAddress,
       nonce: toHex(nonce) as any, //nonce,
       initCode:
-        userOperationDraft.initCode ??
-        (isDeployed ? "0x" : accountInfo.initCode),
+        userOperationDraft.initCode ?? (isDeployed ? "0x" : account.initCode),
       callData: userOperationDraft.callData ?? "0x",
       paymasterAndData: userOperationDraft.paymasterAndData
         ? userOperationDraft.paymasterAndData

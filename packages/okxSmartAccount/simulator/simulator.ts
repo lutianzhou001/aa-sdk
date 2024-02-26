@@ -1,4 +1,12 @@
-import { Address, Chain, Client, Hex, PublicClient, Transport } from "viem";
+import {
+  Address,
+  Chain,
+  Client,
+  Hex,
+  publicActions,
+  PublicClient,
+  Transport,
+} from "viem";
 import { UserOperation } from "permissionless/types/userOperation";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
 import { createSimulatorParams } from "./createSimulatorParams.dto";
@@ -15,11 +23,9 @@ export class Simulator<
   TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner
 > implements ISimulator
 {
-  protected publicClient: PublicClient<TTransport, TChain>;
   protected owner: TOwner;
   protected entryPointAddress: Address;
   constructor(params: createSimulatorParams<TTransport, TChain, TOwner>) {
-    this.publicClient = params.publicClient;
     this.owner = params.owner as TOwner;
     this.entryPointAddress = params.entryPointAddress;
   }
@@ -31,33 +37,35 @@ export class Simulator<
     data: Hex
   ): Promise<any> {
     const sender = await this.owner.getAddress();
-    return await this.publicClient.simulateContract({
-      account: sender,
-      address: account,
-      abi: smartAccountV3ABI,
-      functionName: "executeFromEOA",
-      args: [to, value, data],
-    });
+    return await this.owner
+      .getWalletClient()
+      .extend(publicActions)
+      .simulateContract({
+        account: sender,
+        address: account,
+        abi: smartAccountV3ABI,
+        functionName: "executeFromEOA",
+        args: [to, value, data],
+      });
   }
 
   async sendUserOperationSimulationByPublicClient(
     userOperation: UserOperation
   ): Promise<any> {
     const sender = await this.owner.getAddress();
-    return await this.publicClient.simulateContract({
-      account: sender,
-      address: this.entryPointAddress,
-      abi: EntryPointABI,
-      functionName: "handleOps",
-      args: [[userOperation], sender],
-    });
+    return await this.owner
+      .getWalletClient()
+      .extend(publicActions)
+      .simulateContract({
+        account: sender,
+        address: this.entryPointAddress,
+        abi: EntryPointABI,
+        functionName: "handleOps",
+        args: [[userOperation], sender],
+      });
   }
 
-  sendUserOperationByAPI(userOperation: UserOperation): Promise<void> {
-    return Promise.resolve(undefined);
-  }
-
-  async sendUserOperationSimulationByAPI(
+  async sendUserOperationSimulationByOKXBundler(
     userOperation: UserOperation
   ): Promise<any> {
     const req = {
@@ -66,7 +74,7 @@ export class Simulator<
       url:
         networkConfigurations.base_url +
         "priapi/v5/wallet/smart-account/mp/" +
-        String(await getChainId(this.publicClient as Client)) +
+        String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_simulateUserOperation",
       headers: {
         "Content-Type": "application/json",
@@ -79,8 +87,12 @@ export class Simulator<
         params: [userOperation, this.entryPointAddress],
       }),
     };
-    const res = await axios.request(req);
 
-    return (await axios.request(req)).data.result;
+    const res = await axios.request(req);
+    if (res.data.error) {
+      throw new Error(res.data.error.message);
+    } else {
+      return res.data.result;
+    }
   }
 }

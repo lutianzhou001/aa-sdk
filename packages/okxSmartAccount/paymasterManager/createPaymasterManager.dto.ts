@@ -5,7 +5,7 @@ export class createPaymasterParams<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined
 > {
-  readonly publicClient: PublicClient<TTransport, TChain>;
+  readonly walletClient: WalletClient<TTransport, TChain>;
 
   readonly entryPointAddress: Address;
 }

@@ -1,10 +1,11 @@
 import type { Address } from "abitype";
 import type { Hash, Hex, SignTypedDataParameters, Transport } from "viem";
+import { UserOperationDraft } from "../plugins/types";
+import { UserOperation } from "permissionless/types/userOperation";
 import {
   GeneratePaymasterSignatureType,
-  UserOperationDraft,
-} from "../plugins/types";
-import { UserOperation } from "permissionless/types/userOperation";
+  GenerateUserOperationAndPackedParams,
+} from "./dto/generateUserOperationAndPackedParams.dto";
 
 export type CallType = "call" | "delegatecall";
 
@@ -24,7 +25,7 @@ export type ExecuteCallDataArgs =
       callType: CallType | undefined;
     }[];
 
-export type AccountInfoV3 = AccountInfoV2 & {
+export type AccountV3 = AccountV2 & {
   authenticationManagerAddress: Address;
 };
 
@@ -36,7 +37,7 @@ export type SupportedPayMaster = {
   type: number;
 };
 
-export type AccountInfoV2 = {
+export type AccountV2 = {
   initializeAccountData: Hex;
   initCode: Hex;
   index: bigint;
@@ -45,24 +46,20 @@ export type AccountInfoV2 = {
   defaultECDSAValidator: Address;
 };
 
-export type AccountInfo = AccountInfoV2 | AccountInfoV3;
+export type Account = AccountV2 | AccountV3;
 
 export interface ISmartContractAccount {
   generateUserOperationWithGasEstimation(
-    role: Hex,
     userOperationDraft: UserOperationDraft,
+    role: Hex,
     paymaster?: GeneratePaymasterSignatureType
   ): Promise<UserOperation>;
 
   generateUserOperationAndPacked(
-    signType: SignType,
-    role: Hex,
-    userOperationDraft: UserOperationDraft,
-    _sigTime?: bigint,
-    paymaster?: GeneratePaymasterSignatureType
+    params: GenerateUserOperationAndPackedParams
   ): Promise<UserOperation>;
 
-  sendUserOperationByAPI(userOperation: UserOperation): Promise<void>;
+  sendUserOperationByOKXBundler(userOperation: UserOperation): Promise<void>;
 
   execute(request: any): Promise<any>;
 

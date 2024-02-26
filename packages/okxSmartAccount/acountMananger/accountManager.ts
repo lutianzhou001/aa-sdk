@@ -8,15 +8,17 @@ import {
   type Hash,
   Hex,
   keccak256,
+  publicActions,
   PublicClient,
   Transport,
+  WalletClient,
 } from "viem";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
 import { configuration } from "../../../configuration";
 import { OKXSmartAccountSigner } from "../../plugins/types";
 import { IAccountManager } from "./IAccountManager.interface";
-import { AccountInfo, AccountInfoV2, AccountInfoV3 } from "../types";
-import { toBigInt } from "ethers";
+import { Account, AccountV2, AccountV3 } from "../types";
+import { toBigInt, Wallet } from "ethers";
 import { accountFactoryV2ABI } from "../../../abis/accountFactoryV2.abi";
 import { initializeAccountABI } from "../../../abis/initializeAccount.abi";
 import { accountFactoryV3ABI } from "../../../abis/accountFactoryV3.abi";
@@ -30,36 +32,54 @@ export class AccountManager<
   TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner
 > implements IAccountManager
 {
-  protected publicClient: PublicClient<TTransport, TChain>;
   protected owner: TOwner;
   protected entryPointAddress: Address;
   protected factoryAddress: Address;
   protected version: string;
-  protected accountInfos: AccountInfo[] = [];
+  protected accounts: Account[] = [];
   constructor(params: createAccountManagerParams<TTransport, TChain, TOwner>) {
-    this.publicClient = params.publicClient;
-    this.owner = params.owner as TOwner;
+    this.owner = params.owner;
     this.entryPointAddress = params.entryPointAddress;
     this.version = params.version;
     this.factoryAddress = params.factoryAddress;
   }
 
-  async batchCreateNewAccountInfoV2(amount: number): Promise<AccountInfoV2[]> {
+  async createNewAccount(
+    index: bigint = toBigInt(0),
+    executions: Hex[] = []
+  ): Promise<Account> {
+    if (this.version == "2.0.0") {
+      return await this.createNewAccountV2(index);
+    } else {
+      return await this.createNewAccountV3(index, executions);
+    }
+  }
+
+  async batchCreateNewAccount(
+    amount: number,
+    executions: Hex[] = []
+  ): Promise<Account[]> {
+    if (this.version == "2.0.0") {
+      return await this.batchCreateNewAccountV2(amount);
+    } else {
+      return await this.batchCreateNewAccountV3(amount, executions);
+    }
+  }
+
+  async batchCreateNewAccountV2(amount: number): Promise<AccountV2[]> {
     const maxAccountIndex = this.getMaxAccountIndex();
-    let accountInfos: AccountInfoV2[] = [];
+    let accounts: AccountV2[] = [];
     for (
       let i = maxAccountIndex + toBigInt(1);
       i < maxAccountIndex + toBigInt(1) + toBigInt(amount);
       i++
     ) {
-      accountInfos.push(await this.createNewAccountInfoV2(toBigInt(i)));
+      accounts.push(await this.createNewAccountV2(toBigInt(i)));
     }
-    return accountInfos;
+    return accounts;
   }
 
-  async createNewAccountInfoV2(
-    index: bigint = toBigInt(0)
-  ): Promise<AccountInfoV2> {
+  async createNewAccountV2(index: bigint = toBigInt(0)): Promise<AccountV2> {
     if (this.version == "3.0.0") {
       throw new Error("This function is not supported in version 3.0.0");
     }
@@ -104,11 +124,11 @@ export class AccountManager<
     );
 
     const isDeployed = await this.updateDeployment(
-      this.publicClient,
+      this.owner.getWalletClient(),
       accountAddress
     );
 
-    const _accountInfo: AccountInfoV2 = {
+    const _account: AccountV2 = {
       initializeAccountData: initializeAccountData,
       accountAddress: accountAddress,
       index: index,
@@ -117,42 +137,40 @@ export class AccountManager<
       isDeployed: isDeployed,
     };
 
-    for (const accountInfo of this.accountInfos) {
-      if (accountInfo.index === index) {
-        accountInfo.accountAddress = _accountInfo.accountAddress;
-        accountInfo.initCode = _accountInfo.initCode;
-        accountInfo.initializeAccountData = _accountInfo.initializeAccountData;
-        accountInfo.isDeployed = _accountInfo.isDeployed;
+    for (const account of this.accounts) {
+      if (account.index === index) {
+        account.accountAddress = _account.accountAddress;
+        account.initCode = _account.initCode;
+        account.initializeAccountData = _account.initializeAccountData;
+        account.isDeployed = _account.isDeployed;
       }
     }
 
-    this.accountInfos.push(_accountInfo);
+    this.accounts.push(_account);
 
-    return _accountInfo;
+    return _account;
   }
 
-  async batchCreateNewAccountInfoV3(
+  async batchCreateNewAccountV3(
     amount: number,
-    executions: Hex[]
-  ): Promise<AccountInfoV3[]> {
+    executions: Hex[] = []
+  ): Promise<AccountV3[]> {
     const maxAccountIndex = this.getMaxAccountIndex();
-    let accountInfos: AccountInfoV3[] = [];
+    let accounts: AccountV3[] = [];
     for (
       let i = maxAccountIndex + toBigInt(1);
       i < maxAccountIndex + toBigInt(1) + toBigInt(amount);
       i++
     ) {
-      accountInfos.push(
-        await this.createNewAccountInfoV3(toBigInt(i), executions)
-      );
+      accounts.push(await this.createNewAccountV3(toBigInt(i), executions));
     }
-    return accountInfos;
+    return accounts;
   }
 
-  async createNewAccountInfoV3(
+  async createNewAccountV3(
     index: bigint = toBigInt(0),
     executions: Hex[] = []
-  ): Promise<AccountInfoV3> {
+  ): Promise<AccountV3> {
     if (this.version == "2.0.0") {
       throw new Error("This function is not supported in version 2.0.0");
     }
@@ -211,11 +229,11 @@ export class AccountManager<
     );
 
     const isDeployed = await this.updateDeployment(
-      this.publicClient,
+      this.owner.getWalletClient(),
       accountAddress
     );
 
-    const _accountInfo: AccountInfoV3 = {
+    const _account: AccountV3 = {
       initializeAccountData,
       initCode,
       index,
@@ -225,25 +243,25 @@ export class AccountManager<
       defaultECDSAValidator: defaultECDSAValidator,
     };
 
-    for (const accountInfo of this.accountInfos) {
-      if (accountInfo.index === index) {
-        accountInfo.accountAddress = _accountInfo.accountAddress;
-        accountInfo.initCode = _accountInfo.initCode;
-        accountInfo.initializeAccountData = _accountInfo.initializeAccountData;
-        accountInfo.isDeployed = _accountInfo.isDeployed;
+    for (const account of this.accounts) {
+      if (account.index === index) {
+        account.accountAddress = _account.accountAddress;
+        account.initCode = _account.initCode;
+        account.initializeAccountData = _account.initializeAccountData;
+        account.isDeployed = _account.isDeployed;
       }
     }
-    this.accountInfos.push(_accountInfo);
+    this.accounts.push(_account);
 
-    return _accountInfo;
+    return _account;
   }
 
   public async updateDeployment(
-    publicClient: PublicClient,
+    walletClient: WalletClient,
     accountAddress: Address
   ): Promise<boolean> {
     const contractCode =
-      (await publicClient.getBytecode({
+      (await walletClient.extend(publicActions).getBytecode({
         address: accountAddress,
       })) ?? "0x";
 
@@ -252,25 +270,25 @@ export class AccountManager<
 
   private getMaxAccountIndex(): bigint {
     let maxIndex = toBigInt(0);
-    for (const accountInfo of this.accountInfos) {
-      if (accountInfo.index > maxIndex) {
-        maxIndex = accountInfo.index;
+    for (const account of this.accounts) {
+      if (account.index > maxIndex) {
+        maxIndex = account.index;
       }
     }
     return maxIndex;
   }
 
-  getAccountInfo(accountAddress: Address): AccountInfo {
-    for (const accountInfo of this.accountInfos) {
-      if (accountInfo.accountAddress === accountAddress) {
-        return accountInfo;
+  getAccount(accountAddress: Address): Account {
+    for (const account of this.accounts) {
+      if (account.accountAddress === accountAddress) {
+        return account;
       }
     }
-    throw new Error("no initialization info found");
+    throw new Error("account not found");
   }
 
-  getAccountInfos(): AccountInfo[] {
-    return this.accountInfos;
+  getAccounts(): Account[] {
+    return this.accounts;
   }
 
   async getNonce(
@@ -278,18 +296,38 @@ export class AccountManager<
     role: Hex, // for future use(v4)
     validatorAddress?: Address
   ): Promise<bigint> {
-    const accountInfo = this.getAccountInfo(accountAddress);
-    validatorAddress = validatorAddress ?? accountInfo.defaultECDSAValidator;
-    return await this.publicClient.readContract({
-      address: this.entryPointAddress,
-      abi: EntryPointABI,
-      functionName: "getNonce",
-      // TODO: add Role into consideration in the next version
-      args: [
-        accountInfo.accountAddress,
-        this.version == "2.0.0" ? toBigInt(0) : toBigInt(validatorAddress),
-      ],
-    });
+    const account = this.getAccount(accountAddress);
+    validatorAddress = validatorAddress ?? account.defaultECDSAValidator;
+    return await this.owner
+      .getWalletClient()
+      .extend(publicActions)
+      .readContract({
+        address: this.entryPointAddress,
+        abi: EntryPointABI,
+        functionName: "getNonce",
+        // TODO: add Role into consideration in the next version
+        args: [
+          account.accountAddress,
+          this.version == "2.0.0" ? toBigInt(0) : toBigInt(validatorAddress),
+        ],
+      });
+  }
+
+  isExist(indexOrAddress: number | Address) {
+    if (typeof indexOrAddress === "number") {
+      for (const account of this.accounts) {
+        if (account.index === toBigInt(indexOrAddress)) {
+          return true;
+        }
+      }
+    } else {
+      for (const account of this.accounts) {
+        if (account.accountAddress === indexOrAddress) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   getFactoryAddress(): Address {
