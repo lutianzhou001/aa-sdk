@@ -22,6 +22,7 @@ import {
   AccountV3,
   ExecuteCallDataArgs,
   ISmartContractAccount,
+  SmartAccountTransactionReceipt,
 } from "./types.js";
 import { OKXSmartAccountSigner, UserOperationDraft } from "../plugins/types";
 import {
@@ -182,8 +183,7 @@ export class OKXSmartContractAccount<
           params.paymaster
         )
       : userOperationWithGasEstimated;
-    const sigTime =
-      params._sigTime ?? (await this.getSigTime("paymaster" in params));
+    const sigTime = params._sigTime ?? (await this.getSigTime());
     if (params.signType == "EIP712") {
       let domain: any;
       if (this.version == "2.0.0") {
@@ -281,7 +281,7 @@ export class OKXSmartContractAccount<
 
   async sendUserOperationByOKXBundler(
     userOperation: UserOperation
-  ): Promise<void> {
+  ): Promise<SmartAccountTransactionReceipt> {
     const req = {
       method: "post",
       maxBodyLength: Infinity,
@@ -306,23 +306,19 @@ export class OKXSmartContractAccount<
     if (res.data.error) {
       throw new Error(res.data.error.message);
     } else {
-      return res.data.result;
+      return this.accountManager.pushAccountTransaction(
+        userOperation.sender,
+        res.data.result
+      );
     }
   }
 
-  private async getSigTime(isPaymaster: boolean) {
-    if (isPaymaster) {
-      // sigTime = sigTime * (BigInt("2") ** BigInt(160));
-      return toBigInt(
-        "0x000000000000ffffffffffff0000000000000000000000000000000000000000"
-      );
-    } else {
-      const block = await this.owner
-        .getWalletClient()
-        .extend(publicActions)
-        .getBlock();
-      return toBigInt(block.timestamp) + toBigInt(100000);
-    }
+  private async getSigTime() {
+    const block = await this.owner
+      .getWalletClient()
+      .extend(publicActions)
+      .getBlock();
+    return toBigInt(block.timestamp) + toBigInt(100000);
   }
 
   async generateUserOperationWithGasEstimation(

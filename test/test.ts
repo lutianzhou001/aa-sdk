@@ -5,6 +5,8 @@ import {
   WalletClient,
   parseEther,
   publicActions,
+  keccak256,
+  Hex,
 } from "viem";
 import { polygon } from "viem/chains";
 import { walletClientSigner } from "../packages/plugins/signers/walletClientSigner";
@@ -16,6 +18,10 @@ import {
   approveCalldata,
   transferCalldata,
 } from "../packages/actions/erc20/erc20Calldata";
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function smokeTest() {
   // STEP1: create a walletClient with rpc and chain specified.
@@ -90,7 +96,7 @@ async function smokeTest() {
     await smartAccount.generateUserOperationAndPacked({
       uop: {
         sender: smartAccount.accountManager.getAccounts()[0].accountAddress,
-        callData: simpleTransferERC20CallData,
+        callData: simpleTransferNativeTokenCallData,
       },
       paymaster: {
         paymaster: "0xfb4f3f12258976395b34304e2bfd76d15e0af44a",
@@ -106,6 +112,17 @@ async function smokeTest() {
   // by OKX bundler
   const userOperationRes = await smartAccount.sendUserOperationByOKXBundler(
     preparedUserOperation
+  );
+
+  await delay(20000);
+
+  const receipt =
+    await smartAccount.accountManager.updateAccountTransactionReceipts(
+      preparedUserOperation.sender
+    );
+
+  console.log(
+    smartAccount.accountManager.getAccount(preparedUserOperation.sender)
   );
 
   // estimateGase

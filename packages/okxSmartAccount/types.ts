@@ -44,6 +44,13 @@ export type AccountV2 = {
   accountAddress: Address;
   isDeployed: boolean;
   defaultECDSAValidator: Address;
+  receipts: SmartAccountTransactionReceipt[];
+};
+
+export type SmartAccountTransactionReceipt = {
+  userOperationHash: Hex;
+  txHash: Hex | undefined;
+  success: Hex | undefined;
 };
 
 export type Account = AccountV2 | AccountV3;
@@ -59,7 +66,9 @@ export interface ISmartContractAccount {
     params: GenerateUserOperationAndPackedParams
   ): Promise<UserOperation>;
 
-  sendUserOperationByOKXBundler(userOperation: UserOperation): Promise<void>;
+  sendUserOperationByOKXBundler(
+    userOperation: UserOperation
+  ): Promise<SmartAccountTransactionReceipt>;
 
   execute(request: any): Promise<any>;
 
@@ -82,21 +91,4 @@ export interface ISmartContractAccount {
     upgradeToImplAddress: Address,
     upgradeToInitData: Hex
   ) => Promise<Hex>;
-
-  // we get paymasterManager signature online.
-  // generateUserOperationAndPackedWithFreeGasPayMaster(
-  //   signType: SignType,
-  //   role: Hex,
-  //   userOperationDraft: Omit<UserOperationDraft, "paymasterAndData">,
-  //   freeGasPayMaster: Address
-  // ): Promise<UserOperation>;
-  //
-  // generateUserOperationAndPackedWithTokenPayMaster(
-  //   signType: SignType,
-  //   role: Hex,
-  //   userOperationDraft: Omit<UserOperationDraft, "paymasterAndData">,
-  //   tokenPayMaster: Address,
-  //   tokenAddress: Address,
-  //   exchangeRate: bigint
-  // ): Promise<UserOperation>;
 }

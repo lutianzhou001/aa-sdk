@@ -1,6 +1,7 @@
 import {
   Address,
   Chain,
+  Client,
   encodeAbiParameters,
   encodeFunctionData,
   encodePacked,
@@ -14,10 +15,15 @@ import {
   WalletClient,
 } from "viem";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
-import { configuration } from "../../../configuration";
+import { configuration, networkConfigurations } from "../../../configuration";
 import { OKXSmartAccountSigner } from "../../plugins/types";
 import { IAccountManager } from "./IAccountManager.interface";
-import { Account, AccountV2, AccountV3 } from "../types";
+import {
+  Account,
+  AccountV2,
+  AccountV3,
+  SmartAccountTransactionReceipt,
+} from "../types";
 import { toBigInt, Wallet } from "ethers";
 import { accountFactoryV2ABI } from "../../../abis/accountFactoryV2.abi";
 import { initializeAccountABI } from "../../../abis/initializeAccount.abi";
@@ -25,6 +31,8 @@ import { accountFactoryV3ABI } from "../../../abis/accountFactoryV3.abi";
 import { predictDeterministicAddress } from "../../common/utils";
 import { createAccountManagerParams } from "./createAccountManagerParams.dto";
 import { EntryPointABI } from "../../../abis/EntryPoint.abi";
+import { getChainId } from "viem/actions";
+import axios from "axios";
 
 export class AccountManager<
   TTransport extends Transport = Transport,
@@ -37,11 +45,84 @@ export class AccountManager<
   protected factoryAddress: Address;
   protected version: string;
   protected accounts: Account[] = [];
+
   constructor(params: createAccountManagerParams<TTransport, TChain, TOwner>) {
     this.owner = params.owner;
     this.entryPointAddress = params.entryPointAddress;
     this.version = params.version;
     this.factoryAddress = params.factoryAddress;
+  }
+
+  pushAccountTransaction(
+    sender: Address,
+    userOperationHash: Hex
+  ): SmartAccountTransactionReceipt {
+    const currentAccount = this.getAccount(sender);
+    const receipt: SmartAccountTransactionReceipt = {
+      userOperationHash: userOperationHash,
+      txHash: undefined,
+      success: undefined,
+    };
+    currentAccount.receipts.push(receipt);
+    return receipt;
+  }
+
+  getAccountTransactionReceipts(
+    sender: Address
+  ): SmartAccountTransactionReceipt[] {
+    const currentAccount = this.getAccount(sender);
+    return currentAccount.receipts;
+  }
+
+  async updateAccountTransactionReceipts(
+    sender: Address
+  ): Promise<SmartAccountTransactionReceipt[]> {
+    const currentAccount = this.getAccount(sender);
+    const receipts = currentAccount.receipts;
+    let receiptsToUpdate: SmartAccountTransactionReceipt[] = [];
+    for (const receipt of receipts) {
+      if (receipt.success == undefined) {
+        const res = await this.getOKXBundlerReceipt(receipt.userOperationHash);
+        receipt.success = res.success;
+        receipt.txHash = res.txHash;
+      }
+      receiptsToUpdate.push({
+        userOperationHash: receipt.userOperationHash,
+        txHash: receipt.txHash,
+        success: receipt.success,
+      });
+    }
+    return receiptsToUpdate;
+  }
+
+  private async getOKXBundlerReceipt(
+    userOperationHash: Hex
+  ): Promise<SmartAccountTransactionReceipt> {
+    const req = {
+      method: "post",
+      maxBodyLength: Infinity,
+      url:
+        networkConfigurations.base_url +
+        "priapi/v5/wallet/smart-account/mp/" +
+        String(await getChainId(this.owner.getWalletClient() as Client)) +
+        "/eth_getUserOperationReceipt",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: "locale=en-US",
+      },
+      data: JSON.stringify({
+        id: 1,
+        jsonrpc: "2.0",
+        method: "eth_getUserOperationReceipt",
+        params: [userOperationHash],
+      }),
+    };
+    const res = await axios.request(req);
+    if (res.data.error) {
+      throw new Error(res.data.error.message);
+    } else {
+      return res.data.result;
+    }
   }
 
   async createNewAccount(
@@ -135,6 +216,7 @@ export class AccountManager<
       defaultECDSAValidator: await this.owner.getAddress(),
       initCode: initCode,
       isDeployed: isDeployed,
+      receipts: [],
     };
 
     for (const account of this.accounts) {
@@ -241,6 +323,7 @@ export class AccountManager<
       isDeployed,
       authenticationManagerAddress,
       defaultECDSAValidator: defaultECDSAValidator,
+      receipts: [],
     };
 
     for (const account of this.accounts) {

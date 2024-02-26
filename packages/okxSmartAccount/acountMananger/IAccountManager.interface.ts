@@ -1,6 +1,11 @@
 import type { Hex } from "viem";
 import type { Address } from "abitype";
-import { Account, AccountV2, AccountV3 } from "../types";
+import {
+  Account,
+  AccountV2,
+  AccountV3,
+  SmartAccountTransactionReceipt,
+} from "../types";
 
 export interface IAccountManager {
   createNewAccount(index: bigint, executions: Hex[]): Promise<Account>;
@@ -29,4 +34,17 @@ export interface IAccountManager {
   getEntryPointAddress(): Address;
 
   isExist(indexOrAddress: number | Address): boolean;
+
+  pushAccountTransaction(
+    sender: Address,
+    userOperationHash: Hex
+  ): SmartAccountTransactionReceipt;
+
+  getAccountTransactionReceipts(
+    sender: Address
+  ): SmartAccountTransactionReceipt[];
+
+  updateAccountTransactionReceipts(
+    sender: Address
+  ): Promise<SmartAccountTransactionReceipt[]>;
 }
