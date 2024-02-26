@@ -1,28 +1,21 @@
 import { privateKeyToAccount } from "viem/accounts";
 import {
-  createPublicClient,
   createWalletClient,
-  Hex,
   http,
-  PublicClient,
   WalletClient,
   parseEther,
-  encodeAbiParameters,
-  Client,
-  createClient,
   publicActions,
 } from "viem";
-import { mainnet, polygon } from "viem/chains";
+import { polygon } from "viem/chains";
 import { walletClientSigner } from "../packages/plugins/signers/walletClientSigner";
 import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartAccount";
-import { AlchemyProvider, ethers, toBigInt } from "ethers";
+import { toBigInt } from "ethers";
 import { Address } from "abitype";
 import { UserOperation } from "permissionless/types/userOperation";
 import {
   approveCalldata,
   transferCalldata,
 } from "../packages/actions/erc20/erc20Calldata";
-import Ethers from "@typechain/ethers-v6";
 
 async function smokeTest() {
   // STEP1: create a walletClient with rpc and chain specified.
@@ -42,31 +35,27 @@ async function smokeTest() {
   //   transport: custom(window.ethereum!),
   // }).extend(publicActions);
 
-  // STEP3: get the walletAddress(EOS address)
-  const [walletAddress] = await walletClient.getAddresses();
+  // if you want to get the wallet address, use this.
+  // const [walletAddress] = await walletClient.getAddresses();
 
-  // STEP5: convert the client to the validator
-  const owner = new walletClientSigner(walletClient, "SUDO");
-
-  // STEP6: create a OKXSmartContractAccount with the publicClient and owner
-  // @ts-ignore
+  // STEP2: create a OKXSmartContractAccount with the publicClient and owner
   const smartAccount = new OKXSmartContractAccount({
     walletClient: walletClient,
     // ONLY 2.0.0 and 3.0.0 is supported
     version: "2.0.0",
   });
 
-  // STEP7: create a new account with index specified. You can use any number you like.
+  // STEP3: create a new account with index specified. You can use any number you like.
   await smartAccount.accountManager.createNewAccount();
 
-  // STEP7-1: query to get to know if the account exists
+  // STEP3-1: query to get to know if the account exists
   smartAccount.accountManager.isExist(0);
   smartAccount.accountManager.isExist(
     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
   );
 
   // make the callType default = call
-  // STEP8: when we want to do a transaction, say, transfer some token to other people, we then deploy this smart account.
+  // STEP4: when we want to do a transaction, say, transfer some token to other people, we then deploy this smart account.
   const simpleTransferNativeTokenCallData = await smartAccount.encodeExecute({
     to: "0x0000000000000000000000000000000000000001" as Address,
     value: BigInt(1000),
@@ -74,6 +63,7 @@ async function smokeTest() {
     callType: "call",
   });
 
+  // OR
   const simpleApprovalERC20CallData = await smartAccount.encodeExecute({
     to: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" as Address,
     data: approveCalldata(
@@ -84,6 +74,7 @@ async function smokeTest() {
     callType: "call",
   });
 
+  // OR
   const simpleTransferERC20CallData = await smartAccount.encodeExecute({
     to: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" as Address,
     data: transferCalldata(
@@ -94,8 +85,7 @@ async function smokeTest() {
     callType: "call",
   });
 
-  // STEP9: generate a userOperation and packed it.
-  // freegas paymaster ==> token ?
+  // STEP5: generate a userOperation and packed it.
   const preparedUserOperation: UserOperation =
     await smartAccount.generateUserOperationAndPacked({
       uop: {
@@ -117,8 +107,6 @@ async function smokeTest() {
   const userOperationRes = await smartAccount.sendUserOperationByOKXBundler(
     preparedUserOperation
   );
-
-  // status
 
   // estimateGase
   // await smartAccount.getEstimationGas(preparedUserOperation);
