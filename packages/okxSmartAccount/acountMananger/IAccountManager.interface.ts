@@ -21,7 +21,7 @@ export interface IAccountManager {
     executions: Hex[]
   ): Promise<AccountV3[]>;
 
-  getAccount(accountAddress: Address, index: bigint): Account;
+  getAccount(indexOrAddress: number | Address): Account;
   getAccounts(): Account[];
 
   getNonce(

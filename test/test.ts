@@ -9,7 +9,6 @@ import {
   Hex,
 } from "viem";
 import { polygon } from "viem/chains";
-import { walletClientSigner } from "../packages/plugins/signers/walletClientSigner";
 import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartAccount";
 import { toBigInt } from "ethers";
 import { Address } from "abitype";
@@ -27,6 +26,7 @@ async function smokeTest() {
   // STEP1: create a walletClient with rpc and chain specified.
   const walletClient: WalletClient = createWalletClient({
     account: privateKeyToAccount(
+      // NOTION, this privateKey is ONLY FOR TESTING, DO NOT USE IT IN PRODUCTION
       "0x731fe28849e538f333fd9e95d9b88441f7eac0c277edb6848fe04600eb03ce45"
     ),
     chain: polygon,
@@ -96,7 +96,7 @@ async function smokeTest() {
     await smartAccount.generateUserOperationAndPacked({
       uop: {
         sender: smartAccount.accountManager.getAccounts()[0].accountAddress,
-        callData: simpleTransferNativeTokenCallData,
+        callData: simpleTransferERC20CallData,
       },
       paymaster: {
         paymaster: "0xfb4f3f12258976395b34304e2bfd76d15e0af44a",
@@ -125,7 +125,7 @@ async function smokeTest() {
     smartAccount.accountManager.getAccount(preparedUserOperation.sender)
   );
 
-  // estimateGase
+  // estimateGas
   // await smartAccount.getEstimationGas(preparedUserOperation);
   //
   // // STEP10: execute.

@@ -1,8 +1,4 @@
 {
-  "scripts": {
-    "test": "hardhat test",
-    "prettier": "prettier --write 'packages/**/*.ts'"
-  },
   "dependencies": {
     "@account-abstraction/contracts": "^0.6.0",
     "@alchemy/aa-core": "^2.3.1",
@@ -18,7 +14,7 @@
     "dotenv": "^16.3.1",
     "hardhat": "^2.16.1",
     "permissionless": "^0.0.35",
-    "viem": "^2.7.2"
+    "viem": "^2.7.15"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.2",
@@ -42,5 +38,26 @@
     "ts-node": "^10.9.1",
     "typechain": "^8.3.2",
     "typescript": "^5.2.2"
-  }
+  },
+  "name": "@web3-wallet/modular-smart-account-sdk",
+  "description": "a generic smart account SDK that can be used to interact with okx smart account v3 and later. Developed with viem.sh to minimize the package",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.okg.com:web3-wallet/modular-smart-account-sdk.git"
+  },
+  "keywords": [
+    "modular",
+    "smart",
+    "account"
+  ],
+  "publishConfig": {
+    "@web3-wallet:registry": "https://gitlab.okg.com/api/v4/projects/7444/packages/npm/"
+  },
+  "author": "web3-wallet",
+  "license": "ISC"
 }

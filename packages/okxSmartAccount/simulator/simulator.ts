@@ -50,18 +50,19 @@ export class Simulator<
   }
 
   async sendUserOperationSimulationByPublicClient(
-    userOperation: UserOperation
+    userOperation: UserOperation,
+    bundler?: Address
   ): Promise<any> {
-    const sender = await this.owner.getAddress();
+    bundler = bundler ?? (await this.owner.getAddress());
     return await this.owner
       .getWalletClient()
       .extend(publicActions)
       .simulateContract({
-        account: sender,
+        account: bundler,
         address: this.entryPointAddress,
         abi: EntryPointABI,
         functionName: "handleOps",
-        args: [[userOperation], sender],
+        args: [[userOperation], await this.owner.getAddress()],
       });
   }
 

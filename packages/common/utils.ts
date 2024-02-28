@@ -3,8 +3,6 @@ import {
   Hex,
   type WalletClient,
   createWalletClient,
-  PublicClient,
-  createPublicClient,
   keccak256,
   encodePacked,
 } from "viem";
@@ -32,28 +30,6 @@ export async function getPrivateKeyAccount(): Promise<Account> {
     throw new Error("TEST_PRIVATE_KEY environment variable not set");
   }
   return privateKeyToAccount(privateKey as Hex);
-}
-
-export async function getPublicClient(): Promise<PublicClient> {
-  const rpcUrl = process.env.RPC_URL;
-  if (!rpcUrl) {
-    throw new Error("RPC_URL environment variable not set");
-  }
-
-  const publicClient = createPublicClient({
-    transport: http(rpcUrl),
-  });
-
-  const chainId = await publicClient.getChainId();
-  const testingChain = getTestingChain();
-
-  if (chainId !== testingChain.id) {
-    throw new Error(
-      `Testing Chain ID (${testingChain.id}) not supported by RPC URL`
-    );
-  }
-
-  return publicClient;
 }
 
 export function getTestingChain(): Chain {

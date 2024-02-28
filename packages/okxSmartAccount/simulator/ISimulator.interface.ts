@@ -15,6 +15,7 @@ export interface ISimulator {
   ): Promise<any>;
 
   sendUserOperationSimulationByPublicClient(
-    userOperation: UserOperation
+    userOperation: UserOperation,
+    bundler?: Address
   ): Promise<any>;
 }

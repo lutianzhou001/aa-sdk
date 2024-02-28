@@ -361,13 +361,21 @@ export class AccountManager<
     return maxIndex;
   }
 
-  getAccount(accountAddress: Address): Account {
-    for (const account of this.accounts) {
-      if (account.accountAddress === accountAddress) {
-        return account;
+  getAccount(indexOrAddress: number | Address): Account {
+    if (typeof indexOrAddress === "number") {
+      for (const account of this.accounts) {
+        if (account.index === toBigInt(indexOrAddress)) {
+          return account;
+        }
+      }
+    } else {
+      for (const account of this.accounts) {
+        if (account.accountAddress === indexOrAddress) {
+          return account;
+        }
       }
     }
-    throw new Error("account not found");
+    throw new Error("Account not found");
   }
 
   getAccounts(): Account[] {
