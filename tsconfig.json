@@ -2,8 +2,9 @@
   "include": ["packages", "index.ts"],
   "compilerOptions": {
     "outDir": "dist",
-    "target": "es2022",
-    "module": "esnext",
+    "target": "es2018",
+    "module": "CommonJS",
+    "allowJs": true,
     "skipLibCheck": true,
     "importHelpers": true,
     "declaration": true,
