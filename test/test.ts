@@ -10,7 +10,6 @@ import {
 } from "viem";
 import { polygon } from "viem/chains";
 import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartAccount";
-import { toBigInt } from "ethers";
 import { Address } from "abitype";
 import { UserOperation } from "permissionless/types/userOperation";
 import {
@@ -76,7 +75,7 @@ async function smokeTest() {
       "0xfb4f3f12258976395b34304e2bfd76d15e0af44a",
       parseEther("100")
     ),
-    value: toBigInt(0),
+    value: BigInt(0),
     callType: "call",
   });
 
@@ -85,9 +84,9 @@ async function smokeTest() {
     to: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" as Address,
     data: transferCalldata(
       "0xbf135a074c1f2e2049b06b1d6eaf0f4a8ad58cde",
-      toBigInt(100000)
+      BigInt(100000)
     ),
-    value: toBigInt(0),
+    value: BigInt(0),
     callType: "call",
   });
 

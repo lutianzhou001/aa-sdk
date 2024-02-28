@@ -24,7 +24,6 @@ import {
   AccountV3,
   SmartAccountTransactionReceipt,
 } from "../types";
-import { toBigInt, Wallet } from "ethers";
 import { accountFactoryV2ABI } from "../../../abis/accountFactoryV2.abi";
 import { initializeAccountABI } from "../../../abis/initializeAccount.abi";
 import { accountFactoryV3ABI } from "../../../abis/accountFactoryV3.abi";
@@ -126,7 +125,7 @@ export class AccountManager<
   }
 
   async createNewAccount(
-    index: bigint = toBigInt(0),
+    index: bigint = BigInt(0),
     executions: Hex[] = []
   ): Promise<Account> {
     if (this.version == "2.0.0") {
@@ -151,16 +150,16 @@ export class AccountManager<
     const maxAccountIndex = this.getMaxAccountIndex();
     let accounts: AccountV2[] = [];
     for (
-      let i = maxAccountIndex + toBigInt(1);
-      i < maxAccountIndex + toBigInt(1) + toBigInt(amount);
+      let i = maxAccountIndex + BigInt(1);
+      i < maxAccountIndex + BigInt(1) + BigInt(amount);
       i++
     ) {
-      accounts.push(await this.createNewAccountV2(toBigInt(i)));
+      accounts.push(await this.createNewAccountV2(BigInt(i)));
     }
     return accounts;
   }
 
-  async createNewAccountV2(index: bigint = toBigInt(0)): Promise<AccountV2> {
+  async createNewAccountV2(index: bigint = BigInt(0)): Promise<AccountV2> {
     if (this.version == "3.0.0") {
       throw new Error("This function is not supported in version 3.0.0");
     }
@@ -240,17 +239,17 @@ export class AccountManager<
     const maxAccountIndex = this.getMaxAccountIndex();
     let accounts: AccountV3[] = [];
     for (
-      let i = maxAccountIndex + toBigInt(1);
-      i < maxAccountIndex + toBigInt(1) + toBigInt(amount);
+      let i = maxAccountIndex + BigInt(1);
+      i < maxAccountIndex + BigInt(1) + BigInt(amount);
       i++
     ) {
-      accounts.push(await this.createNewAccountV3(toBigInt(i), executions));
+      accounts.push(await this.createNewAccountV3(BigInt(i), executions));
     }
     return accounts;
   }
 
   async createNewAccountV3(
-    index: bigint = toBigInt(0),
+    index: bigint = BigInt(0),
     executions: Hex[] = []
   ): Promise<AccountV3> {
     if (this.version == "2.0.0") {
@@ -352,7 +351,7 @@ export class AccountManager<
   }
 
   private getMaxAccountIndex(): bigint {
-    let maxIndex = toBigInt(0);
+    let maxIndex = BigInt(0);
     for (const account of this.accounts) {
       if (account.index > maxIndex) {
         maxIndex = account.index;
@@ -364,7 +363,7 @@ export class AccountManager<
   getAccount(indexOrAddress: number | Address): Account {
     if (typeof indexOrAddress === "number") {
       for (const account of this.accounts) {
-        if (account.index === toBigInt(indexOrAddress)) {
+        if (account.index === BigInt(indexOrAddress)) {
           return account;
         }
       }
@@ -399,7 +398,7 @@ export class AccountManager<
         // TODO: add Role into consideration in the next version
         args: [
           account.accountAddress,
-          this.version == "2.0.0" ? toBigInt(0) : toBigInt(validatorAddress),
+          this.version == "2.0.0" ? BigInt(0) : BigInt(validatorAddress),
         ],
       });
   }
@@ -407,7 +406,7 @@ export class AccountManager<
   isExist(indexOrAddress: number | Address) {
     if (typeof indexOrAddress === "number") {
       for (const account of this.accounts) {
-        if (account.index === toBigInt(indexOrAddress)) {
+        if (account.index === BigInt(indexOrAddress)) {
           return true;
         }
       }

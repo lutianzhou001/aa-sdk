@@ -1,5 +1,4 @@
-import { Address, Hex, zeroAddress } from "viem";
-import { toBigInt } from "ethers";
+import { Address, Hex} from "viem";
 
 export const configuration = {
   entryPoint: {
@@ -40,11 +39,11 @@ export const networkConfigurations = {
 };
 
 export const defaultUserOperationParams = {
-  CALL_GAS_LIMIT: toBigInt(500000),
-  VERIFICATION_GAS_LIMIT: toBigInt(800000),
-  PREVERIFICATION_GAS: toBigInt(0),
-  MAX_FEE_PER_GAS: toBigInt(300000000000), //300 gwei
-  MAX_PRIORITY_FEE_PER_GAS: toBigInt(300000000000),
+  CALL_GAS_LIMIT: BigInt(500000),
+  VERIFICATION_GAS_LIMIT: BigInt(800000),
+  PREVERIFICATION_GAS: BigInt(0),
+  MAX_FEE_PER_GAS: BigInt(300000000000), //300 gwei
+  MAX_PRIORITY_FEE_PER_GAS: BigInt(300000000000),
   // CALL_GAS_LIMIT: toBigInt(300000),
   // VERIFICATION_GAS_LIMIT: toBigInt(1000000),
   // PREVERIFICATION_GAS: toBigInt(0),

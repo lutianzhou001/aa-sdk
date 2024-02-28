@@ -31,7 +31,6 @@ import {
   networkConfigurations,
 } from "../../configuration";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
-import { toBigInt, Wallet } from "ethers";
 import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
 import { smartAccountV2ABI } from "../../abis/smartAccountV2.abi";
@@ -251,7 +250,7 @@ export class OKXSmartContractAccount<
           { name: "sigTime", type: "uint256" },
         ],
         [
-          toBigInt(await getChainId(this.owner.getWalletClient() as Client)),
+          BigInt(await getChainId(this.owner.getWalletClient() as Client)),
           userOperation.sender,
           userOperation.nonce,
           keccak256(userOperation.initCode),
@@ -318,7 +317,7 @@ export class OKXSmartContractAccount<
       .getWalletClient()
       .extend(publicActions)
       .getBlock();
-    return toBigInt(block.timestamp) + toBigInt(100000);
+    return BigInt(block.timestamp) + BigInt(100000);
   }
 
   async generateUserOperationWithGasEstimation(
@@ -356,7 +355,7 @@ export class OKXSmartContractAccount<
             );
       }
     } else {
-      nonce = toBigInt(0);
+      nonce = BigInt(0);
     }
 
     const userOperationForEstimationGas = [
@@ -376,7 +375,7 @@ export class OKXSmartContractAccount<
           ? await this.mockUserOperationPackedWithTokenPayMaster(
               paymaster.paymaster,
               paymaster.token,
-              toBigInt(1)
+              BigInt(1)
             )
           : "0x",
         signature: "0x00",
@@ -461,7 +460,7 @@ export class OKXSmartContractAccount<
         { name: "validUntil", type: "uint256" },
         { name: "credential", type: "bytes" },
       ],
-      [toBigInt(0), toBigInt(10000000000), newValidatorAddress]
+      [BigInt(0), BigInt(10000000000), newValidatorAddress]
     );
 
     const installValidator = encodeFunctionData({
@@ -488,7 +487,7 @@ export class OKXSmartContractAccount<
         tokenPayMaster,
         tokenAddress,
         exchangeRate,
-        toBigInt(
+        BigInt(
           "0x000000000000ffffffffffff0000000000000000000000000000000000000000"
         ),
         await this.owner.signMessage("MOCK MESSAGE"),
