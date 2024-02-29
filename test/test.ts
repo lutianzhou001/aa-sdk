@@ -16,6 +16,7 @@ import {
   approveCalldata,
   transferCalldata,
 } from "../packages/actions/erc20/erc20Calldata";
+import {encodeUpgrade} from "../packages/actions/upgrades/upgradeCalldata";
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -90,12 +91,20 @@ async function smokeTest() {
     callType: "call",
   });
 
+  // OR
+  const upgradeCalldata = await smartAccount.encodeExecute({
+    to: smartAccount.accountManager.getAccounts()[0].accountAddress,
+    data: encodeUpgrade("0x5147CE3947a407c95687131Be01A2b8d55FD0A40"),
+    value: BigInt(0),
+    callType: "call",
+  })
+
   // STEP5: generate a userOperation and packed it.
   const preparedUserOperation: UserOperation =
     await smartAccount.generateUserOperationAndPacked({
       uop: {
         sender: smartAccount.accountManager.getAccounts()[0].accountAddress,
-        callData: simpleTransferERC20CallData,
+        callData: upgradeCalldata,
       },
       paymaster: {
         paymaster: "0xfb4f3f12258976395b34304e2bfd76d15e0af44a",
