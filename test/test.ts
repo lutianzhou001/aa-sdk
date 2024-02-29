@@ -52,7 +52,8 @@ async function smokeTest() {
   });
 
   // STEP3: create a new account with index specified. You can use any number you like.
-  await smartAccount.accountManager.createNewAccount();
+  const v = await smartAccount.accountManager.batchCreateNewAccount(10, []);
+  console.log(v);
 
   // STEP3-1: query to get to know if the account exists
   smartAccount.accountManager.isExist(0);
