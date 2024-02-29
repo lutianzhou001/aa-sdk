@@ -147,14 +147,21 @@ export class AccountManager<
   }
 
   async batchCreateNewAccountV2(amount: number): Promise<AccountV2[]> {
-    const maxAccountIndex = this.getMaxAccountIndex();
     let accounts: AccountV2[] = [];
-    for (
-      let i = maxAccountIndex + BigInt(1);
-      i < maxAccountIndex + BigInt(1) + BigInt(amount);
-      i++
-    ) {
-      accounts.push(await this.createNewAccountV2(BigInt(i)));
+
+    const maxAccountIndex = this.getMaxAccountIndex();
+    if (maxAccountIndex == undefined) {
+      for (let i = BigInt(0); i < BigInt(amount); i++) {
+        accounts.push(await this.createNewAccountV2(i));
+      }
+    } else {
+      for (
+          let i = maxAccountIndex + BigInt(1);
+          i < maxAccountIndex + BigInt(1) + BigInt(amount);
+          i++
+      ) {
+        accounts.push(await this.createNewAccountV2(BigInt(i)));
+      }
     }
     return accounts;
   }
@@ -236,14 +243,21 @@ export class AccountManager<
     amount: number,
     executions: Hex[] = []
   ): Promise<AccountV3[]> {
-    const maxAccountIndex = this.getMaxAccountIndex();
     let accounts: AccountV3[] = [];
-    for (
-      let i = maxAccountIndex + BigInt(1);
-      i < maxAccountIndex + BigInt(1) + BigInt(amount);
-      i++
-    ) {
-      accounts.push(await this.createNewAccountV3(BigInt(i), executions));
+
+    const maxAccountIndex = this.getMaxAccountIndex();
+    if (maxAccountIndex == undefined) {
+      for (let i = BigInt(0); i < BigInt(amount); i++) {
+        accounts.push(await this.createNewAccountV3(i, executions));
+      }
+    } else {
+      for (
+          let i = maxAccountIndex + BigInt(1);
+          i < maxAccountIndex + BigInt(1) + BigInt(amount);
+          i++
+      ) {
+        accounts.push(await this.createNewAccountV3(BigInt(i),  executions));
+      }
     }
     return accounts;
   }
@@ -350,8 +364,11 @@ export class AccountManager<
     return contractCode.length > 2;
   }
 
-  private getMaxAccountIndex(): bigint {
+  private getMaxAccountIndex(): bigint | undefined {
     let maxIndex = BigInt(0);
+    if (this.accounts.length == 0 ) {
+      return undefined
+    }
     for (const account of this.accounts) {
       if (account.index > maxIndex) {
         maxIndex = account.index;
