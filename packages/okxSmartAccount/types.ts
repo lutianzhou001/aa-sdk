@@ -86,9 +86,4 @@ export interface ISmartContractAccount {
   encodeExecute(args: ExecuteCallDataArgs): Promise<Hex>;
 
   extend: <R>(extendFn: (self: this) => R) => this & R;
-
-  encodeUpgradeToAndCall: (
-    upgradeToImplAddress: Address,
-    upgradeToInitData: Hex
-  ) => Promise<Hex>;
 }

@@ -44,6 +44,7 @@ import {
 } from "./dto/generateUserOperationAndPackedParams.dto";
 import { CreateOKXSmartAccountParams } from "./dto/createOKXSmartAccount.dto";
 import { walletClientSigner } from "../plugins/signers/walletClientSigner";
+import {accountFactoryV3ABI} from "../../abis/accountFactoryV3.abi";
 
 export class OKXSmartContractAccount<
   TTransport extends Transport = Transport,
@@ -158,13 +159,6 @@ export class OKXSmartContractAccount<
   async signTypedData(params: SignTypedDataParameters): Promise<Hex> {
     throw new Error("signTypedData not supported");
   }
-
-  encodeUpgradeToAndCall = async (
-    _upgradeToImplAddress: Address,
-    _upgradeToInitData: Hex
-  ): Promise<Hex> => {
-    throw new Error("encodeUpgradeToAndCall not supported");
-  };
 
   async generateUserOperationAndPacked(
     params: GenerateUserOperationAndPackedParams
@@ -494,147 +488,6 @@ export class OKXSmartContractAccount<
       ]
     );
   }
-
-  // depreacated
-  // async generateUserOperationAndPackedWithFreeGasPayMaster(
-  //   signType: SignType,
-  //   role: Hex,
-  //   userOperationDraft: Omit<UserOperationDraft, "paymasterAndData">,
-  //   freeGasPayMaster: Address
-  // ): Promise<UserOperation> {
-  //   const userOperation = await this.generateUserOperationWithGasEstimation(
-  //     role,
-  //     userOperationDraft
-  //   );
-  //   const sigTime = toBigInt(
-  //     "0x000000000000ffffffffffff0000000000000000000000000000000000000000"
-  //   );
-  //   const encodedUserOperationDataWithFreeGasPayMaster = encodeAbiParameters(
-  //     [
-  //       { name: "sender", type: "address" },
-  //       { name: "nonce", type: "uint256" },
-  //       { name: "initCodeHash", type: "bytes32" },
-  //       { name: "callDataHash", type: "bytes32" },
-  //       { name: "callGasLimit", type: "uint256" },
-  //       { name: "verificationGasLimit", type: "uint256" },
-  //       { name: "preVerificationGas", type: "uint256" },
-  //       { name: "maxFeePerGas", type: "uint256" },
-  //       { name: "maxPriorityFeePerGas", type: "uint256" },
-  //       { name: "chainId", type: "uint256" },
-  //       { name: "freeGasPayMaster", type: "address" },
-  //       { name: "sigTime", type: "uint256" },
-  //     ],
-  //     [
-  //       userOperation.sender,
-  //       userOperation.nonce,
-  //       keccak256(userOperation.initCode),
-  //       keccak256(userOperation.callData),
-  //       userOperation.callGasLimit,
-  //       userOperation.verificationGasLimit,
-  //       userOperation.preVerificationGas,
-  //       userOperation.maxFeePerGas,
-  //       userOperation.maxPriorityFeePerGas,
-  //       toBigInt(await getChainId(this.publicClient as Client)),
-  //       freeGasPayMaster,
-  //       sigTime,
-  //     ]
-  //   );
-  //   const userOperationHashInFreeGasPayMaster = keccak256(
-  //     encodedUserOperationDataWithFreeGasPayMaster
-  //   );
-  //
-  //   userOperation.paymasterAndData = encodePacked(
-  //     ["address", "uint256", "bytes"],
-  //     [
-  //       freeGasPayMaster,
-  //       sigTime,
-  //       await this.owner.signMessage(userOperationHashInFreeGasPayMaster),
-  //     ]
-  //   );
-  //   return this.generateUserOperationAndPacked(
-  //     signType,
-  //     role,
-  //     userOperation,
-  //     sigTime
-  //   );
-  // }
-  //
-
-  // async generateUserOperationAndPackedWithTokenPayMaster(
-  //   signType: SignType,
-  //   role: Hex,
-  //   userOperationDraft: Omit<UserOperationDraft, "paymasterAndData">,
-  //   tokenPayMaster: Address,
-  //   tokenAddress: Address,
-  //   exchangeRate: bigint
-  // ): Promise<UserOperation> {
-  //   const userOperation = await this.generateUserOperationWithGasEstimation(
-  //     role,
-  //     userOperationDraft
-  //   );
-  //   const sigTime = toBigInt(
-  //     "0x000000000000ffffffffffff0000000000000000000000000000000000000000"
-  //   );
-  //   const additionHashData = encodeAbiParameters(
-  //     [
-  //       { name: "token", type: "address" },
-  //       { name: "exchangeRate", type: "uint256" },
-  //       { name: "sigTime", type: "uint256" },
-  //     ],
-  //     [tokenAddress, exchangeRate, sigTime]
-  //   );
-  //
-  //   const encodedUserOperationDataWithTokenPayMaster = encodeAbiParameters(
-  //     [
-  //       { name: "sender", type: "address" },
-  //       { name: "nonce", type: "uint256" },
-  //       { name: "initCodeHash", type: "bytes32" },
-  //       { name: "callDataHash", type: "bytes32" },
-  //       { name: "callGasLimit", type: "uint256" },
-  //       { name: "verificationGasLimit", type: "uint256" },
-  //       { name: "preVerificationGas", type: "uint256" },
-  //       { name: "maxFeePerGas", type: "uint256" },
-  //       { name: "maxPriorityFeePerGas", type: "uint256" },
-  //       { name: "chainId", type: "uint256" },
-  //       { name: "tokenPayMaster", type: "address" },
-  //       { name: "additionHashData", type: "bytes" },
-  //     ],
-  //     [
-  //       userOperation.sender,
-  //       userOperation.nonce,
-  //       keccak256(userOperation.initCode),
-  //       keccak256(userOperation.callData),
-  //       userOperation.callGasLimit,
-  //       userOperation.verificationGasLimit,
-  //       userOperation.preVerificationGas,
-  //       userOperation.maxFeePerGas,
-  //       userOperation.maxPriorityFeePerGas,
-  //       toBigInt(await getChainId(this.publicClient as Client)),
-  //       tokenPayMaster,
-  //       additionHashData,
-  //     ]
-  //   );
-  //   const userOperationHashInTokenPayMaster = keccak256(
-  //     encodedUserOperationDataWithTokenPayMaster
-  //   );
-  //
-  //   userOperation.paymasterAndData = encodePacked(
-  //     ["address", "address", "uint256", "uint256", "bytes"],
-  //     [
-  //       tokenPayMaster,
-  //       tokenAddress,
-  //       exchangeRate,
-  //       sigTime,
-  //       await this.owner.signMessage(userOperationHashInTokenPayMaster),
-  //     ]
-  //   );
-  //   return this.generateUserOperationAndPacked(
-  //     signType,
-  //     role,
-  //     userOperation,
-  //     sigTime
-  //   );
-  // }
 
   extend = <R>(fn: (self: this) => R): this & R => {
     const extended = fn(this) as any;
