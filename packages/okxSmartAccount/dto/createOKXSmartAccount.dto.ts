@@ -19,6 +19,8 @@ export class CreateOKXSmartAccountParams<
   readonly accounts?: Account[];
 
   readonly entryPointAddress?: Address;
+
+  readonly baseUrl?: string;
 }
 
 export type Version = "2.0.0" | "3.0.0";

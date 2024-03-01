@@ -8,4 +8,6 @@ export class createPaymasterParams<
   readonly walletClient: WalletClient<TTransport, TChain>;
 
   readonly entryPointAddress: Address;
+
+  readonly baseUrl: string;
 }

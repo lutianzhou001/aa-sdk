@@ -35,7 +35,7 @@ export const configuration = {
 // 0x648a5ec780e343020345f3b98e3c587a6798331b
 
 export const networkConfigurations = {
-  base_url: "https://www.okx.com/",
+  base_url: "https://www.okx.com/priapi/v5/wallet/smart-account/",
 };
 
 export const defaultUserOperationParams = {

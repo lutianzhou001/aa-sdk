@@ -49,6 +49,7 @@ async function smokeTest() {
     walletClient: walletClient,
     // ONLY 2.0.0 and 3.0.0 is supported
     version: "2.0.0",
+    // baseUrl : "https://www.okx.com/priapi/v5/wallet/smart-account/"
   });
 
   // STEP3: create a new account with index specified. You can use any number you like.

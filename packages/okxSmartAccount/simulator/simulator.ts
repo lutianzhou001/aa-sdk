@@ -73,12 +73,11 @@ export class Simulator<
       method: "post",
       maxBodyLength: Infinity,
       url:
-        networkConfigurations.base_url +
-        "priapi/v5/wallet/smart-account/mp/" +
+        networkConfigurations.base_url + "mp/" +
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_simulateUserOperation",
       headers: {
-        "Content-Type": "text/plain",
+        "Content-Type": "application/json",
         Cookie: "locale=en-US",
       },
       data: JSON.stringify({

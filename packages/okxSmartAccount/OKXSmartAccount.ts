@@ -61,6 +61,7 @@ export class OKXSmartContractAccount<
   protected factoryAddress: Address;
   protected accounts: Account[];
   protected entryPointAddress: Address;
+  protected baseUrl: string;
 
   constructor(params: CreateOKXSmartAccountParams<TTransport, TChain, TOwner>) {
     if (!params.version) {
@@ -88,7 +89,7 @@ export class OKXSmartContractAccount<
       (params.version == "2.0.0"
         ? configuration.v2.VERSION
         : configuration.v3.VERSION);
-    // @ts-ignore
+    this.baseUrl = params.baseUrl ?? networkConfigurations.base_url;
     this.simulator = new Simulator({
       entryPointAddress: this.entryPointAddress,
       owner: this.owner,
@@ -102,6 +103,7 @@ export class OKXSmartContractAccount<
     this.paymasterManager = new PaymasterManager({
       walletClient: this.owner.getWalletClient(),
       entryPointAddress: this.entryPointAddress,
+      baseUrl: this.baseUrl
     });
   }
 
@@ -279,12 +281,11 @@ export class OKXSmartContractAccount<
       method: "post",
       maxBodyLength: Infinity,
       url:
-        networkConfigurations.base_url +
-        "priapi/v5/wallet/smart-account/mp/" +
+        networkConfigurations.base_url + "mp/" +
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_sendUserOperation",
       headers: {
-        "Content-Type": "text/plain",
+        "Content-Type": "application/json",
         Cookie: "locale=en-US",
       },
       data: JSON.stringify({
@@ -388,11 +389,11 @@ export class OKXSmartContractAccount<
       method: "post",
       maxBodyLength: Infinity,
       url:
-        "https://www.okx.com/priapi/v5/wallet/smart-account/mp/" +
+        this.baseUrl + "mp/" +
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_estimateUserOperationGas",
       headers: {
-        "Content-Type": "text/plain",
+        "Content-Type": "application/json",
         Cookie: "locale=en-US",
       },
       data: data,

@@ -23,9 +23,11 @@ export class PaymasterManager<
 {
   protected entryPointAddress: Address;
   protected walletClient: WalletClient;
+  protected baseUrl : string;
   constructor(params: createPaymasterParams<TTransport, TChain>) {
     this.entryPointAddress = params.entryPointAddress;
     this.walletClient = params.walletClient as WalletClient;
+    this.baseUrl = params.baseUrl;
   }
 
   async getSupportedPaymasters(): Promise<SupportedPayMaster[]> {
@@ -33,10 +35,10 @@ export class PaymasterManager<
       method: "get",
       maxBodyLength: Infinity,
       url:
-        "https://www.okx.com/priapi/v5/wallet/smart-account/pm/supportedPaymasters?chainBizId=" +
+        this.baseUrl + "pm/supportedPaymasters?chainBizId=" +
         String(await getChainId(this.walletClient as Client)),
       headers: {
-        "Content-Type": "text/plain",
+        "Content-Type": "application/json",
         Cookie: "locale=en-US",
       },
     };
@@ -53,11 +55,11 @@ export class PaymasterManager<
       method: "post",
       maxBodyLength: Infinity,
       url:
-        "https://www.okx.com/priapi/v5/wallet/smart-account/pm/" +
+        this.baseUrl + "pm/" +
         String(await getChainId(this.walletClient as Client)) +
         "/getPaymasterSignature",
       headers: {
-        "Content-Type": "text/plain",
+        "Content-Type": "application/json",
         Cookie: "locale=en-US",
       },
       data: JSON.stringify({
