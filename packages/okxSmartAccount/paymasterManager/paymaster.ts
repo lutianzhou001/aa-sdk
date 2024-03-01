@@ -36,7 +36,7 @@ export class PaymasterManager<
         "https://www.okx.com/priapi/v5/wallet/smart-account/pm/supportedPaymasters?chainBizId=" +
         String(await getChainId(this.walletClient as Client)),
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain",
         Cookie: "locale=en-US",
       },
     };
@@ -57,7 +57,7 @@ export class PaymasterManager<
         String(await getChainId(this.walletClient as Client)) +
         "/getPaymasterSignature",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain",
         Cookie: "locale=en-US",
       },
       data: JSON.stringify({

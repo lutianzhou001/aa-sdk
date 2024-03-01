@@ -284,7 +284,7 @@ export class OKXSmartContractAccount<
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_sendUserOperation",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain",
         Cookie: "locale=en-US",
       },
       data: JSON.stringify({
@@ -392,7 +392,7 @@ export class OKXSmartContractAccount<
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_estimateUserOperationGas",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain",
         Cookie: "locale=en-US",
       },
       data: data,

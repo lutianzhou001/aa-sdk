@@ -78,7 +78,7 @@ export class Simulator<
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_simulateUserOperation",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain",
         Cookie: "locale=en-US",
       },
       data: JSON.stringify({

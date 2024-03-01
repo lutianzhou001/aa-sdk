@@ -105,7 +105,7 @@ async function smokeTest() {
     await smartAccount.generateUserOperationAndPacked({
       uop: {
         sender: smartAccount.accountManager.getAccounts()[0].accountAddress,
-        callData: upgradeCalldata,
+        callData: simpleTransferERC20CallData,
       },
       paymaster: {
         paymaster: "0xfb4f3f12258976395b34304e2bfd76d15e0af44a",

@@ -106,7 +106,7 @@ export class AccountManager<
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_getUserOperationReceipt",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain",
         Cookie: "locale=en-US",
       },
       data: JSON.stringify({
