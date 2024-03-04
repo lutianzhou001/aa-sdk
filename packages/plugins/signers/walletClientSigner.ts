@@ -9,6 +9,7 @@ import {
 import type { OKXSmartAccountSigner } from "../types";
 import { configuration } from "../../../configuration";
 import { Address } from "abitype";
+import { BaseSmartAccountError } from "../../error/constants";
 
 export class walletClientSigner implements OKXSmartAccountSigner<WalletClient> {
   signerType: string;
@@ -18,7 +19,10 @@ export class walletClientSigner implements OKXSmartAccountSigner<WalletClient> {
   constructor(signer: WalletClient, signerType: string) {
     this.signer = signer;
     if (!signerType) {
-      throw new Error("Valid signerType param is required.");
+      throw new BaseSmartAccountError(
+        "BaseSmartAccountError",
+        "Valid signerType param is required.",
+      );
     }
     this.signerType = signerType;
   }
@@ -49,7 +53,7 @@ export class walletClientSigner implements OKXSmartAccountSigner<WalletClient> {
   }
 
   async signTypedData(
-    params: Omit<SignTypedDataParameters, "account">
+    params: Omit<SignTypedDataParameters, "account">,
   ): Promise<Hex> {
     const account = this.signer.account ?? (await this.getAddress());
 

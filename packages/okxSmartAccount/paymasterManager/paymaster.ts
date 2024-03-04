@@ -18,12 +18,12 @@ import { GeneratePaymasterSignatureType } from "../dto/generateUserOperationAndP
 export class PaymasterManager<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner
+  TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
 > implements IPaymasterManager
 {
   protected entryPointAddress: Address;
   protected walletClient: WalletClient;
-  protected baseUrl : string;
+  protected baseUrl: string;
   constructor(params: createPaymasterParams<TTransport, TChain>) {
     this.entryPointAddress = params.entryPointAddress;
     this.walletClient = params.walletClient as WalletClient;
@@ -35,7 +35,8 @@ export class PaymasterManager<
       method: "get",
       maxBodyLength: Infinity,
       url:
-        this.baseUrl + "pm/supportedPaymasters?chainBizId=" +
+        this.baseUrl +
+        "pm/supportedPaymasters?chainBizId=" +
         String(await getChainId(this.walletClient as Client)),
       headers: {
         "Content-Type": "application/json",
@@ -48,14 +49,15 @@ export class PaymasterManager<
 
   async generatePaymasterSignature(
     userOperation: UserOperation,
-    paymaster: GeneratePaymasterSignatureType
+    paymaster: GeneratePaymasterSignatureType,
   ): Promise<UserOperation> {
     // query paymasterAndDataFrom the endpoint.
     const config = {
       method: "post",
       maxBodyLength: Infinity,
       url:
-        this.baseUrl + "pm/" +
+        this.baseUrl +
+        "pm/" +
         String(await getChainId(this.walletClient as Client)) +
         "/getPaymasterSignature",
       headers: {

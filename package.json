@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "prettier": "prettier --write 'packages/**/*.ts'"
   },
   "dependencies": {
     "@alchemy/aa-core": "^2.3.1",

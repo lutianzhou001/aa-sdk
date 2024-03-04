@@ -5,7 +5,7 @@ import { OKXSmartAccountSigner } from "../../plugins/types";
 export class createSimulatorParams<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner
+  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
 > {
   readonly entryPointAddress: Address;
 

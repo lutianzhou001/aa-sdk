@@ -1,10 +1,12 @@
 import type { Address } from "abitype";
 import {
+  CallExecutionError,
   type Chain,
   Client,
   encodeAbiParameters,
   encodeFunctionData,
   encodePacked,
+  ExecutionRevertedError,
   type Hash,
   type Hex,
   hexToBytes,
@@ -44,12 +46,17 @@ import {
 } from "./dto/generateUserOperationAndPackedParams.dto";
 import { CreateOKXSmartAccountParams } from "./dto/createOKXSmartAccount.dto";
 import { walletClientSigner } from "../plugins/signers/walletClientSigner";
-import {accountFactoryV3ABI} from "../../abis/accountFactoryV3.abi";
+import {
+  BaseSmartAccountError,
+  GasEstimationError,
+  SendUopError,
+} from "../error/constants";
+import { SendUserOperationError } from "permissionless";
 
 export class OKXSmartContractAccount<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner
+  TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
 > implements ISmartContractAccount
 {
   public accountManager: AccountManager;
@@ -65,11 +72,14 @@ export class OKXSmartContractAccount<
 
   constructor(params: CreateOKXSmartAccountParams<TTransport, TChain, TOwner>) {
     if (!params.version) {
-      throw new Error("version is required");
+      throw new BaseSmartAccountError(
+        "BaseSmartAccountError",
+        "version is required",
+      );
     }
     this.owner = new walletClientSigner(
       params.walletClient as WalletClient,
-      "admin"
+      "admin",
     ) as TOwner;
     this.entryPointAddress =
       params.entryPointAddress ?? configuration.entryPoint.v0_6_0;
@@ -103,7 +113,7 @@ export class OKXSmartContractAccount<
     this.paymasterManager = new PaymasterManager({
       walletClient: this.owner.getWalletClient(),
       entryPointAddress: this.entryPointAddress,
-      baseUrl: this.baseUrl
+      baseUrl: this.baseUrl,
     });
   }
 
@@ -115,7 +125,10 @@ export class OKXSmartContractAccount<
         args: [
           args.map((txn) => {
             if (txn.callType === "delegatecall") {
-              throw new Error("Cannot batch delegatecall");
+              throw new BaseSmartAccountError(
+                "BaseSmartAccountError",
+                "Cannot batch delegatecall",
+              );
             }
             return {
               to: txn.to,
@@ -139,7 +152,10 @@ export class OKXSmartContractAccount<
               args: [args.to, args.value, args.data],
             });
       } else {
-        throw new Error("delegatecall not impl");
+        throw new BaseSmartAccountError(
+          "BaseSmartAccountError",
+          "delegatecall not impl",
+        );
       }
     }
   }
@@ -159,23 +175,26 @@ export class OKXSmartContractAccount<
   }
 
   async signTypedData(params: SignTypedDataParameters): Promise<Hex> {
-    throw new Error("signTypedData not supported");
+    throw new BaseSmartAccountError(
+      "BaseSmartAccountError",
+      "signTypedData not supported",
+    );
   }
 
   async generateUserOperationAndPacked(
-    params: GenerateUserOperationAndPackedParams
+    params: GenerateUserOperationAndPackedParams,
   ): Promise<UserOperation> {
     const account = this.accountManager.getAccount(params.uop.sender);
     const userOperationWithGasEstimated =
       await this.generateUserOperationWithGasEstimation(
         params.uop,
         params.role as Hex,
-        params.paymaster
+        params.paymaster,
       );
     const userOperation = params.paymaster
       ? await this.paymasterManager.generatePaymasterSignature(
           userOperationWithGasEstimated,
-          params.paymaster
+          params.paymaster,
         )
       : userOperationWithGasEstimated;
     const sigTime = params._sigTime ?? (await this.getSigTime());
@@ -225,7 +244,7 @@ export class OKXSmartContractAccount<
       });
       userOperation.signature = encodePacked(
         ["uint8", "uint256", "bytes"],
-        [0, sigTime, signature]
+        [0, sigTime, signature],
       );
       return userOperation;
     } else {
@@ -259,12 +278,12 @@ export class OKXSmartContractAccount<
           keccak256(userOperation.paymasterAndData),
           this.entryPointAddress,
           sigTime,
-        ]
+        ],
       );
       const userOperationHash = keccak256(encodedUserOperationData);
       userOperation.signature = encodePacked(
         ["uint8", "uint256", "bytes"],
-        [1, sigTime, await this.owner.signMessage(userOperationHash)]
+        [1, sigTime, await this.owner.signMessage(userOperationHash)],
       );
       return userOperation;
     }
@@ -275,13 +294,14 @@ export class OKXSmartContractAccount<
   }
 
   async sendUserOperationByOKXBundler(
-    userOperation: UserOperation
+    userOperation: UserOperation,
   ): Promise<SmartAccountTransactionReceipt> {
     const req = {
       method: "post",
       maxBodyLength: Infinity,
       url:
-        networkConfigurations.base_url + "mp/" +
+        networkConfigurations.base_url +
+        "mp/" +
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_sendUserOperation",
       headers: {
@@ -298,11 +318,11 @@ export class OKXSmartContractAccount<
 
     const res = await axios.request(req);
     if (res.data.error) {
-      throw new Error(res.data.error.message);
+      throw new SendUopError("sendUserOperationError", res.data.error.message);
     } else {
       return this.accountManager.pushAccountTransaction(
         userOperation.sender,
-        res.data.result
+        res.data.result,
       );
     }
   }
@@ -318,14 +338,14 @@ export class OKXSmartContractAccount<
   async generateUserOperationWithGasEstimation(
     userOperationDraft: UserOperationDraft,
     role: Hex,
-    paymaster?: GeneratePaymasterSignatureType
+    paymaster?: GeneratePaymasterSignatureType,
   ): Promise<UserOperation> {
     const account: Account = this.accountManager.getAccount(
-      userOperationDraft.sender
+      userOperationDraft.sender,
     );
     const isDeployed: boolean = await this.accountManager.updateDeployment(
       this.owner.getWalletClient(),
-      account.accountAddress
+      account.accountAddress,
     );
 
     let nonce: bigint;
@@ -337,7 +357,7 @@ export class OKXSmartContractAccount<
           : await this.accountManager.getNonce(
               accountV2.accountAddress,
               role,
-              zeroAddress
+              zeroAddress,
             );
       } else {
         const accountV3 = account as AccountV3;
@@ -346,7 +366,7 @@ export class OKXSmartContractAccount<
           : await this.accountManager.getNonce(
               accountV3.accountAddress,
               role,
-              accountV3.defaultECDSAValidator
+              accountV3.defaultECDSAValidator,
             );
       }
     } else {
@@ -370,7 +390,7 @@ export class OKXSmartContractAccount<
           ? await this.mockUserOperationPackedWithTokenPayMaster(
               paymaster.paymaster,
               paymaster.token,
-              BigInt(1)
+              BigInt(1),
             )
           : "0x",
         signature: "0x00",
@@ -389,7 +409,8 @@ export class OKXSmartContractAccount<
       method: "post",
       maxBodyLength: Infinity,
       url:
-        this.baseUrl + "mp/" +
+        this.baseUrl +
+        "mp/" +
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_estimateUserOperationGas",
       headers: {
@@ -401,7 +422,10 @@ export class OKXSmartContractAccount<
 
     const res = await axios.request(config);
     if (res.data.error) {
-      throw new Error(res.data.error.message);
+      throw new GasEstimationError(
+        "GAS_ESTIMATION_ERROR",
+        res.data.error.message,
+      );
     }
 
     return {
@@ -429,12 +453,12 @@ export class OKXSmartContractAccount<
       maxFeePerGas: toHex(
         userOperationDraft.maxFeePerGas
           ? userOperationDraft.maxFeePerGas
-          : defaultUserOperationParams.MAX_FEE_PER_GAS
+          : defaultUserOperationParams.MAX_FEE_PER_GAS,
       ) as any,
       maxPriorityFeePerGas: toHex(
         userOperationDraft.maxPriorityFeePerGas
           ? userOperationDraft.maxPriorityFeePerGas
-          : defaultUserOperationParams.MAX_PRIORITY_FEE_PER_GAS
+          : defaultUserOperationParams.MAX_PRIORITY_FEE_PER_GAS,
       ) as any,
     };
   }
@@ -443,10 +467,13 @@ export class OKXSmartContractAccount<
     accountAddress: Address,
     newValidatorAddress: Address,
     validatorTemplate: Address = configuration.v3
-      .ECDSA_VALIDATOR_TEMPLATE_ADDRESS
+      .ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
   ): Hex {
     if (this.version == "2.0.0") {
-      throw new Error("This function is not supported in version 2.0.0");
+      throw new BaseSmartAccountError(
+        "BaseSmartAccountError",
+        "This function is not supported in version 2.0.0",
+      );
     }
     // encode the installation data;
     const installation: Hex = encodeAbiParameters(
@@ -455,7 +482,7 @@ export class OKXSmartContractAccount<
         { name: "validUntil", type: "uint256" },
         { name: "credential", type: "bytes" },
       ],
-      [BigInt(0), BigInt(10000000000), newValidatorAddress]
+      [BigInt(0), BigInt(10000000000), newValidatorAddress],
     );
 
     const installValidator = encodeFunctionData({
@@ -474,7 +501,7 @@ export class OKXSmartContractAccount<
   private async mockUserOperationPackedWithTokenPayMaster(
     tokenPayMaster: Address,
     tokenAddress: Address,
-    exchangeRate: bigint
+    exchangeRate: bigint,
   ): Promise<Hex> {
     return encodePacked(
       ["address", "address", "uint256", "uint256", "bytes"],
@@ -483,10 +510,10 @@ export class OKXSmartContractAccount<
         tokenAddress,
         exchangeRate,
         BigInt(
-          "0x000000000000ffffffffffff0000000000000000000000000000000000000000"
+          "0x000000000000ffffffffffff0000000000000000000000000000000000000000",
         ),
         await this.owner.signMessage("MOCK MESSAGE"),
-      ]
+      ],
     );
   }
 

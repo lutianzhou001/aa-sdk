@@ -30,9 +30,7 @@ async function smokeTest() {
       "0x731fe28849e538f333fd9e95d9b88441f7eac0c277edb6848fe04600eb03ce45"
     ),
     chain: polygon,
-    transport: http(
-      "https://polygon-mainnet.g.alchemy.com/v2/DB0JapVSxzovPY3RaQSydinyWXPlpzi-"
-    ),
+    transport: http(),
   }).extend(publicActions);
 
   // OR we can create a walletClient with window.provider
@@ -47,14 +45,12 @@ async function smokeTest() {
   // STEP2: create a OKXSmartContractAccount with the publicClient and owner
   const smartAccount = new OKXSmartContractAccount({
     walletClient: walletClient,
-    // ONLY 2.0.0 and 3.0.0 is supported
     version: "2.0.0",
-    // baseUrl : "https://www.okx.com/priapi/v5/wallet/smart-account/"
+    // specify your baseUrl here. baseUrl : "https://www.okx.com/priapi/v5/wallet/smart-account/"
   });
 
   // STEP3: create a new account with index specified. You can use any number you like.
   const v = await smartAccount.accountManager.batchCreateNewAccount(10, []);
-  console.log(v);
 
   // STEP3-1: query to get to know if the account exists
   smartAccount.accountManager.isExist(0);
@@ -114,12 +110,12 @@ async function smokeTest() {
       },
     });
 
-  const userOperationSimulationResponse =
-    await smartAccount.simulator.sendUserOperationSimulationByOKXBundler(
-      preparedUserOperation
-    );
 
-  // by OKX bundler
+  // if bundler exists, it means to use a specified bundler, else, use the okx bundler.
+  const userOperationSimulationResponse = await smartAccount.simulator.sendUserOperationSimulation(
+      preparedUserOperation
+  );
+
   const userOperationRes = await smartAccount.sendUserOperationByOKXBundler(
     preparedUserOperation
   );

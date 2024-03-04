@@ -10,11 +10,15 @@ import { type Account, privateKeyToAccount } from "viem/accounts";
 import { type Chain, goerli } from "viem/chains";
 import * as allChains from "viem/chains";
 import { Address } from "abitype";
+import { BaseSmartAccountError } from "../error/constants";
 
 export async function getEoaWalletClient(): Promise<WalletClient> {
   const rpcUrl = process.env.RPC_URL;
   if (!rpcUrl) {
-    throw new Error("RPC_URL environment variable not set");
+    throw new BaseSmartAccountError(
+      "BaseSmartAccountError",
+      "RPC_URL environment variable not set",
+    );
   }
 
   return createWalletClient({
@@ -27,7 +31,10 @@ export async function getEoaWalletClient(): Promise<WalletClient> {
 export async function getPrivateKeyAccount(): Promise<Account> {
   const privateKey = process.env.TEST_PRIVATE_KEY;
   if (!privateKey) {
-    throw new Error("TEST_PRIVATE_KEY environment variable not set");
+    throw new BaseSmartAccountError(
+      "BaseSmartAccountError",
+      "TEST_PRIVATE_KEY environment variable not set",
+    );
   }
   return privateKeyToAccount(privateKey as Hex);
 }
@@ -37,7 +44,10 @@ export function getTestingChain(): Chain {
   const chainId = testChainId ? parseInt(testChainId, 10) : goerli.id;
   const chain = Object.values(allChains).find((c) => c.id === chainId);
   if (!chain) {
-    throw new Error(`Chain with id ${chainId} not found`);
+    throw new BaseSmartAccountError(
+      "BaseSmartAccountError",
+      `Chain with id ${chainId} not found`,
+    );
   }
   return chain;
 }
@@ -52,7 +62,7 @@ export function getTestingChain(): Chain {
 export function predictDeterministicAddress(
   implementation: Address,
   salt: Hex,
-  deployer: Address
+  deployer: Address,
 ): Address {
   let assembly = `3d602d80600a3d3981f3363d3d373d3d3d363d73${implementation
     .toLowerCase()
@@ -60,10 +70,10 @@ export function predictDeterministicAddress(
     .toLowerCase()
     .slice(2)}${String(salt).slice(2) as Hex}`;
   assembly += keccak256(
-    encodePacked(["bytes"], [("0x" + assembly.slice(0, 110)) as Hex])
+    encodePacked(["bytes"], [("0x" + assembly.slice(0, 110)) as Hex]),
   ).slice(2);
   const address = keccak256(
-    encodePacked(["bytes"], [("0x" + assembly.slice(110, 280)) as Hex])
+    encodePacked(["bytes"], [("0x" + assembly.slice(110, 280)) as Hex]),
   ).slice(-40);
   return ("0x" + address) as Address;
 }

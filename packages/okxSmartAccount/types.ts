@@ -59,15 +59,15 @@ export interface ISmartContractAccount {
   generateUserOperationWithGasEstimation(
     userOperationDraft: UserOperationDraft,
     role: Hex,
-    paymaster?: GeneratePaymasterSignatureType
+    paymaster?: GeneratePaymasterSignatureType,
   ): Promise<UserOperation>;
 
   generateUserOperationAndPacked(
-    params: GenerateUserOperationAndPackedParams
+    params: GenerateUserOperationAndPackedParams,
   ): Promise<UserOperation>;
 
   sendUserOperationByOKXBundler(
-    userOperation: UserOperation
+    userOperation: UserOperation,
   ): Promise<SmartAccountTransactionReceipt>;
 
   execute(request: any): Promise<any>;
@@ -79,7 +79,7 @@ export interface ISmartContractAccount {
   installValidator(
     accountAddress: Address,
     newValidatorAddress: Address,
-    validateTemplate: Address
+    validateTemplate: Address,
   ): Hex;
   // uninstallValidator(): Promise<Hex>;
 

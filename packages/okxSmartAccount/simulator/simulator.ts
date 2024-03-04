@@ -16,11 +16,12 @@ import { getChainId } from "viem/actions";
 import { OKXSmartAccountSigner } from "../../plugins/types";
 import { ISimulator } from "./ISimulator.interface";
 import axios from "axios";
+import { SendUserOperationSimulationByOKXBundler } from "../../error/constants";
 
 export class Simulator<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner
+  TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
 > implements ISimulator
 {
   protected owner: TOwner;
@@ -34,7 +35,7 @@ export class Simulator<
     account: Address,
     to: Address,
     value: bigint,
-    data: Hex
+    data: Hex,
   ): Promise<any> {
     const sender = await this.owner.getAddress();
     return await this.owner
@@ -49,11 +50,24 @@ export class Simulator<
       });
   }
 
-  async sendUserOperationSimulationByPublicClient(
+  async sendUserOperationSimulation(
     userOperation: UserOperation,
-    bundler?: Address
+    bundler?: Address,
   ): Promise<any> {
-    bundler = bundler ?? (await this.owner.getAddress());
+    if (bundler) {
+      return await this.sendUserOperationSimulationByPublicClient(
+        userOperation,
+        bundler,
+      );
+    } else {
+      return await this.sendUserOperationSimulationByOKXBundler(userOperation);
+    }
+  }
+
+  private async sendUserOperationSimulationByPublicClient(
+    userOperation: UserOperation,
+    bundler: Address,
+  ): Promise<any> {
     return await this.owner
       .getWalletClient()
       .extend(publicActions)
@@ -66,14 +80,15 @@ export class Simulator<
       });
   }
 
-  async sendUserOperationSimulationByOKXBundler(
-    userOperation: UserOperation
+  private async sendUserOperationSimulationByOKXBundler(
+    userOperation: UserOperation,
   ): Promise<any> {
     const req = {
       method: "post",
       maxBodyLength: Infinity,
       url:
-        networkConfigurations.base_url + "mp/" +
+        networkConfigurations.base_url +
+        "mp/" +
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_simulateUserOperation",
       headers: {
@@ -90,7 +105,10 @@ export class Simulator<
 
     const res = await axios.request(req);
     if (res.data.error) {
-      throw new Error(res.data.error.message);
+      throw new SendUserOperationSimulationByOKXBundler(
+        "sendUserOperationSimulationByOKXBundler",
+        res.data.error.message,
+      );
     } else {
       return res.data.result;
     }

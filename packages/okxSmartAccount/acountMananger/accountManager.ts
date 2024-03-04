@@ -32,11 +32,15 @@ import { createAccountManagerParams } from "./createAccountManagerParams.dto";
 import { EntryPointABI } from "../../../abis/EntryPoint.abi";
 import { getChainId } from "viem/actions";
 import axios from "axios";
+import {
+  BaseSmartAccountError,
+  GetOKXBundlerReceipt,
+} from "../../error/constants";
 
 export class AccountManager<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner
+  TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
 > implements IAccountManager
 {
   protected owner: TOwner;
@@ -54,7 +58,7 @@ export class AccountManager<
 
   pushAccountTransaction(
     sender: Address,
-    userOperationHash: Hex
+    userOperationHash: Hex,
   ): SmartAccountTransactionReceipt {
     const currentAccount = this.getAccount(sender);
     const receipt: SmartAccountTransactionReceipt = {
@@ -67,14 +71,14 @@ export class AccountManager<
   }
 
   getAccountTransactionReceipts(
-    sender: Address
+    sender: Address,
   ): SmartAccountTransactionReceipt[] {
     const currentAccount = this.getAccount(sender);
     return currentAccount.receipts;
   }
 
   async updateAccountTransactionReceipts(
-    sender: Address
+    sender: Address,
   ): Promise<SmartAccountTransactionReceipt[]> {
     const currentAccount = this.getAccount(sender);
     const receipts = currentAccount.receipts;
@@ -95,13 +99,14 @@ export class AccountManager<
   }
 
   private async getOKXBundlerReceipt(
-    userOperationHash: Hex
+    userOperationHash: Hex,
   ): Promise<SmartAccountTransactionReceipt> {
     const req = {
       method: "post",
       maxBodyLength: Infinity,
       url:
-        networkConfigurations.base_url + "mp/" +
+        networkConfigurations.base_url +
+        "mp/" +
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_getUserOperationReceipt",
       headers: {
@@ -117,7 +122,10 @@ export class AccountManager<
     };
     const res = await axios.request(req);
     if (res.data.error) {
-      throw new Error(res.data.error.message);
+      throw new GetOKXBundlerReceipt(
+        "getOKXBundlerReceiptError",
+        res.data.error.message,
+      );
     } else {
       return res.data.result;
     }
@@ -125,7 +133,7 @@ export class AccountManager<
 
   async createNewAccount(
     index: bigint = BigInt(0),
-    executions: Hex[] = []
+    executions: Hex[] = [],
   ): Promise<Account> {
     if (this.version == "2.0.0") {
       return await this.createNewAccountV2(index);
@@ -136,7 +144,7 @@ export class AccountManager<
 
   async batchCreateNewAccount(
     amount: number,
-    executions: Hex[] = []
+    executions: Hex[] = [],
   ): Promise<Account[]> {
     if (this.version == "2.0.0") {
       return await this.batchCreateNewAccountV2(amount);
@@ -145,7 +153,7 @@ export class AccountManager<
     }
   }
 
-  async batchCreateNewAccountV2(amount: number): Promise<AccountV2[]> {
+  private async batchCreateNewAccountV2(amount: number): Promise<AccountV2[]> {
     let accounts: AccountV2[] = [];
 
     const maxAccountIndex = this.getMaxAccountIndex();
@@ -155,9 +163,9 @@ export class AccountManager<
       }
     } else {
       for (
-          let i = maxAccountIndex + BigInt(1);
-          i < maxAccountIndex + BigInt(1) + BigInt(amount);
-          i++
+        let i = maxAccountIndex + BigInt(1);
+        i < maxAccountIndex + BigInt(1) + BigInt(amount);
+        i++
       ) {
         accounts.push(await this.createNewAccountV2(BigInt(i)));
       }
@@ -165,10 +173,9 @@ export class AccountManager<
     return accounts;
   }
 
-  async createNewAccountV2(index: bigint = BigInt(0)): Promise<AccountV2> {
-    if (this.version == "3.0.0") {
-      throw new Error("This function is not supported in version 3.0.0");
-    }
+  private async createNewAccountV2(
+    index: bigint = BigInt(0),
+  ): Promise<AccountV2> {
     const initializeAccountData = encodeAbiParameters(
       [
         {
@@ -177,14 +184,14 @@ export class AccountManager<
         },
         { name: "init", type: "bytes" },
       ],
-      [await this.owner.getAddress(), "0x"]
+      [await this.owner.getAddress(), "0x"],
     );
 
     const salt = keccak256(
       encodePacked(
         ["address", "uint256"],
-        [await this.owner.getAddress(), index]
-      )
+        [await this.owner.getAddress(), index],
+      ),
     );
 
     const accountAddress = getCreate2Address({
@@ -206,12 +213,12 @@ export class AccountManager<
             index,
           ],
         }),
-      ]
+      ],
     );
 
     const isDeployed = await this.updateDeployment(
       this.owner.getWalletClient(),
-      accountAddress
+      accountAddress,
     );
 
     const _account: AccountV2 = {
@@ -238,9 +245,9 @@ export class AccountManager<
     return _account;
   }
 
-  async batchCreateNewAccountV3(
+  private async batchCreateNewAccountV3(
     amount: number,
-    executions: Hex[] = []
+    executions: Hex[] = [],
   ): Promise<AccountV3[]> {
     let accounts: AccountV3[] = [];
 
@@ -251,29 +258,32 @@ export class AccountManager<
       }
     } else {
       for (
-          let i = maxAccountIndex + BigInt(1);
-          i < maxAccountIndex + BigInt(1) + BigInt(amount);
-          i++
+        let i = maxAccountIndex + BigInt(1);
+        i < maxAccountIndex + BigInt(1) + BigInt(amount);
+        i++
       ) {
-        accounts.push(await this.createNewAccountV3(BigInt(i),  executions));
+        accounts.push(await this.createNewAccountV3(BigInt(i), executions));
       }
     }
     return accounts;
   }
 
-  async createNewAccountV3(
+  private async createNewAccountV3(
     index: bigint = BigInt(0),
-    executions: Hex[] = []
+    executions: Hex[] = [],
   ): Promise<AccountV3> {
     if (this.version == "2.0.0") {
-      throw new Error("This function is not supported in version 2.0.0");
+      throw new BaseSmartAccountError(
+        "BaseSmartAccountError",
+        "This function is not supported in version 2.0.0",
+      );
     }
     // @ts-ignore
     const initializeData = encodeAbiParameters(initializeAccountABI[0].inputs, [
       // @ts-ignore
       await this.owner.getAddress(),
       // @ts-ignore
-      configuration.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
+      configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
       // @ts-ignore
       executions,
     ]);
@@ -297,11 +307,11 @@ export class AccountManager<
             index,
           ],
         }),
-      ]
+      ],
     );
 
     const salt: Hash = keccak256(
-      encodePacked(["bytes", "uint256"], [initializeAccountData, index])
+      encodePacked(["bytes", "uint256"], [initializeAccountData, index]),
     );
 
     const accountAddress = getCreate2Address({
@@ -313,18 +323,18 @@ export class AccountManager<
     const authenticationManagerAddress: Address = predictDeterministicAddress(
       configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
       configuration.v3.VERSION_HASH,
-      accountAddress
+      accountAddress,
     );
 
     const defaultECDSAValidator: Address = predictDeterministicAddress(
       configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
       keccak256(encodePacked(["bytes"], [await this.owner.getAddress()])),
-      authenticationManagerAddress
+      authenticationManagerAddress,
     );
 
     const isDeployed = await this.updateDeployment(
       this.owner.getWalletClient(),
-      accountAddress
+      accountAddress,
     );
 
     const _account: AccountV3 = {
@@ -353,7 +363,7 @@ export class AccountManager<
 
   public async updateDeployment(
     walletClient: WalletClient,
-    accountAddress: Address
+    accountAddress: Address,
   ): Promise<boolean> {
     const contractCode =
       (await walletClient.extend(publicActions).getBytecode({
@@ -365,8 +375,8 @@ export class AccountManager<
 
   private getMaxAccountIndex(): bigint | undefined {
     let maxIndex = BigInt(0);
-    if (this.accounts.length == 0 ) {
-      return undefined
+    if (this.accounts.length == 0) {
+      return undefined;
     }
     for (const account of this.accounts) {
       if (account.index > maxIndex) {
@@ -390,7 +400,10 @@ export class AccountManager<
         }
       }
     }
-    throw new Error("Account not found");
+    throw new BaseSmartAccountError(
+      "BaseSmartAccountError",
+      "Account not found",
+    );
   }
 
   getAccounts(): Account[] {
@@ -400,7 +413,7 @@ export class AccountManager<
   async getNonce(
     accountAddress: Address,
     role: Hex, // for future use(v4)
-    validatorAddress?: Address
+    validatorAddress?: Address,
   ): Promise<bigint> {
     const account = this.getAccount(accountAddress);
     validatorAddress = validatorAddress ?? account.defaultECDSAValidator;

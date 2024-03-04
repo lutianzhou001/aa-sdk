@@ -5,7 +5,7 @@ import { GeneratePaymasterSignatureType } from "../dto/generateUserOperationAndP
 export interface IPaymasterManager {
   generatePaymasterSignature(
     userOperation: UserOperation,
-    paymaster: GeneratePaymasterSignatureType
+    paymaster: GeneratePaymasterSignatureType,
   ): Promise<UserOperation>;
 
   getSupportedPaymasters(): Promise<SupportedPayMaster[]>;

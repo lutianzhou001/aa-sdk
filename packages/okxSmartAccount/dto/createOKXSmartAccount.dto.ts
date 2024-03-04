@@ -6,7 +6,7 @@ import { Account } from "../types";
 export class CreateOKXSmartAccountParams<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner
+  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
 > {
   readonly walletClient: WalletClient<TTransport, TChain>;
 

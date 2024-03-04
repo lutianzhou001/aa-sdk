@@ -3,19 +3,15 @@ import { UserOperation } from "permissionless/types/userOperation";
 import type { Address } from "abitype";
 
 export interface ISimulator {
-  sendUserOperationSimulationByOKXBundler(
-    userOperation: UserOperation
-  ): Promise<any>;
-
   sendFromEOASimulationByPublicClient(
     account: Address,
     to: Address,
     value: bigint,
-    data: Hex
+    data: Hex,
   ): Promise<any>;
 
-  sendUserOperationSimulationByPublicClient(
+  sendUserOperationSimulation(
     userOperation: UserOperation,
-    bundler?: Address
+    bundler?: Address,
   ): Promise<any>;
 }
