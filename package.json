@@ -17,7 +17,7 @@
   },
   "name": "@web3-wallet/modular-smart-account-sdk",
   "description": "a generic smart account SDK that can be used to interact with okx smart account v3 and later. Developed with viem.sh to minimize the package",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "main": "dist/index.js",
   "directories": {
     "test": "test"

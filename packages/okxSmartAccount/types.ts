@@ -53,6 +53,11 @@ export type SmartAccountTransactionReceipt = {
   success: Hex | undefined;
 };
 
+export type UserOperationSimulationResponse = {
+  success: boolean;
+  message: any;
+};
+
 export type Account = AccountV2 | AccountV3;
 
 export interface ISmartContractAccount {

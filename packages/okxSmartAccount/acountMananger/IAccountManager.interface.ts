@@ -11,8 +11,8 @@ export interface IAccountManager {
   createNewAccount(index: bigint, executions: Hex[]): Promise<Account>;
   batchCreateNewAccount(amount: number, executions: Hex[]): Promise<Account[]>;
 
-  getAccount(indexOrAddress: number | Address): Account;
-  getAccounts(): Account[];
+  getAccount(indexOrAddress: number | Address): Promise<Account>;
+  getAccounts(): Promise<Account[]>;
 
   getNonce(
     accountAddress: Address,
@@ -25,14 +25,9 @@ export interface IAccountManager {
 
   isExist(indexOrAddress: number | Address): boolean;
 
-  pushAccountTransaction(
-    sender: Address,
-    userOperationHash: Hex,
-  ): SmartAccountTransactionReceipt;
-
   getAccountTransactionReceipts(
     sender: Address,
-  ): SmartAccountTransactionReceipt[];
+  ): Promise<SmartAccountTransactionReceipt[]>;
 
   updateAccountTransactionReceipts(
     sender: Address,

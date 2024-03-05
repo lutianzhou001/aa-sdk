@@ -5,8 +5,6 @@ import {
   WalletClient,
   parseEther,
   publicActions,
-  keccak256,
-  Hex,
 } from "viem";
 import { polygon } from "viem/chains";
 import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartAccount";
@@ -17,6 +15,7 @@ import {
   transferCalldata,
 } from "../packages/actions/erc20/erc20Calldata";
 import {encodeUpgrade} from "../packages/actions/upgrades/upgradeCalldata";
+import {UserOperationSimulationResponse} from "../packages/okxSmartAccount/types";
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -50,7 +49,9 @@ async function smokeTest() {
   });
 
   // STEP3: create a new account with index specified. You can use any number you like.
-  const v = await smartAccount.accountManager.batchCreateNewAccount(10, []);
+  const creation = await smartAccount.accountManager.createNewAccount(0n, []);
+  const account = await smartAccount.accountManager.getAccount(0);
+  const nonce = await smartAccount.accountManager.getNonce(account.accountAddress, "0x");
 
   // STEP3-1: query to get to know if the account exists
   smartAccount.accountManager.isExist(0);
@@ -91,7 +92,7 @@ async function smokeTest() {
 
   // OR
   const upgradeCalldata = await smartAccount.encodeExecute({
-    to: smartAccount.accountManager.getAccounts()[0].accountAddress,
+    to: (await smartAccount.accountManager.getAccounts())[0].accountAddress,
     data: encodeUpgrade("0x5147CE3947a407c95687131Be01A2b8d55FD0A40"),
     value: BigInt(0),
     callType: "call",
@@ -101,7 +102,7 @@ async function smokeTest() {
   const preparedUserOperation: UserOperation =
     await smartAccount.generateUserOperationAndPacked({
       uop: {
-        sender: smartAccount.accountManager.getAccounts()[0].accountAddress,
+        sender: (await smartAccount.accountManager.getAccounts())[0].accountAddress,
         callData: simpleTransferERC20CallData,
       },
       paymaster: {
@@ -112,24 +113,26 @@ async function smokeTest() {
 
 
   // if bundler exists, it means to use a specified bundler, else, use the okx bundler.
-  const userOperationSimulationResponse = await smartAccount.simulator.sendUserOperationSimulation(
+  const userOperationSimulationResponse: UserOperationSimulationResponse = await smartAccount.simulator.sendUserOperationSimulation(
       preparedUserOperation
   );
+
+  const sp = await smartAccount.paymasterManager.getSupportedPaymasters();
 
   const userOperationRes = await smartAccount.sendUserOperationByOKXBundler(
     preparedUserOperation
   );
 
+  const receipt = await smartAccount.accountManager.getAccountTransactionReceipts(preparedUserOperation.sender);
+
   await delay(20000);
 
-  const receipt =
+  const updatedReceipt =
     await smartAccount.accountManager.updateAccountTransactionReceipts(
       preparedUserOperation.sender
     );
 
-  console.log(
-    smartAccount.accountManager.getAccount(preparedUserOperation.sender)
-  );
+  console.log("Updated Receipt", updatedReceipt);
 
   // estimateGas
   // await smartAccount.getEstimationGas(preparedUserOperation);

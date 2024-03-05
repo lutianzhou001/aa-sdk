@@ -184,7 +184,7 @@ export class OKXSmartContractAccount<
   async generateUserOperationAndPacked(
     params: GenerateUserOperationAndPackedParams,
   ): Promise<UserOperation> {
-    const account = this.accountManager.getAccount(params.uop.sender);
+    const account = await this.accountManager.getAccount(params.uop.sender);
     const userOperationWithGasEstimated =
       await this.generateUserOperationWithGasEstimation(
         params.uop,
@@ -320,7 +320,7 @@ export class OKXSmartContractAccount<
     if (res.data.error) {
       throw new SendUopError("sendUserOperationError", res.data.error.message);
     } else {
-      return this.accountManager.pushAccountTransaction(
+      return await this.accountManager.pushAccountTransaction(
         userOperation.sender,
         res.data.result,
       );
@@ -340,16 +340,12 @@ export class OKXSmartContractAccount<
     role: Hex,
     paymaster?: GeneratePaymasterSignatureType,
   ): Promise<UserOperation> {
-    const account: Account = this.accountManager.getAccount(
+    const account: Account = await this.accountManager.getAccount(
       userOperationDraft.sender,
-    );
-    const isDeployed: boolean = await this.accountManager.updateDeployment(
-      this.owner.getWalletClient(),
-      account.accountAddress,
     );
 
     let nonce: bigint;
-    if (isDeployed) {
+    if (account.isDeployed) {
       if (this.version == "2.0.0") {
         const accountV2 = account as AccountV2;
         nonce = userOperationDraft.nonce
@@ -378,7 +374,8 @@ export class OKXSmartContractAccount<
         sender: account.accountAddress,
         nonce: toHex(nonce),
         initCode:
-          userOperationDraft.initCode ?? (isDeployed ? "0x" : account.initCode),
+          userOperationDraft.initCode ??
+          (account.isDeployed ? "0x" : account.initCode),
         callData: userOperationDraft.callData ?? "0x",
         callGasLimit: "0x0",
         verificationGasLimit: "0x0",
@@ -432,7 +429,8 @@ export class OKXSmartContractAccount<
       sender: account.accountAddress,
       nonce: toHex(nonce) as any, //nonce,
       initCode:
-        userOperationDraft.initCode ?? (isDeployed ? "0x" : account.initCode),
+        userOperationDraft.initCode ??
+        (account.isDeployed ? "0x" : account.initCode),
       callData: userOperationDraft.callData ?? "0x",
       paymasterAndData: userOperationDraft.paymasterAndData
         ? userOperationDraft.paymasterAndData

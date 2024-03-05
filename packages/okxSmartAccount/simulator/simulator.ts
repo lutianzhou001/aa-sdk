@@ -1,12 +1,4 @@
-import {
-  Address,
-  Chain,
-  Client,
-  Hex,
-  publicActions,
-  PublicClient,
-  Transport,
-} from "viem";
+import { Address, Chain, Client, Hex, publicActions, Transport } from "viem";
 import { UserOperation } from "permissionless/types/userOperation";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
 import { createSimulatorParams } from "./createSimulatorParams.dto";
@@ -17,6 +9,7 @@ import { OKXSmartAccountSigner } from "../../plugins/types";
 import { ISimulator } from "./ISimulator.interface";
 import axios from "axios";
 import { SendUserOperationSimulationByOKXBundler } from "../../error/constants";
+import { UserOperationSimulationResponse } from "../types";
 
 export class Simulator<
   TTransport extends Transport = Transport,
@@ -53,7 +46,7 @@ export class Simulator<
   async sendUserOperationSimulation(
     userOperation: UserOperation,
     bundler?: Address,
-  ): Promise<any> {
+  ): Promise<UserOperationSimulationResponse> {
     if (bundler) {
       return await this.sendUserOperationSimulationByPublicClient(
         userOperation,
@@ -67,22 +60,25 @@ export class Simulator<
   private async sendUserOperationSimulationByPublicClient(
     userOperation: UserOperation,
     bundler: Address,
-  ): Promise<any> {
-    return await this.owner
-      .getWalletClient()
-      .extend(publicActions)
-      .simulateContract({
-        account: bundler,
-        address: this.entryPointAddress,
-        abi: EntryPointABI,
-        functionName: "handleOps",
-        args: [[userOperation], await this.owner.getAddress()],
-      });
+  ): Promise<UserOperationSimulationResponse> {
+    return {
+      success: true,
+      message: await this.owner
+        .getWalletClient()
+        .extend(publicActions)
+        .simulateContract({
+          account: bundler,
+          address: this.entryPointAddress,
+          abi: EntryPointABI,
+          functionName: "handleOps",
+          args: [[userOperation], await this.owner.getAddress()],
+        }),
+    };
   }
 
   private async sendUserOperationSimulationByOKXBundler(
     userOperation: UserOperation,
-  ): Promise<any> {
+  ): Promise<UserOperationSimulationResponse> {
     const req = {
       method: "post",
       maxBodyLength: Infinity,
@@ -110,7 +106,10 @@ export class Simulator<
         res.data.error.message,
       );
     } else {
-      return res.data.result;
+      return {
+        success: true,
+        message: res.data.result,
+      };
     }
   }
 }

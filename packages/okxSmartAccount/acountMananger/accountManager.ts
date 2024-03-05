@@ -56,11 +56,11 @@ export class AccountManager<
     this.factoryAddress = params.factoryAddress;
   }
 
-  pushAccountTransaction(
+  async pushAccountTransaction(
     sender: Address,
     userOperationHash: Hex,
-  ): SmartAccountTransactionReceipt {
-    const currentAccount = this.getAccount(sender);
+  ): Promise<SmartAccountTransactionReceipt> {
+    const currentAccount = await this.getAccount(sender);
     const receipt: SmartAccountTransactionReceipt = {
       userOperationHash: userOperationHash,
       txHash: undefined,
@@ -70,17 +70,17 @@ export class AccountManager<
     return receipt;
   }
 
-  getAccountTransactionReceipts(
+  async getAccountTransactionReceipts(
     sender: Address,
-  ): SmartAccountTransactionReceipt[] {
-    const currentAccount = this.getAccount(sender);
+  ): Promise<SmartAccountTransactionReceipt[]> {
+    const currentAccount = await this.getAccount(sender);
     return currentAccount.receipts;
   }
 
   async updateAccountTransactionReceipts(
     sender: Address,
   ): Promise<SmartAccountTransactionReceipt[]> {
-    const currentAccount = this.getAccount(sender);
+    const currentAccount = await this.getAccount(sender);
     const receipts = currentAccount.receipts;
     let receiptsToUpdate: SmartAccountTransactionReceipt[] = [];
     for (const receipt of receipts) {
@@ -386,17 +386,33 @@ export class AccountManager<
     return maxIndex;
   }
 
-  getAccount(indexOrAddress: number | Address): Account {
+  async getAccount(indexOrAddress: number | Address): Promise<Account> {
     if (typeof indexOrAddress === "number") {
       for (const account of this.accounts) {
         if (account.index === BigInt(indexOrAddress)) {
-          return account;
+          return {
+            ...account,
+            isDeployed: account.isDeployed
+              ? true
+              : await this.updateDeployment(
+                  this.owner.getWalletClient(),
+                  account.accountAddress,
+                ),
+          };
         }
       }
     } else {
       for (const account of this.accounts) {
         if (account.accountAddress === indexOrAddress) {
-          return account;
+          return {
+            ...account,
+            isDeployed: account.isDeployed
+              ? true
+              : await this.updateDeployment(
+                  this.owner.getWalletClient(),
+                  account.accountAddress,
+                ),
+          };
         }
       }
     }
@@ -406,7 +422,13 @@ export class AccountManager<
     );
   }
 
-  getAccounts(): Account[] {
+  async getAccounts(): Promise<Account[]> {
+    for (const account of this.accounts) {
+      account.isDeployed = await this.updateDeployment(
+        this.owner.getWalletClient(),
+        account.accountAddress,
+      );
+    }
     return this.accounts;
   }
 
@@ -415,7 +437,7 @@ export class AccountManager<
     role: Hex, // for future use(v4)
     validatorAddress?: Address,
   ): Promise<bigint> {
-    const account = this.getAccount(accountAddress);
+    const account = await this.getAccount(accountAddress);
     validatorAddress = validatorAddress ?? account.defaultECDSAValidator;
     return await this.owner
       .getWalletClient()
