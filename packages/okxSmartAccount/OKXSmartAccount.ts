@@ -1,15 +1,16 @@
 import type { Address } from "abitype";
 import {
-  CallExecutionError,
   type Chain,
   Client,
+  createPublicClient,
   encodeAbiParameters,
   encodeFunctionData,
   encodePacked,
-  ExecutionRevertedError,
   type Hash,
   type Hex,
+  hexToBigInt,
   hexToBytes,
+  http,
   keccak256,
   publicActions,
   SignTypedDataParameters,
@@ -51,7 +52,7 @@ import {
   GasEstimationError,
   SendUopError,
 } from "../error/constants";
-import { SendUserOperationError } from "permissionless";
+import { mainnet } from "viem/chains";
 
 export class OKXSmartContractAccount<
   TTransport extends Transport = Transport,
@@ -418,12 +419,49 @@ export class OKXSmartContractAccount<
     };
 
     const res = await axios.request(config);
-    if (res.data.error) {
+    if (
+      res.data.error &&
+      !(
+        userOperationDraft.callGasLimit &&
+        userOperationDraft.verificationGasLimit &&
+        userOperationDraft.preVerificationGas
+      )
+    ) {
       throw new GasEstimationError(
         "GAS_ESTIMATION_ERROR",
         res.data.error.message,
       );
     }
+
+    const baseGasPrice = await this.owner
+      .getWalletClient()
+      .extend(publicActions)
+      .getGasPrice();
+    const maxPriorityFeePerGas = await this.owner
+      .getWalletClient()
+      .extend(publicActions)
+      .estimateMaxPriorityFeePerGas();
+    const preVerificationGas =
+      userOperationDraft.preVerificationGas ??
+      res.data.result.preVerificationGas;
+
+    // if the layer2
+    let preVerificationGas_ : bigint;
+    if (res.data.result && res.data.result.l1GasLimit) {
+      const l1publicClient = createPublicClient({
+        chain: mainnet,
+        transport: http("https://eth.llamarpc.com"),
+      });
+      const l1Fee = await l1publicClient.getGasPrice();
+      preVerificationGas_ =
+          userOperationDraft.preVerificationGas ??
+          hexToBigInt(preVerificationGas) +
+          (hexToBigInt(res.data.result.l1GasLimit) * l1Fee) /
+          (baseGasPrice + maxPriorityFeePerGas);
+    } else {
+      preVerificationGas_ = preVerificationGas;
+    }
+    const defaultMaxFeePerGas = baseGasPrice + maxPriorityFeePerGas;
 
     return {
       sender: account.accountAddress,
@@ -438,25 +476,20 @@ export class OKXSmartContractAccount<
       signature: "0x",
       callGasLimit:
         userOperationDraft.callGasLimit ??
-        res.data.result.callGasLimit ??
-        defaultUserOperationParams.CALL_GAS_LIMIT,
+        res.data.result.callGasLimit,
       verificationGasLimit:
         userOperationDraft.verificationGasLimit ??
-        res.data.result.verificationGasLimit ??
-        defaultUserOperationParams.VERIFICATION_GAS_LIMIT,
-      preVerificationGas:
-        userOperationDraft.preVerificationGas ??
-        res.data.result.preVerificationGas ??
-        defaultUserOperationParams.PREVERIFICATION_GAS,
+        res.data.result.verificationGasLimit,
+      preVerificationGas: toHex(preVerificationGas_) as any,
       maxFeePerGas: toHex(
         userOperationDraft.maxFeePerGas
           ? userOperationDraft.maxFeePerGas
-          : defaultUserOperationParams.MAX_FEE_PER_GAS,
+          : defaultMaxFeePerGas,
       ) as any,
       maxPriorityFeePerGas: toHex(
         userOperationDraft.maxPriorityFeePerGas
           ? userOperationDraft.maxPriorityFeePerGas
-          : defaultUserOperationParams.MAX_PRIORITY_FEE_PER_GAS,
+          : defaultMaxFeePerGas,
       ) as any,
     };
   }
