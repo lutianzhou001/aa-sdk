@@ -446,7 +446,7 @@ export class OKXSmartContractAccount<
       res.data.result.preVerificationGas;
 
     // if the layer2
-    let preVerificationGas_ : bigint;
+    let preVerificationGas_: bigint;
     if (res.data.result && res.data.result.l1GasLimit) {
       const l1publicClient = createPublicClient({
         chain: mainnet,
@@ -454,10 +454,10 @@ export class OKXSmartContractAccount<
       });
       const l1Fee = await l1publicClient.getGasPrice();
       preVerificationGas_ =
-          userOperationDraft.preVerificationGas ??
-          hexToBigInt(preVerificationGas) +
+        userOperationDraft.preVerificationGas ??
+        hexToBigInt(preVerificationGas) +
           (hexToBigInt(res.data.result.l1GasLimit) * l1Fee) /
-          (baseGasPrice + maxPriorityFeePerGas);
+            (baseGasPrice + maxPriorityFeePerGas);
     } else {
       preVerificationGas_ = preVerificationGas;
     }
@@ -475,8 +475,7 @@ export class OKXSmartContractAccount<
         : "0x",
       signature: "0x",
       callGasLimit:
-        userOperationDraft.callGasLimit ??
-        res.data.result.callGasLimit,
+        userOperationDraft.callGasLimit ?? res.data.result.callGasLimit,
       verificationGasLimit:
         userOperationDraft.verificationGasLimit ??
         res.data.result.verificationGasLimit,
