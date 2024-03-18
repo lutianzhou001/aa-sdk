@@ -47,6 +47,7 @@ export class AccountManager<
   protected factoryAddress: Address;
   protected version: string;
   protected accounts: Account[] = [];
+  protected baseUrl: string;
 
   constructor(
     args: CreateAccountManagerParameters<TTransport, TChain, TOwner>,
@@ -55,6 +56,7 @@ export class AccountManager<
     this.entryPointAddress = args.entryPointAddress;
     this.version = args.version;
     this.factoryAddress = args.factoryAddress;
+    this.baseUrl = args.baseUrl;
   }
 
   pushAccountTransaction(
@@ -108,7 +110,7 @@ export class AccountManager<
       method: "post",
       maxBodyLength: Infinity,
       url:
-        networkConfigurations.base_url +
+        this.baseUrl +
         "mp/" +
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_getUserOperationReceipt",

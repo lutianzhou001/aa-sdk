@@ -1,7 +1,7 @@
 import { Address, Chain, Client, Hex, publicActions, Transport } from "viem";
 import { UserOperation } from "permissionless/types/userOperation";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
-import { createSimulatorParams } from "./createSimulatorParams.dto";
+import { CreateSimulatorParams } from "./createSimulatorParams.dto";
 import { EntryPointABI } from "../../../abis/EntryPoint.abi";
 import { networkConfigurations } from "../../../configuration";
 import { getChainId } from "viem/actions";
@@ -19,9 +19,11 @@ export class Simulator<
 {
   protected owner: TOwner;
   protected entryPointAddress: Address;
-  constructor(args: createSimulatorParams<TTransport, TChain, TOwner>) {
+  protected baseUrl: string;
+  constructor(args: CreateSimulatorParams<TTransport, TChain, TOwner>) {
     this.owner = args.owner as TOwner;
     this.entryPointAddress = args.entryPointAddress;
+    this.baseUrl = args.baseUrl;
   }
 
   async sendFromEOASimulationByPublicClient(
@@ -85,7 +87,7 @@ export class Simulator<
       method: "post",
       maxBodyLength: Infinity,
       url:
-        networkConfigurations.base_url +
+        this.baseUrl +
         "mp/" +
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_simulateUserOperation",

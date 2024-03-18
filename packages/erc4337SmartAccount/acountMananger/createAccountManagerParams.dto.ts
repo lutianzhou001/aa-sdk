@@ -14,4 +14,6 @@ export class CreateAccountManagerParameters<
   readonly version: string;
 
   readonly factoryAddress: Address;
+
+  readonly baseUrl: string;
 }

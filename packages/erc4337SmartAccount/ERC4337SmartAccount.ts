@@ -107,12 +107,14 @@ export class ERC4337SmartContractAccount<
     this.simulator = new Simulator({
       entryPointAddress: this.entryPointAddress,
       owner: this.owner,
+      baseUrl: this.baseUrl,
     });
     this.accountManager = new AccountManager({
       owner: this.owner,
       entryPointAddress: this.entryPointAddress,
       version: this.version,
       factoryAddress: this.factoryAddress,
+      baseUrl: this.baseUrl,
     });
     this.paymasterManager = new PaymasterManager({
       walletClient: this.owner.getWalletClient(),

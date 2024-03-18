@@ -2,7 +2,7 @@ import { Chain, PublicClient, Transport, WalletClient } from "viem";
 import type { Address } from "abitype";
 import { ERC4337SmartAccountSigner } from "../../plugins/types";
 
-export class createSimulatorParams<
+export class CreateSimulatorParams<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
@@ -10,4 +10,6 @@ export class createSimulatorParams<
   readonly entryPointAddress: Address;
 
   readonly owner: TSigner;
+
+  readonly baseUrl: string;
 }
