@@ -306,7 +306,7 @@ export class ERC4337SmartContractAccount<
       method: "post",
       maxBodyLength: Infinity,
       url:
-        networkConfigurations.base_url +
+        this.baseUrl +
         "mp/" +
         String(await getChainId(this.owner.getWalletClient() as Client)) +
         "/eth_sendUserOperation",
