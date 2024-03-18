@@ -1,7 +1,7 @@
 # Modular-Smart-Account-SDK
 
 ## Introduction
-a generic smart account SDK that can be used to interact with okx smart account v3 and later. Developed with viem.sh to minimize the package
+a generic smart account SDK that can be used to interact with erc4337 smart account v3 and later. Developed with viem.sh to minimize the package
 
 ✅️one-click to create a modular smart account  
 ✅️batch modular smart account creation  
@@ -19,7 +19,7 @@ yarn
   const owner = new walletClientSigner(walletClient, "SUDO");
 
   // now convert the client to the smart account
-  const smartAccount = new OKXSmartContractAccount({
+  const smartAccount = new ERC4337SmartContractAccount({
     publicClient: publicClient,
     owner: owner,
   });
