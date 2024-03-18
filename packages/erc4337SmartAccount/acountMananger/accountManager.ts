@@ -10,7 +10,6 @@ import {
   Hex,
   keccak256,
   publicActions,
-  PublicClient,
   Transport,
   WalletClient,
 } from "viem";
@@ -56,11 +55,11 @@ export class AccountManager<
     this.factoryAddress = params.factoryAddress;
   }
 
-  async pushAccountTransaction(
+  pushAccountTransaction(
     sender: Address,
     userOperationHash: Hex,
-  ): Promise<SmartAccountTransactionReceipt> {
-    const currentAccount = await this.getAccount(sender);
+  ): SmartAccountTransactionReceipt {
+    const currentAccount = this.getAccount(sender);
     const receipt: SmartAccountTransactionReceipt = {
       userOperationHash: userOperationHash,
       txHash: undefined,
@@ -70,22 +69,24 @@ export class AccountManager<
     return receipt;
   }
 
-  async getAccountTransactionReceipts(
+  getAccountTransactionReceipts(
     sender: Address,
-  ): Promise<SmartAccountTransactionReceipt[]> {
-    const currentAccount = await this.getAccount(sender);
+  ): SmartAccountTransactionReceipt[] {
+    const currentAccount = this.getAccount(sender);
     return currentAccount.receipts;
   }
 
-  async updateAccountTransactionReceipts(
+  async refreshAccountTransactionReceipts(
     sender: Address,
   ): Promise<SmartAccountTransactionReceipt[]> {
-    const currentAccount = await this.getAccount(sender);
+    const currentAccount = this.getAccount(sender);
     const receipts = currentAccount.receipts;
     let receiptsToUpdate: SmartAccountTransactionReceipt[] = [];
     for (const receipt of receipts) {
       if (receipt.success == undefined) {
-        const res = await this.getERC4337BundlerReceipt(receipt.userOperationHash);
+        const res = await this.getERC4337BundlerReceipt(
+          receipt.userOperationHash,
+        );
         receipt.success = res.success;
         receipt.txHash = res.txHash;
       }
@@ -386,7 +387,31 @@ export class AccountManager<
     return maxIndex;
   }
 
-  async getAccount(indexOrAddress: number | Address): Promise<Account> {
+  getAccount(indexOrAddress: number | Address): Account {
+    if (typeof indexOrAddress === "number") {
+      for (const account of this.accounts) {
+        if (account.index === BigInt(indexOrAddress)) {
+          return account;
+        }
+      }
+    } else {
+      for (const account of this.accounts) {
+        if (account.accountAddress === indexOrAddress) {
+          return account;
+        }
+      }
+    }
+    throw new BaseSmartAccountError(
+      "BaseSmartAccountError",
+      "Account not found",
+    );
+  }
+
+  getAccounts(): Account[] {
+    return this.accounts;
+  }
+
+  async refreshAccount(indexOrAddress: number | Address): Promise<Account> {
     if (typeof indexOrAddress === "number") {
       for (const account of this.accounts) {
         if (account.index === BigInt(indexOrAddress)) {
@@ -422,7 +447,7 @@ export class AccountManager<
     );
   }
 
-  async getAccounts(): Promise<Account[]> {
+  async refreshAccounts(): Promise<Account[]> {
     for (const account of this.accounts) {
       account.isDeployed = await this.updateDeployment(
         this.owner.getWalletClient(),
@@ -437,7 +462,7 @@ export class AccountManager<
     role: Hex, // for future use(v4)
     validatorAddress?: Address,
   ): Promise<bigint> {
-    const account = await this.getAccount(accountAddress);
+    const account = this.getAccount(accountAddress);
     validatorAddress = validatorAddress ?? account.defaultECDSAValidator;
     return await this.owner
       .getWalletClient()

@@ -11,7 +11,9 @@ import { configuration } from "../../../configuration";
 import { Address } from "abitype";
 import { BaseSmartAccountError } from "../../error/constants";
 
-export class walletClientSigner implements ERC4337SmartAccountSigner<WalletClient> {
+export class WalletClientSigner
+  implements ERC4337SmartAccountSigner<WalletClient>
+{
   signerType: string;
   signer: WalletClient;
   // validatorTemplate: Address;

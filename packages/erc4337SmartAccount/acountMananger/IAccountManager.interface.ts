@@ -11,8 +11,11 @@ export interface IAccountManager {
   createNewAccount(index: bigint, executions: Hex[]): Promise<Account>;
   batchCreateNewAccount(amount: number, executions: Hex[]): Promise<Account[]>;
 
-  getAccount(indexOrAddress: number | Address): Promise<Account>;
-  getAccounts(): Promise<Account[]>;
+  getAccount(indexOrAddress: number | Address): Account;
+  getAccounts(): Account[];
+
+  refreshAccount(indexOrAddress: number | Address): Promise<Account>;
+  refreshAccounts(): Promise<Account[]>;
 
   getNonce(
     accountAddress: Address,
@@ -27,9 +30,9 @@ export interface IAccountManager {
 
   getAccountTransactionReceipts(
     sender: Address,
-  ): Promise<SmartAccountTransactionReceipt[]>;
+  ): SmartAccountTransactionReceipt[];
 
-  updateAccountTransactionReceipts(
+  refreshAccountTransactionReceipts(
     sender: Address,
   ): Promise<SmartAccountTransactionReceipt[]>;
 }

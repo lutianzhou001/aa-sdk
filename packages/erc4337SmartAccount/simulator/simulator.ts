@@ -53,7 +53,9 @@ export class Simulator<
         bundler,
       );
     } else {
-      return await this.sendUserOperationSimulationByERC4337Bundler(userOperation);
+      return await this.sendUserOperationSimulationByERC4337Bundler(
+        userOperation,
+      );
     }
   }
 

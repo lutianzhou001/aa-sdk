@@ -50,7 +50,7 @@ async function smokeTest() {
 
   // STEP3: create a new account with index specified. You can use any number you like.
   const creation = await smartAccount.accountManager.createNewAccount(0n, []);
-  const account = await smartAccount.accountManager.getAccount(0);
+  const account = smartAccount.accountManager.getAccount(0);
   const nonce = await smartAccount.accountManager.getNonce(account.accountAddress, "0x");
 
   // STEP3-1: query to get to know if the account exists
@@ -128,7 +128,7 @@ async function smokeTest() {
   await delay(20000);
 
   const updatedReceipt =
-    await smartAccount.accountManager.updateAccountTransactionReceipts(
+    await smartAccount.accountManager.refreshAccountTransactionReceipts(
       preparedUserOperation.sender
     );
 

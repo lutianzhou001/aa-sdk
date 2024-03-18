@@ -27,7 +27,10 @@ import {
   ISmartContractAccount,
   SmartAccountTransactionReceipt,
 } from "./types.js";
-import { ERC4337SmartAccountSigner, UserOperationDraft } from "../plugins/types";
+import {
+  ERC4337SmartAccountSigner,
+  UserOperationDraft,
+} from "../plugins/types";
 import {
   configuration,
   defaultUserOperationParams,
@@ -46,7 +49,7 @@ import {
   GenerateUserOperationAndPackedParams,
 } from "./dto/generateUserOperationAndPackedParams.dto";
 import { CreateERC4337SmartAccountParams } from "./dto/createERC4337SmartAccount.dto";
-import { walletClientSigner } from "../plugins/signers/walletClientSigner";
+import { WalletClientSigner } from "../plugins/signers/walletClientSigner";
 import {
   BaseSmartAccountError,
   GasEstimationError,
@@ -71,14 +74,16 @@ export class ERC4337SmartContractAccount<
   protected entryPointAddress: Address;
   protected baseUrl: string;
 
-  constructor(params: CreateERC4337SmartAccountParams<TTransport, TChain, TOwner>) {
+  constructor(
+    params: CreateERC4337SmartAccountParams<TTransport, TChain, TOwner>,
+  ) {
     if (!params.version) {
       throw new BaseSmartAccountError(
         "BaseSmartAccountError",
         "version is required",
       );
     }
-    this.owner = new walletClientSigner(
+    this.owner = new WalletClientSigner(
       params.walletClient as WalletClient,
       "admin",
     ) as TOwner;
@@ -185,7 +190,7 @@ export class ERC4337SmartContractAccount<
   async generateUserOperationAndPacked(
     params: GenerateUserOperationAndPackedParams,
   ): Promise<UserOperation> {
-    const account = await this.accountManager.getAccount(params.uop.sender);
+    const account = this.accountManager.getAccount(params.uop.sender);
     const userOperationWithGasEstimated =
       await this.generateUserOperationWithGasEstimation(
         params.uop,
@@ -321,7 +326,7 @@ export class ERC4337SmartContractAccount<
     if (res.data.error) {
       throw new SendUopError("sendUserOperationError", res.data.error.message);
     } else {
-      return await this.accountManager.pushAccountTransaction(
+      return this.accountManager.pushAccountTransaction(
         userOperation.sender,
         res.data.result,
       );
@@ -341,7 +346,7 @@ export class ERC4337SmartContractAccount<
     role: Hex,
     paymaster?: GeneratePaymasterSignatureType,
   ): Promise<UserOperation> {
-    const account: Account = await this.accountManager.getAccount(
+    const account: Account = this.accountManager.getAccount(
       userOperationDraft.sender,
     );
 
