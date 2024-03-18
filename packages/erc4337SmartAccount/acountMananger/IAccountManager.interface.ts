@@ -23,6 +23,8 @@ export interface IAccountManager {
     validatorAddress?: Address,
   ): Promise<bigint>;
 
+  getVersion(): string;
+
   getFactoryAddress(): Address;
   getEntryPointAddress(): Address;
 
