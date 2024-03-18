@@ -123,7 +123,7 @@ async function smokeTest() {
     preparedUserOperation
   );
 
-  const receipt = await smartAccount.accountManager.getAccountTransactionReceipts(preparedUserOperation.sender);
+  const receipt = await smartAccount.accountManager.refreshAccountTransactionReceipts(preparedUserOperation.sender);
 
   await delay(20000);
 

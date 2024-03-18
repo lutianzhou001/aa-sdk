@@ -19,9 +19,9 @@ export class Simulator<
 {
   protected owner: TOwner;
   protected entryPointAddress: Address;
-  constructor(params: createSimulatorParams<TTransport, TChain, TOwner>) {
-    this.owner = params.owner as TOwner;
-    this.entryPointAddress = params.entryPointAddress;
+  constructor(args: createSimulatorParams<TTransport, TChain, TOwner>) {
+    this.owner = args.owner as TOwner;
+    this.entryPointAddress = args.entryPointAddress;
   }
 
   async sendFromEOASimulationByPublicClient(

@@ -75,37 +75,35 @@ export class ERC4337SmartContractAccount<
   protected baseUrl: string;
 
   constructor(
-    params: CreateERC4337SmartAccountParams<TTransport, TChain, TOwner>,
+    args: CreateERC4337SmartAccountParams<TTransport, TChain, TOwner>,
   ) {
-    if (!params.version) {
+    if (!args.version) {
       throw new BaseSmartAccountError(
         "BaseSmartAccountError",
         "version is required",
       );
     }
     this.owner = new WalletClientSigner(
-      params.walletClient as WalletClient,
+      args.walletClient as WalletClient,
       "admin",
     ) as TOwner;
     this.entryPointAddress =
-      params.entryPointAddress ?? configuration.entryPoint.v0_6_0;
+      args.entryPointAddress ?? configuration.entryPoint.v0_6_0;
     this.factoryAddress =
-      params.factoryAddress ??
-      (params.version == "2.0.0"
+      args.factoryAddress ??
+      (args.version == "2.0.0"
         ? configuration.v2.FACTORY_ADDRESS
         : configuration.v3.FACTORY_ADDRESS);
-    this.accounts = params.accounts ?? [];
+    this.accounts = args.accounts ?? [];
     this.name =
-      params.name ??
-      (params.version == "2.0.0"
-        ? configuration.v2.NAME
-        : configuration.v3.NAME);
+      args.name ??
+      (args.version == "2.0.0" ? configuration.v2.NAME : configuration.v3.NAME);
     this.version =
-      params.name ??
-      (params.version == "2.0.0"
+      args.name ??
+      (args.version == "2.0.0"
         ? configuration.v2.VERSION
         : configuration.v3.VERSION);
-    this.baseUrl = params.baseUrl ?? networkConfigurations.base_url;
+    this.baseUrl = args.baseUrl ?? networkConfigurations.base_url;
     this.simulator = new Simulator({
       entryPointAddress: this.entryPointAddress,
       owner: this.owner,
@@ -180,7 +178,7 @@ export class ERC4337SmartContractAccount<
     return this.owner.signMessage(msg);
   }
 
-  async signTypedData(params: SignTypedDataParameters): Promise<Hex> {
+  async signTypedData(args: SignTypedDataParameters): Promise<Hex> {
     throw new BaseSmartAccountError(
       "BaseSmartAccountError",
       "signTypedData not supported",
@@ -188,23 +186,23 @@ export class ERC4337SmartContractAccount<
   }
 
   async generateUserOperationAndPacked(
-    params: GenerateUserOperationAndPackedParams,
+    args: GenerateUserOperationAndPackedParams,
   ): Promise<UserOperation> {
-    const account = this.accountManager.getAccount(params.uop.sender);
+    const account = this.accountManager.getAccount(args.uop.sender);
     const userOperationWithGasEstimated =
       await this.generateUserOperationWithGasEstimation(
-        params.uop,
-        params.role as Hex,
-        params.paymaster,
+        args.uop,
+        args.role as Hex,
+        args.paymaster,
       );
-    const userOperation = params.paymaster
+    const userOperation = args.paymaster
       ? await this.paymasterManager.generatePaymasterSignature(
           userOperationWithGasEstimated,
-          params.paymaster,
+          args.paymaster,
         )
       : userOperationWithGasEstimated;
-    const sigTime = params._sigTime ?? (await this.getSigTime());
-    if (params.signType == "EIP712") {
+    const sigTime = args._sigTime ?? (await this.getSigTime());
+    if (args.signType == "EIP712") {
       let domain: any;
       if (this.version == "2.0.0") {
         const accountV2 = account as AccountV2;

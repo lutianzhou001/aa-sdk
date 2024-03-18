@@ -55,14 +55,14 @@ export class WalletClientSigner
   }
 
   async signTypedData(
-    params: Omit<SignTypedDataParameters, "account">,
+    args: Omit<SignTypedDataParameters, "account">,
   ): Promise<Hex> {
     const account = this.signer.account ?? (await this.getAddress());
 
     // override the account
     return this.signer.signTypedData({
       account,
-      ...params,
+      ...args,
     });
   }
 }

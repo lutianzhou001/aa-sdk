@@ -1,7 +1,7 @@
 import { Chain, PublicClient, Transport, WalletClient } from "viem";
 import type { Address } from "abitype";
 
-export class createPaymasterParams<
+export class CreatePaymasterParameters<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
 > {

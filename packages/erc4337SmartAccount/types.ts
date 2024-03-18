@@ -68,7 +68,7 @@ export interface ISmartContractAccount {
   ): Promise<UserOperation>;
 
   generateUserOperationAndPacked(
-    params: GenerateUserOperationAndPackedParams,
+    args: GenerateUserOperationAndPackedParams,
   ): Promise<UserOperation>;
 
   sendUserOperationByERC4337Bundler(
@@ -79,7 +79,7 @@ export interface ISmartContractAccount {
 
   signUserOperationHash(uopHash: Hash): Promise<Hash>;
   signMessage(msg: string | Uint8Array | Hex): Promise<Hex>;
-  signTypedData(params: SignTypedDataParameters): Promise<Hash>;
+  signTypedData(args: SignTypedDataParameters): Promise<Hash>;
 
   installValidator(
     accountAddress: Address,

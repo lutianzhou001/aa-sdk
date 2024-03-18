@@ -27,7 +27,7 @@ import { accountFactoryV2ABI } from "../../../abis/accountFactoryV2.abi";
 import { initializeAccountABI } from "../../../abis/initializeAccount.abi";
 import { accountFactoryV3ABI } from "../../../abis/accountFactoryV3.abi";
 import { predictDeterministicAddress } from "../../common/utils";
-import { createAccountManagerParams } from "./createAccountManagerParams.dto";
+import { CreateAccountManagerParameters } from "./createAccountManagerParams.dto";
 import { EntryPointABI } from "../../../abis/EntryPoint.abi";
 import { getChainId } from "viem/actions";
 import axios from "axios";
@@ -48,11 +48,13 @@ export class AccountManager<
   protected version: string;
   protected accounts: Account[] = [];
 
-  constructor(params: createAccountManagerParams<TTransport, TChain, TOwner>) {
-    this.owner = params.owner;
-    this.entryPointAddress = params.entryPointAddress;
-    this.version = params.version;
-    this.factoryAddress = params.factoryAddress;
+  constructor(
+    args: CreateAccountManagerParameters<TTransport, TChain, TOwner>,
+  ) {
+    this.owner = args.owner;
+    this.entryPointAddress = args.entryPointAddress;
+    this.version = args.version;
+    this.factoryAddress = args.factoryAddress;
   }
 
   pushAccountTransaction(
@@ -446,7 +448,6 @@ export class AccountManager<
       "Account not found",
     );
   }
-
   async refreshAccounts(): Promise<Account[]> {
     for (const account of this.accounts) {
       account.isDeployed = await this.updateDeployment(

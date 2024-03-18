@@ -11,7 +11,7 @@ export interface ERC4337SmartAccountSigner<TSinger = any> {
 
   signMessage: (msg: Uint8Array | Hex | string) => Promise<Hex>;
 
-  signTypedData: (params: SignTypedDataParameters) => Promise<Hex>;
+  signTypedData: (args: SignTypedDataParameters) => Promise<Hex>;
 }
 
 export type UserOperationDraft = {

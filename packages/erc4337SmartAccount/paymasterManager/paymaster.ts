@@ -9,7 +9,7 @@ import {
 import { ERC4337SmartAccountSigner } from "../../plugins/types";
 import { Account, SupportedPayMaster } from "../types";
 import { IPaymasterManager } from "./IPaymasterManager.interface";
-import { createPaymasterParams } from "./createPaymasterManager.dto";
+import { CreatePaymasterParameters } from "./createPaymasterManager.dto";
 import { getChainId } from "viem/actions";
 import axios from "axios";
 import { UserOperation } from "permissionless/types/userOperation";
@@ -24,10 +24,10 @@ export class PaymasterManager<
   protected entryPointAddress: Address;
   protected walletClient: WalletClient;
   protected baseUrl: string;
-  constructor(params: createPaymasterParams<TTransport, TChain>) {
-    this.entryPointAddress = params.entryPointAddress;
-    this.walletClient = params.walletClient as WalletClient;
-    this.baseUrl = params.baseUrl;
+  constructor(args: CreatePaymasterParameters<TTransport, TChain>) {
+    this.entryPointAddress = args.entryPointAddress;
+    this.walletClient = args.walletClient as WalletClient;
+    this.baseUrl = args.baseUrl;
   }
 
   async getSupportedPaymasters(): Promise<SupportedPayMaster[]> {
