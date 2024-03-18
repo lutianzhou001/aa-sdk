@@ -5,16 +5,16 @@ import { createSimulatorParams } from "./createSimulatorParams.dto";
 import { EntryPointABI } from "../../../abis/EntryPoint.abi";
 import { networkConfigurations } from "../../../configuration";
 import { getChainId } from "viem/actions";
-import { OKXSmartAccountSigner } from "../../plugins/types";
+import { ERC4337SmartAccountSigner } from "../../plugins/types";
 import { ISimulator } from "./ISimulator.interface";
 import axios from "axios";
-import { SendUserOperationSimulationByOKXBundler } from "../../error/constants";
+import { SendUserOperationSimulationByERC4337Bundler } from "../../error/constants";
 import { UserOperationSimulationResponse } from "../types";
 
 export class Simulator<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
+  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > implements ISimulator
 {
   protected owner: TOwner;
@@ -53,7 +53,7 @@ export class Simulator<
         bundler,
       );
     } else {
-      return await this.sendUserOperationSimulationByOKXBundler(userOperation);
+      return await this.sendUserOperationSimulationByERC4337Bundler(userOperation);
     }
   }
 
@@ -76,7 +76,7 @@ export class Simulator<
     };
   }
 
-  private async sendUserOperationSimulationByOKXBundler(
+  private async sendUserOperationSimulationByERC4337Bundler(
     userOperation: UserOperation,
   ): Promise<UserOperationSimulationResponse> {
     const req = {
@@ -101,8 +101,8 @@ export class Simulator<
 
     const res = await axios.request(req);
     if (res.data.error) {
-      throw new SendUserOperationSimulationByOKXBundler(
-        "sendUserOperationSimulationByOKXBundler",
+      throw new SendUserOperationSimulationByERC4337Bundler(
+        "sendUserOperationSimulationByERC4337Bundler",
         res.data.error.message,
       );
     } else {

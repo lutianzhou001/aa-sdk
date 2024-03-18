@@ -1,11 +1,11 @@
 import { Chain, PublicClient, Transport, WalletClient } from "viem";
 import type { Address } from "abitype";
-import { OKXSmartAccountSigner } from "../../plugins/types";
+import { ERC4337SmartAccountSigner } from "../../plugins/types";
 
 export class createAccountManagerParams<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
+  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > {
   readonly entryPointAddress: Address;
 

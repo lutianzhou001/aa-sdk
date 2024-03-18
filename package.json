@@ -17,14 +17,10 @@
   },
   "name": "@web3-wallet/modular-smart-account-sdk",
   "description": "a generic smart account SDK that can be used to interact with okx smart account v3 and later. Developed with viem.sh to minimize the package",
-  "version": "1.0.8",
+  "version": "1.1.0",
   "main": "dist/index.js",
   "directories": {
     "test": "test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git@gitlab.okg.com:web3-wallet/modular-smart-account-sdk.git"
   },
   "keywords": [
     "modular",
@@ -32,11 +28,12 @@
     "account"
   ],
   "publishConfig": {
-    "@web3-wallet:registry": "https://gitlab.okg.com/api/v4/projects/7444/packages/npm/"
+    "@web3-wallet:registry": "https://github.com/lutianzhou001/aa-sdk"
   },
   "author": "web3-wallet",
   "license": "ISC",
   "files": [
     "dist"
-  ]
+  ],
+  "types": "./dist/index.d.ts"
 }

@@ -1,6 +1,6 @@
 import { Address, Hex, SignTypedDataParameters, WalletClient } from "viem";
 
-export interface OKXSmartAccountSigner<TSinger = any> {
+export interface ERC4337SmartAccountSigner<TSinger = any> {
   signerType: string;
   signer: TSinger;
   // validatorTemplate: Address;

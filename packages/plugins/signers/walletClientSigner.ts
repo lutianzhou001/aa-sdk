@@ -6,12 +6,12 @@ import {
   SignTypedDataParameters,
   zeroAddress,
 } from "viem";
-import type { OKXSmartAccountSigner } from "../types";
+import type { ERC4337SmartAccountSigner } from "../types";
 import { configuration } from "../../../configuration";
 import { Address } from "abitype";
 import { BaseSmartAccountError } from "../../error/constants";
 
-export class walletClientSigner implements OKXSmartAccountSigner<WalletClient> {
+export class walletClientSigner implements ERC4337SmartAccountSigner<WalletClient> {
   signerType: string;
   signer: WalletClient;
   // validatorTemplate: Address;

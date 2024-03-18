@@ -7,7 +7,7 @@ import {
   publicActions,
 } from "viem";
 import { polygon } from "viem/chains";
-import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartAccount";
+import { ERC4337SmartContractAccount } from "../packages/erc4337SmartAccount/ERC4337SmartAccount";
 import { Address } from "abitype";
 import { UserOperation } from "permissionless/types/userOperation";
 import {
@@ -15,7 +15,7 @@ import {
   transferCalldata,
 } from "../packages/actions/erc20/erc20Calldata";
 import {encodeUpgrade} from "../packages/actions/upgrades/upgradeCalldata";
-import {UserOperationSimulationResponse} from "../packages/okxSmartAccount/types";
+import {UserOperationSimulationResponse} from "../packages/erc4337SmartAccount/types";
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -41,8 +41,8 @@ async function smokeTest() {
   // if you want to get the wallet address, use this.
   // const [walletAddress] = await walletClient.getAddresses();
 
-  // STEP2: create a OKXSmartContractAccount with the publicClient and owner
-  const smartAccount = new OKXSmartContractAccount({
+  // STEP2: create a ERC4337SmartContractAccount with the publicClient and owner
+  const smartAccount = new ERC4337SmartContractAccount({
     walletClient: walletClient,
     version: "2.0.0",
     // specify your baseUrl here. baseUrl : "https://www.okx.com/priapi/v5/wallet/smart-account/"
@@ -119,7 +119,7 @@ async function smokeTest() {
 
   const sp = await smartAccount.paymasterManager.getSupportedPaymasters();
 
-  const userOperationRes = await smartAccount.sendUserOperationByOKXBundler(
+  const userOperationRes = await smartAccount.sendUserOperationByERC4337Bundler(
     preparedUserOperation
   );
 

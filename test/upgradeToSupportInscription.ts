@@ -7,10 +7,10 @@ import {
 } from "viem";
 import {privateKeyToAccount} from "viem/accounts";
 import {arbitrum} from "viem/chains";
-import {OKXSmartContractAccount} from "../packages/okxSmartAccount/OKXSmartAccount";
+import {ERC4337SmartContractAccount} from "../packages/erc4337SmartAccount/ERC4337SmartAccount";
 import {encodeUpgrade} from "../packages/actions/upgrades/upgradeCalldata";
 import {UserOperation} from "permissionless/types/userOperation";
-import {UserOperationSimulationResponse} from "../packages/okxSmartAccount/types";
+import {UserOperationSimulationResponse} from "../packages/erc4337SmartAccount/types";
 import {smartAccountV2WithInscriptionSupportedABI} from "../abis/smartAccountV2WithInscriptionSupported.abi";
 import {configuration} from "../configuration";
 import {EntryPointABI} from "../abis/EntryPoint.abi";
@@ -25,7 +25,7 @@ async function transferEthsTest() {
         transport: http(),
     }).extend(publicActions);
 
-    const smartAccount = new OKXSmartContractAccount({
+    const smartAccount = new ERC4337SmartContractAccount({
         walletClient: walletClient,
         version: "2.0.0",
         // specify your baseUrl here. baseUrl : "https://www.okx.com/priapi/v5/wallet/smart-account/"
@@ -56,7 +56,7 @@ async function transferEthsTest() {
     //     preparedUserOperation
     // );
     //
-    // const userOperationRes = await smartAccount.sendUserOperationByOKXBundler(
+    // const userOperationRes = await smartAccount.sendUserOperationByERC4337Bundler(
     //     preparedUserOperation
     // );
 

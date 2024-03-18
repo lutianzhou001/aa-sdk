@@ -16,7 +16,7 @@ import {
 } from "viem";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
 import { configuration, networkConfigurations } from "../../../configuration";
-import { OKXSmartAccountSigner } from "../../plugins/types";
+import { ERC4337SmartAccountSigner } from "../../plugins/types";
 import { IAccountManager } from "./IAccountManager.interface";
 import {
   Account,
@@ -34,13 +34,13 @@ import { getChainId } from "viem/actions";
 import axios from "axios";
 import {
   BaseSmartAccountError,
-  GetOKXBundlerReceipt,
+  GetERC4337BundlerReceipt,
 } from "../../error/constants";
 
 export class AccountManager<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
+  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > implements IAccountManager
 {
   protected owner: TOwner;
@@ -85,7 +85,7 @@ export class AccountManager<
     let receiptsToUpdate: SmartAccountTransactionReceipt[] = [];
     for (const receipt of receipts) {
       if (receipt.success == undefined) {
-        const res = await this.getOKXBundlerReceipt(receipt.userOperationHash);
+        const res = await this.getERC4337BundlerReceipt(receipt.userOperationHash);
         receipt.success = res.success;
         receipt.txHash = res.txHash;
       }
@@ -98,7 +98,7 @@ export class AccountManager<
     return receiptsToUpdate;
   }
 
-  private async getOKXBundlerReceipt(
+  private async getERC4337BundlerReceipt(
     userOperationHash: Hex,
   ): Promise<SmartAccountTransactionReceipt> {
     const req = {
@@ -122,8 +122,8 @@ export class AccountManager<
     };
     const res = await axios.request(req);
     if (res.data.error) {
-      throw new GetOKXBundlerReceipt(
-        "getOKXBundlerReceiptError",
+      throw new GetERC4337BundlerReceipt(
+        "getERC4337BundlerReceiptError",
         res.data.error.message,
       );
     } else {

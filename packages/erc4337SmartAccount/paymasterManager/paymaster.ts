@@ -6,7 +6,7 @@ import {
   Transport,
   WalletClient,
 } from "viem";
-import { OKXSmartAccountSigner } from "../../plugins/types";
+import { ERC4337SmartAccountSigner } from "../../plugins/types";
 import { Account, SupportedPayMaster } from "../types";
 import { IPaymasterManager } from "./IPaymasterManager.interface";
 import { createPaymasterParams } from "./createPaymasterManager.dto";
@@ -18,7 +18,7 @@ import { GeneratePaymasterSignatureType } from "../dto/generateUserOperationAndP
 export class PaymasterManager<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
+  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > implements IPaymasterManager
 {
   protected entryPointAddress: Address;

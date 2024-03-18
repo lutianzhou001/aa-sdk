@@ -10,5 +10,5 @@ export class BaseSmartAccountError extends Error {
 
 export class GasEstimationError extends BaseSmartAccountError {}
 export class SendUopError extends BaseSmartAccountError {}
-export class GetOKXBundlerReceipt extends BaseSmartAccountError {}
-export class SendUserOperationSimulationByOKXBundler extends BaseSmartAccountError {}
+export class GetERC4337BundlerReceipt extends BaseSmartAccountError {}
+export class SendUserOperationSimulationByERC4337Bundler extends BaseSmartAccountError {}

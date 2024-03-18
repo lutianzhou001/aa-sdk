@@ -71,7 +71,7 @@ export interface ISmartContractAccount {
     params: GenerateUserOperationAndPackedParams,
   ): Promise<UserOperation>;
 
-  sendUserOperationByOKXBundler(
+  sendUserOperationByERC4337Bundler(
     userOperation: UserOperation,
   ): Promise<SmartAccountTransactionReceipt>;
 

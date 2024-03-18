@@ -27,7 +27,7 @@ import {
   ISmartContractAccount,
   SmartAccountTransactionReceipt,
 } from "./types.js";
-import { OKXSmartAccountSigner, UserOperationDraft } from "../plugins/types";
+import { ERC4337SmartAccountSigner, UserOperationDraft } from "../plugins/types";
 import {
   configuration,
   defaultUserOperationParams,
@@ -45,7 +45,7 @@ import {
   GeneratePaymasterSignatureType,
   GenerateUserOperationAndPackedParams,
 } from "./dto/generateUserOperationAndPackedParams.dto";
-import { CreateOKXSmartAccountParams } from "./dto/createOKXSmartAccount.dto";
+import { CreateERC4337SmartAccountParams } from "./dto/createERC4337SmartAccount.dto";
 import { walletClientSigner } from "../plugins/signers/walletClientSigner";
 import {
   BaseSmartAccountError,
@@ -54,10 +54,10 @@ import {
 } from "../error/constants";
 import { mainnet } from "viem/chains";
 
-export class OKXSmartContractAccount<
+export class ERC4337SmartContractAccount<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
+  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > implements ISmartContractAccount
 {
   public accountManager: AccountManager;
@@ -71,7 +71,7 @@ export class OKXSmartContractAccount<
   protected entryPointAddress: Address;
   protected baseUrl: string;
 
-  constructor(params: CreateOKXSmartAccountParams<TTransport, TChain, TOwner>) {
+  constructor(params: CreateERC4337SmartAccountParams<TTransport, TChain, TOwner>) {
     if (!params.version) {
       throw new BaseSmartAccountError(
         "BaseSmartAccountError",
@@ -294,7 +294,7 @@ export class OKXSmartContractAccount<
     await this.owner.getWalletClient().writeContract(request);
   }
 
-  async sendUserOperationByOKXBundler(
+  async sendUserOperationByERC4337Bundler(
     userOperation: UserOperation,
   ): Promise<SmartAccountTransactionReceipt> {
     const req = {
