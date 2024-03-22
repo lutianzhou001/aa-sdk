@@ -349,7 +349,6 @@ export class ERC4337SmartContractAccount<
     const account: Account = this.accountManager.getAccount(
       userOperationDraft.sender,
     );
-
     let nonce: bigint;
     if (account.isDeployed) {
       if (this.version == "2.0.0") {
@@ -396,10 +395,13 @@ export class ERC4337SmartContractAccount<
               BigInt(1),
             )
           : "0x",
-        signature: "0x00",
+        // a FAKE signature
+        signature: "0x000000000000000000000000000000000000000000000000000000000065ec8c6cd0677cf78f473ccf0cdf26925f84e7e07b345fd050b014bb436c73b6cba2ca3228faab7a9563284421515609f49bc03f20990c2bfa455e52e839ac4c311a57c01c"
       },
       this.entryPointAddress,
     ];
+
+    console.log(userOperationForEstimationGas);
 
     let data = JSON.stringify({
       id: 1,

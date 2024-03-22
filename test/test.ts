@@ -26,7 +26,7 @@ async function smokeTest() {
   const walletClient: WalletClient = createWalletClient({
     account: privateKeyToAccount(
       // NOTION, this privateKey is PUBLIC, ONLY FOR TESTING, DO NOT USE IT IN PRODUCTION
-      "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+      "0x731fe28849e538f333fd9e95d9b88441f7eac0c277edb6848fe04600eb03ce45"
     ),
     chain: polygon,
     transport: http(),
@@ -123,7 +123,7 @@ async function smokeTest() {
     preparedUserOperation
   );
 
-  const receipt = await smartAccount.accountManager.refreshAccountTransactionReceipts(preparedUserOperation.sender);
+  // const receipt = await smartAccount.accountManager.refreshAccountTransactionReceipts(preparedUserOperation.sender);
 
   await delay(20000);
 
