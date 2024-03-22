@@ -111,7 +111,6 @@ async function smokeTest() {
       },
     });
 
-
   // if bundler exists, it means to use a specified bundler, else, use the okx bundler.
   const userOperationSimulationResponse: UserOperationSimulationResponse = await smartAccount.simulator.sendUserOperationSimulation(
       preparedUserOperation

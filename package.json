@@ -17,7 +17,7 @@
   },
   "name": "account-abstraction-wallet-sdk",
   "description": "a generic smart account SDK that can be used to interact with erc4337 smart account v3 and later. Developed with viem.sh to minimize the package",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "main": "dist/index.js",
   "directories": {
     "test": "test"

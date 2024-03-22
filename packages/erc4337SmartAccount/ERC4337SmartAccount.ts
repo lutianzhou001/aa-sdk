@@ -338,7 +338,8 @@ export class ERC4337SmartContractAccount<
       .getWalletClient()
       .extend(publicActions)
       .getBlock();
-    return BigInt(block.timestamp) + BigInt(100000);
+    // make the signature validate in 72h
+    return BigInt(block.timestamp) + BigInt(86400 * 3);
   }
 
   async generateUserOperationWithGasEstimation(
