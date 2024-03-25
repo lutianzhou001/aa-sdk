@@ -191,6 +191,8 @@ export class ERC4337SmartContractAccount<
     args: GenerateUserOperationAndPackedParams,
   ): Promise<UserOperation> {
     const account = this.accountManager.getAccount(args.uop.sender);
+    // to avoid send with init code, we should update the isDeployed status;
+    await this.accountManager.updateDeployment(this.owner.getWalletClient(), account.accountAddress);
     const userOperationWithGasEstimated =
       await this.generateUserOperationWithGasEstimation(
         args.uop,
