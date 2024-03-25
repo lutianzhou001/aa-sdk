@@ -81,6 +81,9 @@ export interface ISmartContractAccount {
   signMessage(msg: string | Uint8Array | Hex): Promise<Hex>;
   signTypedData(args: SignTypedDataParameters): Promise<Hash>;
 
+  getVersion(): string
+  getImplHash(): Promise<Hex|undefined>;
+
   installValidator(
     accountAddress: Address,
     newValidatorAddress: Address,

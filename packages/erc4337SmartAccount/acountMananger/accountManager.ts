@@ -59,10 +59,6 @@ export class AccountManager<
     this.baseUrl = args.baseUrl;
   }
 
-  getVersion(): string {
-    return this.version;
-  }
-
   pushAccountTransaction(
     sender: Address,
     userOperationHash: Hex,

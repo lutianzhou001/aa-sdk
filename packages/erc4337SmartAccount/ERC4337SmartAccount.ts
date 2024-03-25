@@ -17,7 +17,7 @@ import {
   toHex,
   type Transport,
   WalletClient,
-  zeroAddress,
+  zeroAddress, zeroHash,
 } from "viem";
 import {
   Account,
@@ -536,6 +536,15 @@ export class ERC4337SmartContractAccount<
       functionName: "execute",
       args: [accountAddress, 0, installValidator],
     });
+  }
+
+  getVersion(): string {
+    return this.version;
+  }
+
+  async getImplHash(): Promise<Hex> {
+     const byteCodeHash =  await this.owner.getWalletClient().extend(publicActions).getBytecode({address: this.accountManager.getAccounts()[0].accountAddress});
+     return (byteCodeHash == undefined) ? zeroHash : byteCodeHash;
   }
 
   private async mockUserOperationPackedWithTokenPayMaster(
