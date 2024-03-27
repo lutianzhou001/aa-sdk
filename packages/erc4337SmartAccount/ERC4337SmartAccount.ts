@@ -544,7 +544,7 @@ export class ERC4337SmartContractAccount<
 
   async getImplHash(): Promise<Hex> {
      const byteCodeHash =  await this.owner.getWalletClient().extend(publicActions).getBytecode({address: this.accountManager.getAccounts()[0].accountAddress});
-     return (byteCodeHash == undefined) ? zeroHash : byteCodeHash;
+     return (byteCodeHash == undefined) ? zeroHash : keccak256(byteCodeHash);
   }
 
   private async mockUserOperationPackedWithTokenPayMaster(
