@@ -1,29 +1,48 @@
 import type { Address } from "abitype";
-import type { Hash, Hex, SignTypedDataParameters, Transport } from "viem";
-import { UserOperationDraft } from "../plugins/types";
+import type {
+  Hash,
+  Hex,
+  SignTypedDataParameters,
+  Transport,
+  WalletClient,
+} from "viem";
+import { UserOperation0_7, UserOperationDraft } from "../plugins/types";
 import { UserOperation } from "permissionless/types/userOperation";
 import {
   GeneratePaymasterSignatureType,
   GenerateUserOperationAndPackedParams,
 } from "./dto/generateUserOperationAndPackedParams.dto";
+import { mode } from "viem/chains";
 
-export type CallType = "call" | "delegatecall";
+export type CallType = "single" | "delegatecall" | "batch" | undefined;
 
 export type SignType = "EIP712" | "EIP191";
 
+export type ExecutionMode = {
+  callType?: CallType;
+  try?: boolean;
+  allowFailedExecution?: boolean;
+  modeParams?: string;
+};
+
 export type ExecuteCallDataArgs =
   | {
-      to: Address;
-      value: bigint;
-      data: Hex;
-      callType: CallType | undefined;
+      execRawData: {
+        to: Address;
+        value: bigint;
+        data: Hex;
+      };
+      execMode: ExecutionMode;
     }
   | {
-      to: Address;
-      value: bigint;
-      data: Hex;
-      callType: CallType | undefined;
-    }[];
+      execRawData: {
+        to: Address;
+        value: bigint;
+        data: Hex;
+        allowFailed: boolean;
+      }[];
+      execMode: ExecutionMode;
+    };
 
 export type AccountV3 = AccountV2 & {
   authenticationManagerAddress: Address;
@@ -65,14 +84,15 @@ export interface ISmartContractAccount {
     userOperationDraft: UserOperationDraft,
     role: Hex,
     paymaster?: GeneratePaymasterSignatureType,
-  ): Promise<UserOperation>;
+  ): Promise<UserOperation<"v0.6"> | UserOperation0_7>;
 
   generateUserOperationAndPacked(
     args: GenerateUserOperationAndPackedParams,
-  ): Promise<UserOperation>;
+  ): Promise<UserOperation<"v0.6"> | UserOperation0_7>;
 
   sendUserOperationByERC4337Bundler(
-    userOperation: UserOperation,
+    userOperation: UserOperation<"v0.6"> | UserOperation0_7,
+    walletClient: WalletClient,
   ): Promise<SmartAccountTransactionReceipt>;
 
   execute(request: any): Promise<any>;
@@ -81,8 +101,8 @@ export interface ISmartContractAccount {
   signMessage(msg: string | Uint8Array | Hex): Promise<Hex>;
   signTypedData(args: SignTypedDataParameters): Promise<Hash>;
 
-  getVersion(): string
-  getImplHash(): Promise<Hex|undefined>;
+  getVersion(): string;
+  getImplHash(): Promise<Hex | undefined>;
 
   installValidator(
     accountAddress: Address,

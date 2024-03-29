@@ -25,4 +25,17 @@ export type UserOperationDraft = {
   preVerificationGas?: bigint;
   maxFeePerGas?: bigint;
   maxPriorityFeePerGas?: bigint;
+  accountGasLimits?: bigint;
+};
+
+export type UserOperation0_7 = {
+  sender: Address;
+  nonce: bigint;
+  initCode: Hex;
+  callData: Hex;
+  paymasterAndData: Hex;
+  preVerificationGas: bigint;
+  gasFees: Hex;
+  accountGasLimits: Hex;
+  signature: Hex;
 };

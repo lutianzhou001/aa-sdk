@@ -5,7 +5,10 @@ import { CreateSimulatorParams } from "./createSimulatorParams.dto";
 import { EntryPointABI } from "../../../abis/EntryPoint.abi";
 import { networkConfigurations } from "../../../configuration";
 import { getChainId } from "viem/actions";
-import { ERC4337SmartAccountSigner } from "../../plugins/types";
+import {
+  ERC4337SmartAccountSigner,
+  UserOperation0_7,
+} from "../../plugins/types";
 import { ISimulator } from "./ISimulator.interface";
 import axios from "axios";
 import { SendUserOperationSimulationByERC4337Bundler } from "../../error/constants";
@@ -20,10 +23,12 @@ export class Simulator<
   protected owner: TOwner;
   protected entryPointAddress: Address;
   protected baseUrl: string;
+  protected version: string;
   constructor(args: CreateSimulatorParams<TTransport, TChain, TOwner>) {
     this.owner = args.owner as TOwner;
     this.entryPointAddress = args.entryPointAddress;
     this.baseUrl = args.baseUrl;
+    this.version = args.version;
   }
 
   async sendFromEOASimulationByPublicClient(
@@ -46,9 +51,15 @@ export class Simulator<
   }
 
   async sendUserOperationSimulation(
-    userOperation: UserOperation,
+    userOperation: UserOperation<"v0.6">,
     bundler?: Address,
   ): Promise<UserOperationSimulationResponse> {
+    if (this.version == "3.0.0") {
+      return {
+        success: false,
+        message: "Not supported",
+      };
+    }
     if (bundler) {
       return await this.sendUserOperationSimulationByPublicClient(
         userOperation,
@@ -62,7 +73,7 @@ export class Simulator<
   }
 
   private async sendUserOperationSimulationByPublicClient(
-    userOperation: UserOperation,
+    userOperation: UserOperation<"v0.6">,
     bundler: Address,
   ): Promise<UserOperationSimulationResponse> {
     return {
@@ -81,7 +92,7 @@ export class Simulator<
   }
 
   private async sendUserOperationSimulationByERC4337Bundler(
-    userOperation: UserOperation,
+    userOperation: UserOperation<"v0.6"> | UserOperation0_7,
   ): Promise<UserOperationSimulationResponse> {
     const req = {
       method: "post",

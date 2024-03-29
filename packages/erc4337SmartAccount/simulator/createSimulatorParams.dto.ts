@@ -12,4 +12,6 @@ export class CreateSimulatorParams<
   readonly owner: TSigner;
 
   readonly baseUrl: string;
+
+  readonly version: string;
 }

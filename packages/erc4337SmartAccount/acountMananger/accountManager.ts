@@ -35,6 +35,7 @@ import {
   BaseSmartAccountError,
   GetERC4337BundlerReceipt,
 } from "../../error/constants";
+import { EntryPointV0_7ABI } from "../../../abis/EntryPointV0_7.abi";
 
 export class AccountManager<
   TTransport extends Transport = Transport,
@@ -283,13 +284,9 @@ export class AccountManager<
         "This function is not supported in version 2.0.0",
       );
     }
-    // @ts-ignore
     const initializeData = encodeAbiParameters(initializeAccountABI[0].inputs, [
-      // @ts-ignore
       await this.owner.getAddress(),
-      // @ts-ignore
       configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
-      // @ts-ignore
       executions,
     ]);
 
@@ -322,7 +319,7 @@ export class AccountManager<
     const accountAddress = getCreate2Address({
       from: this.factoryAddress,
       salt: salt,
-      bytecodeHash: keccak256(configuration.v3.SMART_ACCOUNT_PROXY_CODE),
+      bytecodeHash: configuration.v3.SMART_ACCOUNT_PROXY_CODE_HASH,
     });
 
     const authenticationManagerAddress: Address = predictDeterministicAddress(
@@ -467,19 +464,28 @@ export class AccountManager<
   ): Promise<bigint> {
     const account = this.getAccount(accountAddress);
     validatorAddress = validatorAddress ?? account.defaultECDSAValidator;
-    return await this.owner
-      .getWalletClient()
-      .extend(publicActions)
-      .readContract({
-        address: this.entryPointAddress,
-        abi: EntryPointABI,
-        functionName: "getNonce",
-        // TODO: add Role into consideration in the next version
-        args: [
-          account.accountAddress,
-          this.version == "2.0.0" ? BigInt(0) : BigInt(validatorAddress),
-        ],
-      });
+    if (this.version == "2.0.0") {
+      return await this.owner
+        .getWalletClient()
+        .extend(publicActions)
+        .readContract({
+          address: this.entryPointAddress,
+          abi: EntryPointABI,
+          functionName: "getNonce",
+          args: [account.accountAddress, BigInt(0)],
+        });
+    } else {
+      // @ts-ignore
+      return await this.owner
+        .getWalletClient()
+        .extend(publicActions)
+        .readContract({
+          address: this.entryPointAddress,
+          abi: EntryPointV0_7ABI,
+          functionName: "getNonce",
+          args: [account.accountAddress, BigInt(validatorAddress)],
+        });
+    }
   }
 
   isExist(indexOrAddress: number | Address) {

@@ -74,17 +74,50 @@ export const smartAccountV3ABI = [
   },
   {
     inputs: [],
+    name: "NotFromEntryPointOrSelf",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "NotFromSelf",
     type: "error",
   },
   {
     inputs: [],
-    name: "NotFromValidCaller",
+    name: "OnlyAdmin",
     type: "error",
   },
   {
-    inputs: [],
-    name: "OnlyAdmin",
+    inputs: [
+      {
+        internalType: "CallType",
+        name: "callType",
+        type: "bytes1",
+      },
+    ],
+    name: "UnsupportedCallType",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "ExecType",
+        name: "execType",
+        type: "bytes1",
+      },
+    ],
+    name: "UnsupportedExecType",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "moduleType",
+        type: "uint256",
+      },
+    ],
+    name: "UnsupportedModuleType",
     type: "error",
   },
   {
@@ -109,21 +142,9 @@ export const smartAccountV3ABI = [
           },
         ],
         indexed: false,
-        internalType: "struct IExecution.Execution",
+        internalType: "struct Execution",
         name: "execution",
         type: "tuple",
-      },
-      {
-        indexed: false,
-        internalType: "bool",
-        name: "allowFailed",
-        type: "bool",
-      },
-      {
-        indexed: false,
-        internalType: "enum Enum.Operation",
-        name: "operation",
-        type: "uint8",
       },
       {
         indexed: false,
@@ -133,25 +154,6 @@ export const smartAccountV3ABI = [
       },
     ],
     name: "BatchExeFailed",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "address",
-        name: "validator",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "hook",
-        type: "address",
-      },
-    ],
-    name: "HookAssigned",
     type: "event",
   },
   {
@@ -185,12 +187,18 @@ export const smartAccountV3ABI = [
     inputs: [
       {
         indexed: false,
+        internalType: "uint256",
+        name: "moduleTypeId",
+        type: "uint256",
+      },
+      {
+        indexed: false,
         internalType: "address",
-        name: "executor",
+        name: "module",
         type: "address",
       },
     ],
-    name: "InstallExecutorModule",
+    name: "ModuleInstalled",
     type: "event",
   },
   {
@@ -198,38 +206,18 @@ export const smartAccountV3ABI = [
     inputs: [
       {
         indexed: false,
-        internalType: "address",
-        name: "fallbackHandler",
-        type: "address",
+        internalType: "uint256",
+        name: "moduleTypeId",
+        type: "uint256",
       },
-    ],
-    name: "InstallFallbackHandler",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
       {
         indexed: false,
         internalType: "address",
-        name: "hook",
+        name: "module",
         type: "address",
       },
     ],
-    name: "InstallHook",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "address",
-        name: "validator",
-        type: "address",
-      },
-    ],
-    name: "InstallValidatorModule",
+    name: "ModuleUninstalled",
     type: "event",
   },
   {
@@ -249,58 +237,6 @@ export const smartAccountV3ABI = [
       },
     ],
     name: "SafeReceived",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "address",
-        name: "executor",
-        type: "address",
-      },
-    ],
-    name: "UninstallExecutorModule",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "address",
-        name: "fallbackHandler",
-        type: "address",
-      },
-    ],
-    name: "UninstallFallbackHandler",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "address",
-        name: "hook",
-        type: "address",
-      },
-    ],
-    name: "UninstallHook",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "address",
-        name: "validator",
-        type: "address",
-      },
-    ],
-    name: "UninstallValidatorModule",
     type: "event",
   },
   {
@@ -360,316 +296,58 @@ export const smartAccountV3ABI = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "accountId",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
-        internalType: "address",
-        name: "target",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "value",
-        type: "uint256",
+        internalType: "ModeCode",
+        name: "mode",
+        type: "bytes32",
       },
       {
         internalType: "bytes",
-        name: "data",
+        name: "executionCalldata",
         type: "bytes",
       },
     ],
     name: "execute",
-    outputs: [
-      {
-        internalType: "bytes",
-        name: "result",
-        type: "bytes",
-      },
-    ],
-    stateMutability: "nonpayable",
+    outputs: [],
+    stateMutability: "payable",
     type: "function",
   },
   {
     inputs: [
       {
-        components: [
-          {
-            components: [
-              {
-                internalType: "address",
-                name: "target",
-                type: "address",
-              },
-              {
-                internalType: "uint256",
-                name: "value",
-                type: "uint256",
-              },
-              {
-                internalType: "bytes",
-                name: "callData",
-                type: "bytes",
-              },
-            ],
-            internalType: "struct IExecution.Execution",
-            name: "execution",
-            type: "tuple",
-          },
-          {
-            internalType: "bool",
-            name: "allowFailed",
-            type: "bool",
-          },
-          {
-            internalType: "enum Enum.Operation",
-            name: "operation",
-            type: "uint8",
-          },
-        ],
-        internalType: "struct ISmartAccountV3.AllowFailedExecution[]",
-        name: "allowFailedExecutions",
-        type: "tuple[]",
-      },
-    ],
-    name: "executeAllowFailedBatch",
-    outputs: [
-      {
-        internalType: "bytes",
-        name: "result",
-        type: "bytes",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            components: [
-              {
-                internalType: "address",
-                name: "target",
-                type: "address",
-              },
-              {
-                internalType: "uint256",
-                name: "value",
-                type: "uint256",
-              },
-              {
-                internalType: "bytes",
-                name: "callData",
-                type: "bytes",
-              },
-            ],
-            internalType: "struct IExecution.Execution",
-            name: "execution",
-            type: "tuple",
-          },
-          {
-            internalType: "bool",
-            name: "allowFailed",
-            type: "bool",
-          },
-          {
-            internalType: "enum Enum.Operation",
-            name: "operation",
-            type: "uint8",
-          },
-        ],
-        internalType: "struct ISmartAccountV3.AllowFailedExecution[]",
-        name: "allowFailedExecutions",
-        type: "tuple[]",
-      },
-    ],
-    name: "executeAllowFailedBatchFromExecutor",
-    outputs: [
-      {
-        internalType: "bytes",
-        name: "result",
-        type: "bytes",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            internalType: "address",
-            name: "target",
-            type: "address",
-          },
-          {
-            internalType: "uint256",
-            name: "value",
-            type: "uint256",
-          },
-          {
-            internalType: "bytes",
-            name: "callData",
-            type: "bytes",
-          },
-        ],
-        internalType: "struct IExecution.Execution[]",
-        name: "executions",
-        type: "tuple[]",
-      },
-    ],
-    name: "executeBatch",
-    outputs: [
-      {
-        internalType: "bytes",
-        name: "result",
-        type: "bytes",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            internalType: "address",
-            name: "target",
-            type: "address",
-          },
-          {
-            internalType: "uint256",
-            name: "value",
-            type: "uint256",
-          },
-          {
-            internalType: "bytes",
-            name: "callData",
-            type: "bytes",
-          },
-        ],
-        internalType: "struct IExecution.Execution[]",
-        name: "executions",
-        type: "tuple[]",
-      },
-    ],
-    name: "executeBatchFromExecutor",
-    outputs: [
-      {
-        internalType: "bytes",
-        name: "result",
-        type: "bytes",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
+        internalType: "ModeCode",
+        name: "mode",
+        type: "bytes32",
       },
       {
         internalType: "bytes",
-        name: "",
-        type: "bytes",
-      },
-    ],
-    name: "executeDelegateCall",
-    outputs: [
-      {
-        internalType: "bytes",
-        name: "",
-        type: "bytes",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "",
-        type: "bytes",
-      },
-    ],
-    name: "executeDelegateCallFromExecutor",
-    outputs: [
-      {
-        internalType: "bytes",
-        name: "",
-        type: "bytes",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "target",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "value",
-        type: "uint256",
-      },
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
-    ],
-    name: "executeFromEOA",
-    outputs: [
-      {
-        internalType: "bytes",
-        name: "result",
-        type: "bytes",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "target",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "value",
-        type: "uint256",
-      },
-      {
-        internalType: "bytes",
-        name: "data",
+        name: "executionCalldata",
         type: "bytes",
       },
     ],
     name: "executeFromExecutor",
     outputs: [
       {
-        internalType: "bytes",
-        name: "result",
-        type: "bytes",
+        internalType: "bytes[]",
+        name: "returnData",
+        type: "bytes[]",
       },
     ],
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     type: "function",
   },
   {
@@ -701,122 +379,45 @@ export const smartAccountV3ABI = [
   {
     inputs: [
       {
+        internalType: "uint256",
+        name: "moduleType",
+        type: "uint256",
+      },
+      {
         internalType: "address",
-        name: "executor",
+        name: "module",
         type: "address",
       },
       {
         internalType: "bytes",
-        name: "data",
+        name: "initData",
         type: "bytes",
       },
     ],
-    name: "installExecutor",
+    name: "installModule",
     outputs: [],
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     type: "function",
   },
   {
     inputs: [
       {
+        internalType: "uint256",
+        name: "moduleType",
+        type: "uint256",
+      },
+      {
         internalType: "address",
-        name: "fallbackHandler",
+        name: "module",
         type: "address",
       },
       {
         internalType: "bytes",
-        name: "data",
+        name: "additionalContext",
         type: "bytes",
       },
     ],
-    name: "installFallback",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "hook",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
-    ],
-    name: "installHook",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "validator",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
-    ],
-    name: "installValidator",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "executor",
-        type: "address",
-      },
-    ],
-    name: "isExecutorInstalled",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "fallbackHandler",
-        type: "address",
-      },
-    ],
-    name: "isFallbackInstalled",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "hook",
-        type: "address",
-      },
-    ],
-    name: "isHookInstalled",
+    name: "isModuleInstalled",
     outputs: [
       {
         internalType: "bool",
@@ -859,25 +460,6 @@ export const smartAccountV3ABI = [
         type: "address",
       },
     ],
-    name: "isValidatorInstalled",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "validator",
-        type: "address",
-      },
-    ],
     name: "nonce",
     outputs: [
       {
@@ -904,7 +486,7 @@ export const smartAccountV3ABI = [
             type: "address",
           },
         ],
-        internalType: "struct IValidator.StaleValidator",
+        internalType: "struct IAuthenticationManager.StaleValidator",
         name: "staleValidator",
         type: "tuple",
       },
@@ -944,73 +526,62 @@ export const smartAccountV3ABI = [
   {
     inputs: [
       {
-        internalType: "address",
-        name: "executor",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
+        internalType: "ModeCode",
+        name: "mode",
+        type: "bytes32",
       },
     ],
-    name: "uninstallExecutor",
-    outputs: [],
-    stateMutability: "nonpayable",
+    name: "supportsAccountMode",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "isSupported",
+        type: "bool",
+      },
+    ],
+    stateMutability: "pure",
     type: "function",
   },
   {
     inputs: [
       {
-        internalType: "address",
-        name: "fallbackHandler",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
+        internalType: "uint256",
+        name: "moduleTypeId",
+        type: "uint256",
       },
     ],
-    name: "uninstallFallback",
-    outputs: [],
-    stateMutability: "nonpayable",
+    name: "supportsModule",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "pure",
     type: "function",
   },
   {
     inputs: [
       {
+        internalType: "uint256",
+        name: "moduleType",
+        type: "uint256",
+      },
+      {
         internalType: "address",
-        name: "hook",
+        name: "module",
         type: "address",
       },
       {
         internalType: "bytes",
-        name: "data",
+        name: "deInitData",
         type: "bytes",
       },
     ],
-    name: "uninstallHook",
+    name: "uninstallModule",
     outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "validator",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
-    ],
-    name: "uninstallValidator",
-    outputs: [],
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     type: "function",
   },
   {
@@ -1069,14 +640,9 @@ export const smartAccountV3ABI = [
             type: "bytes",
           },
           {
-            internalType: "uint256",
-            name: "callGasLimit",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "verificationGasLimit",
-            type: "uint256",
+            internalType: "bytes32",
+            name: "accountGasLimits",
+            type: "bytes32",
           },
           {
             internalType: "uint256",
@@ -1084,14 +650,9 @@ export const smartAccountV3ABI = [
             type: "uint256",
           },
           {
-            internalType: "uint256",
-            name: "maxFeePerGas",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "maxPriorityFeePerGas",
-            type: "uint256",
+            internalType: "bytes32",
+            name: "gasFees",
+            type: "bytes32",
           },
           {
             internalType: "bytes",
@@ -1104,7 +665,7 @@ export const smartAccountV3ABI = [
             type: "bytes",
           },
         ],
-        internalType: "struct UserOperation",
+        internalType: "struct PackedUserOperation",
         name: "userOp",
         type: "tuple",
       },
@@ -1127,7 +688,7 @@ export const smartAccountV3ABI = [
         type: "uint256",
       },
     ],
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     type: "function",
   },
   {

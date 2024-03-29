@@ -17,25 +17,24 @@ import {
   toHex,
   type Transport,
   WalletClient,
-  zeroAddress, zeroHash,
+  zeroAddress,
+  zeroHash,
 } from "viem";
 import {
   Account,
   AccountV2,
   AccountV3,
   ExecuteCallDataArgs,
+  ExecutionMode,
   ISmartContractAccount,
   SmartAccountTransactionReceipt,
 } from "./types.js";
 import {
   ERC4337SmartAccountSigner,
+  UserOperation0_7,
   UserOperationDraft,
 } from "../plugins/types";
-import {
-  configuration,
-  defaultUserOperationParams,
-  networkConfigurations,
-} from "../../configuration";
+import { configuration, networkConfigurations } from "../../configuration";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
 import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
@@ -56,6 +55,7 @@ import {
   SendUopError,
 } from "../error/constants";
 import { mainnet } from "viem/chains";
+import { EntryPointV0_7ABI } from "../../abis/EntryPointV0_7.abi";
 
 export class ERC4337SmartContractAccount<
   TTransport extends Transport = Transport,
@@ -88,7 +88,7 @@ export class ERC4337SmartContractAccount<
       "admin",
     ) as TOwner;
     this.entryPointAddress =
-      args.entryPointAddress ?? configuration.entryPoint.v0_6_0;
+      args.entryPointAddress ?? (args.version == "2.0.0" ? configuration.entryPoint.v0_6_0: configuration.entryPoint.v0_7_0);
     this.factoryAddress =
       args.factoryAddress ??
       (args.version == "2.0.0"
@@ -108,6 +108,7 @@ export class ERC4337SmartContractAccount<
       entryPointAddress: this.entryPointAddress,
       owner: this.owner,
       baseUrl: this.baseUrl,
+      version: this.version,
     });
     this.accountManager = new AccountManager({
       owner: this.owner,
@@ -124,45 +125,53 @@ export class ERC4337SmartContractAccount<
   }
 
   async encodeExecute(args: ExecuteCallDataArgs): Promise<Hex> {
-    if (Array.isArray(args)) {
+    if (args.execMode.callType == "delegatecall") {
+      throw new Error("delegateCall not impl");
+    }
+    if (
+      args.execMode.callType == "batch" &&
+      Array.isArray(args.execRawData) == false
+    ) {
+      throw new Error("batchCall must be an array");
+    }
+    if (Array.isArray(args.execRawData)) {
+      throw new Error("batchCall will be supported soon");
+    }
+    if (this.version == "2.0.0") {
+      // 2.0.0 single encode
       return encodeFunctionData({
-        abi: smartAccountV3ABI,
-        functionName: "executeBatch",
+        abi: smartAccountV2ABI,
+        functionName: "execTransactionFromEntrypoint",
         args: [
-          args.map((txn) => {
-            if (txn.callType === "delegatecall") {
-              throw new BaseSmartAccountError(
-                "BaseSmartAccountError",
-                "Cannot batch delegatecall",
-              );
-            }
-            return {
-              to: txn.to,
-              value: txn.value,
-              data: txn.data,
-            };
-          }),
+          args.execRawData.to,
+          args.execRawData.value,
+          args.execRawData.data,
         ],
       });
     } else {
-      if (args.callType === "call") {
-        return this.version == "2.0.0"
-          ? encodeFunctionData({
-              abi: smartAccountV2ABI,
-              functionName: "execTransactionFromEntrypoint",
-              args: [args.to, args.value, args.data],
-            })
-          : encodeFunctionData({
-              abi: smartAccountV3ABI,
-              functionName: "execute",
-              args: [args.to, args.value, args.data],
-            });
-      } else {
-        throw new BaseSmartAccountError(
-          "BaseSmartAccountError",
-          "delegatecall not impl",
-        );
-      }
+      const mode = this.compileMode(args.execMode);
+      const calldata = encodeAbiParameters(
+        [
+          {
+            name: "to",
+            type: "address",
+          },
+          {
+            name: "value",
+            type: "uint256",
+          },
+          {
+            name: "data",
+            type: "bytes",
+          },
+        ],
+        [args.execRawData.to, args.execRawData.value, args.execRawData.data],
+      );
+      return encodeFunctionData({
+        abi: smartAccountV3ABI,
+        functionName: "execute",
+        args: [mode, calldata],
+      });
     }
   }
 
@@ -189,10 +198,13 @@ export class ERC4337SmartContractAccount<
 
   async generateUserOperationAndPacked(
     args: GenerateUserOperationAndPackedParams,
-  ): Promise<UserOperation> {
+  ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
     const account = this.accountManager.getAccount(args.uop.sender);
     // to avoid send with init code, we should update the isDeployed status;
-    await this.accountManager.updateDeployment(this.owner.getWalletClient(), account.accountAddress);
+    await this.accountManager.updateDeployment(
+      this.owner.getWalletClient(),
+      account.accountAddress,
+    );
     const userOperationWithGasEstimated =
       await this.generateUserOperationWithGasEstimation(
         args.uop,
@@ -256,38 +268,89 @@ export class ERC4337SmartContractAccount<
       );
       return userOperation;
     } else {
-      const encodedUserOperationData = encodeAbiParameters(
-        [
-          { name: "chainId", type: "uint256" },
-          { name: "sender", type: "address" },
-          { name: "nonce", type: "uint256" },
-          { name: "initCodeHash", type: "bytes32" },
-          { name: "callDataHash", type: "bytes32" },
-          { name: "callGasLimit", type: "uint256" },
-          { name: "verificationGasLimit", type: "uint256" },
-          { name: "preVerificationGas", type: "uint256" },
-          { name: "maxFeePerGas", type: "uint256" },
-          { name: "maxPriorityFeePerGas", type: "uint256" },
-          { name: "paymasterAndDataHash", type: "bytes32" },
-          { name: "EntryPoint", type: "address" },
-          { name: "sigTime", type: "uint256" },
-        ],
-        [
+      let encodedUserOperationData: Hex;
+      if (this.version == "2.0.0") {
+        // 2.0.0 supports V0.6
+        const userOperation_0_6_0 =
+          userOperation as unknown as UserOperation<"v0.6">;
+        encodedUserOperationData = encodeAbiParameters(
+          [
+            { name: "chainId", type: "uint256" },
+            { name: "sender", type: "address" },
+            { name: "nonce", type: "uint256" },
+            { name: "initCodeHash", type: "bytes32" },
+            { name: "callDataHash", type: "bytes32" },
+            { name: "callGasLimit", type: "uint256" },
+            { name: "verificationGasLimit", type: "uint256" },
+            { name: "preVerificationGas", type: "uint256" },
+            { name: "maxFeePerGas", type: "uint256" },
+            { name: "maxPriorityFeePerGas", type: "uint256" },
+            { name: "paymasterAndDataHash", type: "bytes32" },
+            { name: "EntryPoint", type: "address" },
+            { name: "sigTime", type: "uint256" },
+          ],
+          [
+            BigInt(await getChainId(this.owner.getWalletClient() as Client)),
+            userOperation_0_6_0.sender,
+            userOperation_0_6_0.nonce,
+            keccak256(userOperation_0_6_0.initCode),
+            keccak256(userOperation_0_6_0.callData),
+            userOperation_0_6_0.callGasLimit,
+            userOperation_0_6_0.verificationGasLimit,
+            userOperation_0_6_0.preVerificationGas,
+            userOperation_0_6_0.maxFeePerGas,
+            userOperation_0_6_0.maxPriorityFeePerGas,
+            keccak256(userOperation.paymasterAndData),
+            this.entryPointAddress,
+            sigTime,
+          ],
+        );
+      } else {
+        // 3.0.0 supports V0.7
+        const userOperation_0_7_0 =
+          userOperation as unknown as UserOperation0_7;
+        console.log([
           BigInt(await getChainId(this.owner.getWalletClient() as Client)),
-          userOperation.sender,
-          userOperation.nonce,
-          keccak256(userOperation.initCode),
-          keccak256(userOperation.callData),
-          userOperation.callGasLimit,
-          userOperation.verificationGasLimit,
-          userOperation.preVerificationGas,
-          userOperation.maxFeePerGas,
-          userOperation.maxPriorityFeePerGas,
-          keccak256(userOperation.paymasterAndData),
+          userOperation_0_7_0.sender,
+          userOperation_0_7_0.nonce,
+          keccak256(userOperation_0_7_0.initCode),
+          keccak256(userOperation_0_7_0.callData),
+          userOperation_0_7_0.accountGasLimits,
+          userOperation_0_7_0.preVerificationGas,
+          userOperation_0_7_0.gasFees,
+          keccak256(userOperation_0_7_0.paymasterAndData),
           this.entryPointAddress,
           sigTime,
-        ],
-      );
+        ]);
+        encodedUserOperationData = encodeAbiParameters(
+          [
+            { name: "chainId", type: "uint256" },
+            { name: "sender", type: "address" },
+            { name: "nonce", type: "uint256" },
+            { name: "initCodeHash", type: "bytes32" },
+            { name: "callDataHash", type: "bytes32" },
+            { name: "accountsGasLimits", type: "bytes32" },
+            { name: "preVerificationGas", type: "uint256" },
+            { name: "gasFees", type: "bytes32" },
+            { name: "paymasterAndDataHash", type: "bytes32" },
+            { name: "EntryPoint", type: "address" },
+            { name: "sigTime", type: "uint256" },
+          ],
+          [
+            BigInt(await getChainId(this.owner.getWalletClient() as Client)),
+            userOperation_0_7_0.sender,
+            userOperation_0_7_0.nonce,
+            keccak256(userOperation_0_7_0.initCode),
+            keccak256(userOperation_0_7_0.callData),
+            userOperation_0_7_0.accountGasLimits,
+            userOperation_0_7_0.preVerificationGas,
+            userOperation_0_7_0.gasFees,
+            keccak256(userOperation_0_7_0.paymasterAndData),
+            this.entryPointAddress,
+            sigTime,
+          ],
+        );
+      }
       const userOperationHash = keccak256(encodedUserOperationData);
       userOperation.signature = encodePacked(
         ["uint8", "uint256", "bytes"],
@@ -302,36 +365,59 @@ export class ERC4337SmartContractAccount<
   }
 
   async sendUserOperationByERC4337Bundler(
-    userOperation: UserOperation,
+    userOperation: UserOperation<"v0.6">,
+    walletClient?: WalletClient,
   ): Promise<SmartAccountTransactionReceipt> {
-    const req = {
-      method: "post",
-      maxBodyLength: Infinity,
-      url:
-        this.baseUrl +
-        "mp/" +
-        String(await getChainId(this.owner.getWalletClient() as Client)) +
-        "/eth_sendUserOperation",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: "locale=en-US",
-      },
-      data: JSON.stringify({
-        id: 1,
-        jsonrpc: "2.0",
-        method: "eth_sendUserOperation",
-        params: [userOperation, this.entryPointAddress],
-      }),
-    };
-
-    const res = await axios.request(req);
-    if (res.data.error) {
-      throw new SendUopError("sendUserOperationError", res.data.error.message);
+    if (this.version == "2.0.0") {
+      const req = {
+        method: "post",
+        maxBodyLength: Infinity,
+        url:
+          this.baseUrl +
+          "mp/" +
+          String(await getChainId(this.owner.getWalletClient() as Client)) +
+          "/eth_sendUserOperation",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: "locale=en-US",
+        },
+        data: JSON.stringify({
+          id: 1,
+          jsonrpc: "2.0",
+          method: "eth_sendUserOperation",
+          params: [userOperation, this.entryPointAddress],
+        }),
+      };
+      const res = await axios.request(req);
+      if (res.data.error) {
+        throw new SendUopError(
+          "sendUserOperationError",
+          res.data.error.message,
+        );
+      } else {
+        return this.accountManager.pushAccountTransaction(
+          userOperation.sender,
+          res.data.result,
+        );
+      }
     } else {
-      return this.accountManager.pushAccountTransaction(
-        userOperation.sender,
-        res.data.result,
-      );
+      // directly send the userOperation to the entryPoint
+      if (!walletClient) {
+        throw new Error("wallet client must specified");
+      } else {
+        await walletClient.writeContract({
+          address: configuration.entryPoint.v0_7_0,
+          abi: EntryPointV0_7ABI,
+          functionName: "handleOps",
+          args: [[userOperation], configuration.bundler.testBundler],
+          account: configuration.bundler.testBundler,
+          chain: walletClient.chain,
+        });
+        return this.accountManager.pushAccountTransaction(
+          userOperation.sender,
+          "0x" as Hex,
+        );
+      }
     }
   }
 
@@ -348,7 +434,7 @@ export class ERC4337SmartContractAccount<
     userOperationDraft: UserOperationDraft,
     role: Hex,
     paymaster?: GeneratePaymasterSignatureType,
-  ): Promise<UserOperation> {
+  ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
     const account: Account = this.accountManager.getAccount(
       userOperationDraft.sender,
     );
@@ -374,7 +460,39 @@ export class ERC4337SmartContractAccount<
             );
       }
     } else {
-      nonce = BigInt(0);
+      nonce =
+        this.version == "2.0.0"
+          ? BigInt(0)
+          : BigInt(account.defaultECDSAValidator + "0000000000000000");
+    }
+    if (this.version == "3.0.0") {
+      return {
+        sender: account.accountAddress,
+        nonce: toHex(nonce) as any, //nonce,
+        initCode:
+          userOperationDraft.initCode ??
+          (account.isDeployed ? "0x" : account.initCode),
+        callData: userOperationDraft.callData ?? "0x",
+        paymasterAndData: userOperationDraft.paymasterAndData
+          ? userOperationDraft.paymasterAndData
+          : "0x",
+        signature: "0x",
+        accountGasLimits: this.compileBigInt(
+          userOperationDraft.callGasLimit ??
+            configuration.defaultGasConfig.CALL_GAS_LIMIT,
+          userOperationDraft.verificationGasLimit ??
+            configuration.defaultGasConfig.VERIFICATION_GAS_LIMIT,
+        ),
+        gasFees: this.compileBigInt(
+          userOperationDraft.maxFeePerGas ??
+            configuration.defaultGasConfig.MAX_FEE_PER_GAS,
+          userOperationDraft.maxPriorityFeePerGas ??
+            configuration.defaultGasConfig.MAX_PRIORITY_FEE_PER_GAS,
+        ),
+        preVerificationGas: toHex(
+          configuration.defaultGasConfig.PREVERIFICATION_GAS,
+        ) as any,
+      } as UserOperation0_7;
     }
 
     const userOperationForEstimationGas = [
@@ -399,12 +517,11 @@ export class ERC4337SmartContractAccount<
             )
           : "0x",
         // a FAKE signature
-        signature: "0x000000000000000000000000000000000000000000000000000000000065ec8c6cd0677cf78f473ccf0cdf26925f84e7e07b345fd050b014bb436c73b6cba2ca3228faab7a9563284421515609f49bc03f20990c2bfa455e52e839ac4c311a57c01c"
+        signature:
+          "0x000000000000000000000000000000000000000000000000000000000065ec8c6cd0677cf78f473ccf0cdf26925f84e7e07b345fd050b014bb436c73b6cba2ca3228faab7a9563284421515609f49bc03f20990c2bfa455e52e839ac4c311a57c01c",
       },
       this.entryPointAddress,
     ];
-
-    console.log(userOperationForEstimationGas);
 
     let data = JSON.stringify({
       id: 1,
@@ -543,8 +660,47 @@ export class ERC4337SmartContractAccount<
   }
 
   async getImplHash(): Promise<Hex> {
-     const byteCodeHash =  await this.owner.getWalletClient().extend(publicActions).getBytecode({address: this.accountManager.getAccounts()[0].accountAddress});
-     return (byteCodeHash == undefined) ? zeroHash : keccak256(byteCodeHash);
+    const byteCode = await this.owner
+      .getWalletClient()
+      .extend(publicActions)
+      .getBytecode({
+        address: this.accountManager.getAccounts()[0].accountAddress,
+      });
+    return byteCode == undefined ? zeroHash : keccak256(byteCode);
+  }
+
+  private compileBigInt(a: bigint, b: bigint): Hex {
+    return ("0x" +
+      toHex(this.bigIntToBytes16(a)).slice(2, 34) +
+      toHex(this.bigIntToBytes16(b)).slice(2, 34)) as Hex;
+  }
+
+  private bigIntToBytes16(bigInt: bigint): Uint8Array {
+    const bytes = new Uint8Array(16);
+    for (let i = 0; i < 16; i++) {
+      bytes[15 - i] = Number((bigInt >> (8n * BigInt(i))) & 0xffn);
+    }
+    return bytes;
+  }
+
+  private compileMode(mode: ExecutionMode) {
+    let callType: string;
+    if (mode.callType == "delegatecall") {
+      callType = "0xFF";
+    } else if (mode.callType == "batch") {
+      callType = "0x01";
+    } else {
+      callType = "0x00";
+    }
+    const execType = mode.try ? "01" : "00";
+    const modeSelector = mode.allowFailedExecution
+      ? keccak256(
+          new TextEncoder().encode("default.mode.allow_failed_execution"),
+        ).slice(2, 10)
+      : "00000000";
+    const modeParams =
+      mode.modeParams ?? "00000000000000000000000000000000000000000000";
+    return callType + execType + "00000000" + modeSelector + modeParams;
   }
 
   private async mockUserOperationPackedWithTokenPayMaster(

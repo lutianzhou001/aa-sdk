@@ -6,7 +6,10 @@ import {
   Transport,
   WalletClient,
 } from "viem";
-import { ERC4337SmartAccountSigner } from "../../plugins/types";
+import {
+  ERC4337SmartAccountSigner,
+  UserOperation0_7,
+} from "../../plugins/types";
 import { Account, SupportedPayMaster } from "../types";
 import { IPaymasterManager } from "./IPaymasterManager.interface";
 import { CreatePaymasterParameters } from "./createPaymasterManager.dto";
@@ -48,9 +51,9 @@ export class PaymasterManager<
   }
 
   async generatePaymasterSignature(
-    userOperation: UserOperation,
+    userOperation: UserOperation<"v0.6"> | UserOperation0_7,
     paymaster: GeneratePaymasterSignatureType,
-  ): Promise<UserOperation> {
+  ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
     // query paymasterAndDataFrom the endpoint.
     const config = {
       method: "post",
