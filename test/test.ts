@@ -4,9 +4,9 @@ import {
   http,
   WalletClient,
   parseEther,
-  publicActions, hashDomain,
+  publicActions,
 } from "viem";
-import {hardhat, polygon} from "viem/chains";
+import { hardhat, polygon } from "viem/chains";
 import { ERC4337SmartContractAccount } from "../packages/erc4337SmartAccount/ERC4337SmartAccount";
 import { Address } from "abitype";
 import { UserOperation } from "permissionless/types/userOperation";
@@ -15,17 +15,24 @@ import {
   transferCalldata,
 } from "../packages/actions/erc20/erc20Calldata";
 import { encodeUpgrade } from "../packages/actions/upgrades/upgradeCalldata";
-import { UserOperationSimulationResponse } from "../packages/erc4337SmartAccount/types";
 import { UserOperation0_7 } from "../packages/plugins/types";
-import {getBalance} from "viem/actions";
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const tokenBase: WalletClient = createWalletClient({
+  account: privateKeyToAccount(
+      // hardhat public private key
+    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+  ),
+  chain: hardhat,
+  transport: http(),
+});
+
 const bundlerClient: WalletClient = createWalletClient({
   account: privateKeyToAccount(
-      // ur private key as a bundler
+    // ur private key as a bundler
     "",
   ),
   chain: polygon,
@@ -53,6 +60,34 @@ async function smokeTest() {
   // STEP3: create a new account with index specified. You can use any number you like.
   await smartAccount.accountManager.createNewAccount(0n, []);
   smartAccount.accountManager.getAccount(0);
+
+  if (walletClient.chain == hardhat) {
+    tokenBase.sendTransaction({
+      to: smartAccount.accountManager.getAccounts()[0].accountAddress,
+      value: parseEther("1"),
+      chain: hardhat,
+      account: tokenBase?.account?.address as Address,
+    });
+    console.log(
+      "smartAccountAddress",
+      smartAccount.accountManager.getAccounts()[0].accountAddress,
+    );
+    console.log(
+      await tokenBase.extend(publicActions).getBalance({
+        address: smartAccount.accountManager.getAccounts()[0].accountAddress,
+      }),
+    );
+  } else {
+    console.log(
+      "smartAccountAddress",
+      smartAccount.accountManager.getAccounts()[0].accountAddress,
+    );
+    console.log(
+      await bundlerClient.extend(publicActions).getBalance({
+        address: smartAccount.accountManager.getAccounts()[0].accountAddress,
+      }),
+    );
+  }
 
   // make the callType default = call
   // STEP4: when we want to do a transaction, say, transfer some token to other people, we then deploy this smart account.
@@ -129,7 +164,7 @@ async function smokeTest() {
       //   token: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
       // },
     });
-  console.log("preparedUserOperation",preparedUserOperation);
+  console.log("preparedUserOperation", preparedUserOperation);
 
   // if bundler exists, it means to use a specified bundler, else, use the okx bundler.
   // const userOperationSimulationResponse: UserOperationSimulationResponse =
@@ -158,7 +193,7 @@ async function smokeTest() {
 
   // const receipt = await smartAccount.accountManager.refreshAccountTransactionReceipts(preparedUserOperation.sender);
 
-  await delay(20000);
+  // await delay(20000);
 
   const updatedReceipt =
     await smartAccount.accountManager.refreshAccountTransactionReceipts(

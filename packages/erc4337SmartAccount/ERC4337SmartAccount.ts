@@ -88,7 +88,10 @@ export class ERC4337SmartContractAccount<
       "admin",
     ) as TOwner;
     this.entryPointAddress =
-      args.entryPointAddress ?? (args.version == "2.0.0" ? configuration.entryPoint.v0_6_0: configuration.entryPoint.v0_7_0);
+      args.entryPointAddress ??
+      (args.version == "2.0.0"
+        ? configuration.entryPoint.v0_6_0
+        : configuration.entryPoint.v0_7_0);
     this.factoryAddress =
       args.factoryAddress ??
       (args.version == "2.0.0"
@@ -309,19 +312,6 @@ export class ERC4337SmartContractAccount<
         // 3.0.0 supports V0.7
         const userOperation_0_7_0 =
           userOperation as unknown as UserOperation0_7;
-        console.log([
-          BigInt(await getChainId(this.owner.getWalletClient() as Client)),
-          userOperation_0_7_0.sender,
-          userOperation_0_7_0.nonce,
-          keccak256(userOperation_0_7_0.initCode),
-          keccak256(userOperation_0_7_0.callData),
-          userOperation_0_7_0.accountGasLimits,
-          userOperation_0_7_0.preVerificationGas,
-          userOperation_0_7_0.gasFees,
-          keccak256(userOperation_0_7_0.paymasterAndData),
-          this.entryPointAddress,
-          sigTime,
-        ]);
         encodedUserOperationData = encodeAbiParameters(
           [
             { name: "chainId", type: "uint256" },
@@ -405,14 +395,16 @@ export class ERC4337SmartContractAccount<
       if (!walletClient) {
         throw new Error("wallet client must specified");
       } else {
-        await walletClient.writeContract({
-          address: configuration.entryPoint.v0_7_0,
-          abi: EntryPointV0_7ABI,
-          functionName: "handleOps",
-          args: [[userOperation], configuration.bundler.testBundler],
-          account: configuration.bundler.testBundler,
-          chain: walletClient.chain,
-        });
+        const { request } = await walletClient
+          .extend(publicActions)
+          .simulateContract({
+            account: (await walletClient.getAddresses())[0],
+            address: configuration.entryPoint.v0_7_0,
+            abi: EntryPointV0_7ABI,
+            functionName: "handleOps",
+            args: [[userOperation], walletClient.account?.address],
+          });
+        await walletClient.writeContract(request);
         return this.accountManager.pushAccountTransaction(
           userOperation.sender,
           "0x" as Hex,

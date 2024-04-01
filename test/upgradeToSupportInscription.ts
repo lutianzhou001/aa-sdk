@@ -17,7 +17,7 @@ import { UserOperationSimulationResponse } from "../packages/erc4337SmartAccount
 import { smartAccountV2WithInscriptionSupportedABI } from "../abis/smartAccountV2WithInscriptionSupported.abi";
 import { configuration } from "../configuration";
 import { EntryPointABI } from "../abis/EntryPoint.abi";
-import {UserOperation0_7} from "../packages/plugins/types";
+import { UserOperation0_7 } from "../packages/plugins/types";
 
 async function transferEthsTest() {
   const walletClient: WalletClient = createWalletClient({
@@ -81,7 +81,7 @@ async function transferEthsTest() {
   });
 
   const preparedUserOperation2 =
-    await smartAccount.generateUserOperationAndPacked({
+    (await smartAccount.generateUserOperationAndPacked({
       uop: {
         sender: smartAccount.accountManager.getAccounts()[0].accountAddress,
         callData: transferCalldata,
@@ -89,7 +89,7 @@ async function transferEthsTest() {
         verificationGasLimit: "0xcccc" as any,
         preVerificationGas: hexToBigInt("0x666666"),
       },
-    }) as UserOperation<"v0.6">;
+    })) as UserOperation<"v0.6">;
 
   const acc = privateKeyToAccount(
     // NOTION, this privateKey is ONLY FOR TESTING, DO NOT USE IT IN PRODUCTION
