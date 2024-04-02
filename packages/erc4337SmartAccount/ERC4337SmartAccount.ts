@@ -153,21 +153,8 @@ export class ERC4337SmartContractAccount<
       });
     } else {
       const mode = this.compileMode(args.execMode);
-      const calldata = encodeAbiParameters(
-        [
-          {
-            name: "to",
-            type: "address",
-          },
-          {
-            name: "value",
-            type: "uint256",
-          },
-          {
-            name: "data",
-            type: "bytes",
-          },
-        ],
+      const calldata = encodePacked(
+        ["address", "uint256", "bytes"],
         [args.execRawData.to, args.execRawData.value, args.execRawData.data],
       );
       return encodeFunctionData({
@@ -391,19 +378,18 @@ export class ERC4337SmartContractAccount<
         );
       }
     } else {
-      // directly send the userOperation to the entryPoint
       if (!walletClient) {
         throw new Error("wallet client must specified");
       } else {
         const { request } = await walletClient
           .extend(publicActions)
           .simulateContract({
-            account: (await walletClient.getAddresses())[0],
             address: configuration.entryPoint.v0_7_0,
             abi: EntryPointV0_7ABI,
             functionName: "handleOps",
             args: [[userOperation], walletClient.account?.address],
           });
+        // @ts-ignore
         await walletClient.writeContract(request);
         return this.accountManager.pushAccountTransaction(
           userOperation.sender,

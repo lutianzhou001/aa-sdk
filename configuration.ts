@@ -12,10 +12,10 @@ export const configuration = {
     VERSION_HASH:
       "0xd7a1ce683065975771bedf401ecab037f4f4c62cc51fefdc8b39dd246ff0343a" as Hex,
     SMART_ACCOUNT_PROXY_CODE_HASH: "0x6cc6baf8bd20144fe3e263f264c64f2fa94217cd19a7db1f707225f2616d4506" as Hex,
-    ECDSA_VALIDATOR_TEMPLATE_ADDRESS: process.env.ECDSA_VALIDATOR_TEMPLATE_ADDRESS as Address ?? "0xB661dF5d3f7Dfb728784dABA14c055a026502a5D" as Address,
-    SMART_ACCOUNT_TEMPLATE_ADDRESS: process.env.SMART_ACCOUNT_TEMPLATE_ADDRESS as Address ?? "0xe6604f547C6f31839802393E5C066a9017df7bEd" as Address,
-    FACTORY_ADDRESS: process.env.FACTORY_ADDRESS as Address ?? "0xcAa350921D949f30BB9C21dcf34A9Fd486Ba537D" as Address,
-    AUTHENTICATION_MANAGER_TEMPLATE: process.env.AUTHENTICATION_MANAGER_TEMPLATE as Address ?? "0x7d6C4C5e75edb708ad19c3cC4F7d426f4791328e" as Address,
+    ECDSA_VALIDATOR_TEMPLATE_ADDRESS: process.env.ECDSA_VALIDATOR_TEMPLATE_ADDRESS as Address ?? "0xAA1b181292123BED3cEEc891AC52f0BfdA63a87a" as Address,
+    SMART_ACCOUNT_TEMPLATE_ADDRESS: process.env.SMART_ACCOUNT_TEMPLATE_ADDRESS as Address ?? "0xdd9A00eC5383D5eFcF6fADe549de0F7b1b183151" as Address,
+    FACTORY_ADDRESS: process.env.FACTORY_ADDRESS as Address ?? "0x0d259Ed80A9BAEd3Bcbb4A4Be0f8E88Cb4C8A486" as Address,
+    AUTHENTICATION_MANAGER_TEMPLATE: process.env.AUTHENTICATION_MANAGER_TEMPLATE as Address ?? "0xF04Dd2892D3723f98B2fC0E393847955aF3C56d7" as Address,
   },
   v2: {
     NAME: "SmartAccount",
@@ -36,36 +36,38 @@ export const configuration = {
 };
 
 // test cases
-// successfully deployed deployContractDeployment 0xE401FBb0d6828e9f25481efDc9dd18Da9E500983
-// successfully deployed localhost Validations 0x6B36a321c9984a07fa99C7BF65C22DBfd003270c
-// successfully deployed localhost TestUtils 0xFC5B2cb820b17b04f0321cb7fd192960Cf550cE1
-// successfully deployed localhost ECDSAValidator 0xecC4744dACc9a6e2bdb2BEA9F020942359D135BA
-// successfully deployed localhost DefaultCallbackHandlerV3 0xdEDDBdDC26a3278fE1eAabD03BC3c3948423c128
-// successfully deployed localhost BaseSession 0x6F0c976B671a583035F64bCF8FD27C0496a6cB6E
-// successfully deployed localhost MockModuleV3 0xb5AF7372751f9B2A89954821810AA4F24469ed23
-// successfully deployed localhost AuthenticationManager 0xaAf900089Bd00813b9e3f62A638D48ac4d1E2c0B
-// successfully deployed localhost SmartAccountV3 0x98150FcbaA20b9aa6E1910C7B414934cFe179151
-// successfully deployed localhost AddressPredictor 0x9150E16f298d2860326133A72f357f317065243B
-// proxyAdmin is: 0xCA87833e830652C2ab07E1e03eBa4F2c246D3b58
-// AccountFactoryProxy address is:  0x7A5EC257391817ef241ef8451642cC6b222d4f8C
-// 0x71c944dfa65d340f2a9b28662439475f17f8e02141446d2f82098920474673df
-// 0x6047bf82775cca64a7c5999a75d2b767b0fe2f0c9276996dff4cb7753b8f7bca
+// Compiled 1 Solidity file successfully (evm target: paris).
+// successfully deployed deployContractDeployment 0x06786bCbc114bbfa670E30A1AC35dFd1310Be82f
+// successfully deployed localhost Validations 0x3e053F60EA9D47eaB664b119a2594682218afd06
+// successfully deployed localhost TestUtils 0x22bAAe4dE2421Ac4c726Bf0f5D885041938d0525
+// successfully deployed localhost ECDSAValidator 0x9464A689D929c5d208C067a3A47597Da75885069
+// successfully deployed localhost DefaultCallbackHandlerV3 0xaeABC8b3fb05b8782Ec21a36E3508Ef8359c29c5
+// successfully deployed localhost BaseSession 0x9C994FCc4f7D2Ef96c01898bb6954DdE1E656EAA
+// successfully deployed localhost MockModuleV3 0x4DDF9046c844BC546CE78613Da6a0B466fDDA9D4
+// successfully deployed localhost AuthenticationManager 0x5fA184AB69c300ddBaBeD25E421710eFf934D3c1
+// successfully deployed localhost SmartAccountV3 0x820664aE6673Bb1fe570Ce0B869fc5C3F38D5D8B
+// successfully deployed localhost AddressPredictor 0xf681E3CfDCd683Ac243e734eF4bf850266bdE656
+// proxyAdmin is: 0x6c383Ef7C9Bf496b5c847530eb9c49a3ED6E4C56
+// AccountFactoryProxy address is:  0x2aA12f98795E7A65072950AfbA9d1E023D398241
+// 0xd79ee474db25b9ca012942c54fc406cc938f4b051ae1493687a25ed3ee577b5e
+// 0xb4032d79930e85b79cb85be315b489273b95a2afa78ce9e4acb81a089766fc42
 
-// polygon
-// successfully deployed polygon Validations 0x10E1380D2d577f7b9a9336C8B5d44c5E2013dA2a
-// successfully deployed polygon TestUtils 0xBfbD9D682950D79C32ee9a120f5646C069C70430
-// successfully deployed polygon ECDSAValidator 0xB661dF5d3f7Dfb728784dABA14c055a026502a5D
-// successfully deployed polygon DefaultCallbackHandlerV3 0x5eD9A96b5226F893f0ce4A5475c01DE6303A8C78
-// successfully deployed polygon BaseSession 0xbD9e550329b842413f542C6AF1F4f24d6CB44486
-// successfully deployed polygon MockModuleV3 0x987f359a4f7Aef1AEbe018C9FBA86AeAB9FF0BAE
-// successfully deployed polygon AuthenticationManager 0x7d6C4C5e75edb708ad19c3cC4F7d426f4791328e
-// successfully deployed polygon SmartAccountV3 0xe6604f547C6f31839802393E5C066a9017df7bEd
-// successfully deployed polygon AddressPredictor 0x7c109B19A0C9579e8CBaD3325A8cff56d8D29f68
-// proxyAdmin is: 0xC8b32b5058E0e51b9756897b3FcCCFc0f4CD87CE
-// AccountFactoryProxy address is:  0xcAa350921D949f30BB9C21dcf34A9Fd486Ba537D
-// 0xa283f2f94359420b48e77fec703f9112e07351f779ca02d2caa19de167bba6aa
-// 0x675f3e3d2dcd38939d2bde490ca8f2dcfedc5d3dca20cb79432a1546cb40e21d
-// crate address: 0xC400f5876AB562cE8fd0495E1ca167842eF01dC4
+
+// deployed 4/2
+// successfully deployed deployContractDeployment 0xFaC897544659Fb136C064d5428947f5BC9cC1Fa2
+// successfully deployed polygon Validations 0xeC537fF96dA41D242B7E16e080aA9c9FBAb6E682
+// successfully deployed polygon TestUtils 0x782690A48cbdF715265B3FfC41fE8B0d2e302748
+// successfully deployed polygon ECDSAValidator 0xAA1b181292123BED3cEEc891AC52f0BfdA63a87a
+// successfully deployed polygon DefaultCallbackHandlerV3 0x60480fDbcE17ac570035dc29D5Ada1f9D2b59FF4
+// successfully deployed polygon BaseSession 0x08d7a963ed4b7f4D9BE1F47f2e4F9A312D1d0681
+// successfully deployed polygon MockModuleV3 0x9CDa0c83e2B74e9C8ad86BAae0137c651ee841E3
+// successfully deployed polygon AuthenticationManager 0xF04Dd2892D3723f98B2fC0E393847955aF3C56d7
+// successfully deployed polygon SmartAccountV3 0xdd9A00eC5383D5eFcF6fADe549de0F7b1b183151
+// successfully deployed polygon AddressPredictor 0xf4FaB13C504757175b7A3339f714e6807dc2E521
+// proxyAdmin is: 0x3C11E580cF43e3B8F13582F277fF59347Bb6b67B
+// AccountFactoryProxy address is:  0x0d259Ed80A9BAEd3Bcbb4A4Be0f8E88Cb4C8A486
+// 0x5303efad6b8620df322c6ed9349bb11b78e2a23877baf4da07e1c778ce22b79f
+// 0x1a34384934d350a8fabcb6dac0f481b1edac5409841face9572968b77b5cc0ec
 
 export const networkConfigurations = {
   base_url: "https://www.okx.com/priapi/v5/wallet/smart-account/",

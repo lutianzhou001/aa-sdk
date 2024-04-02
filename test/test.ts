@@ -24,7 +24,7 @@ function delay(ms: number) {
 const tokenBase: WalletClient = createWalletClient({
   account: privateKeyToAccount(
       // hardhat public private key
-    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+    "",
   ),
   chain: hardhat,
   transport: http(),
@@ -157,7 +157,7 @@ async function smokeTest() {
     await smartAccount.generateUserOperationAndPacked({
       uop: {
         sender: smartAccount.accountManager.getAccounts()[0].accountAddress,
-        callData: simpleTransferERC20CallData,
+        callData: simpleTransferNativeTokenCallData,
       },
       // paymaster: {
       //   paymaster: "0xfb4f3f12258976395b34304e2bfd76d15e0af44a",
@@ -195,12 +195,12 @@ async function smokeTest() {
 
   // await delay(20000);
 
-  const updatedReceipt =
-    await smartAccount.accountManager.refreshAccountTransactionReceipts(
-      preparedUserOperation.sender,
-    );
-
-  console.log("Updated Receipt", updatedReceipt);
+  // const updatedReceipt =
+  //   await smartAccount.accountManager.refreshAccountTransactionReceipts(
+  //     preparedUserOperation.sender,
+  //   );
+  //
+  // console.log("Updated Receipt", updatedReceipt);
 }
 
 smokeTest();
