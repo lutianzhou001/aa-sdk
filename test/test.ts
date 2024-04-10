@@ -16,6 +16,7 @@ import {
 } from "../packages/actions/erc20/erc20Calldata";
 import { encodeUpgrade } from "../packages/actions/upgrades/upgradeCalldata";
 import { UserOperation0_7 } from "../packages/plugins/types";
+import { UserOperationSimulationResponse } from "../packages/erc4337SmartAccount/types";
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -23,7 +24,7 @@ function delay(ms: number) {
 
 const tokenBase: WalletClient = createWalletClient({
   account: privateKeyToAccount(
-      // hardhat public private key
+    // hardhat public private key
     "",
   ),
   chain: hardhat,
@@ -53,13 +54,14 @@ async function smokeTest() {
   // STEP2: create a ERC4337SmartContractAccount with the publicClient and owner
   const smartAccount = new ERC4337SmartContractAccount({
     walletClient: walletClient,
-    version: "3.0.0",
+    version: "2.0.0",
     // specify your baseUrl here. baseUrl : "https://www.okx.com/priapi/v5/wallet/smart-account/"
   });
 
   // STEP3: create a new account with index specified. You can use any number you like.
   await smartAccount.accountManager.createNewAccount(0n, []);
-  smartAccount.accountManager.getAccount(0);
+  console.log(smartAccount.accountManager.getAccounts());
+  // smartAccount.accountManager.getAccount(0);
 
   if (walletClient.chain == hardhat) {
     tokenBase.sendTransaction({
@@ -93,8 +95,8 @@ async function smokeTest() {
   // STEP4: when we want to do a transaction, say, transfer some token to other people, we then deploy this smart account.
   const simpleTransferNativeTokenCallData = await smartAccount.encodeExecute({
     execRawData: {
-      to: "0xbf135a074c1f2e2049b06b1d6eaf0f4a8ad58cde" as Address,
-      value: BigInt(1000),
+      to: "0x9b4b4c715dd9b3b8f39b8da57fe1beee5da5e25e" as Address,
+      value: BigInt(100000000),
       data: "0x",
     },
     execMode: {
@@ -127,7 +129,7 @@ async function smokeTest() {
       to: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" as Address,
       data: transferCalldata(
         "0xbf135a074c1f2e2049b06b1d6eaf0f4a8ad58cde",
-        BigInt(100000),
+        BigInt(1000000000),
       ),
       value: BigInt(0),
     },
@@ -167,10 +169,10 @@ async function smokeTest() {
   console.log("preparedUserOperation", preparedUserOperation);
 
   // if bundler exists, it means to use a specified bundler, else, use the okx bundler.
-  // const userOperationSimulationResponse: UserOperationSimulationResponse =
-  //   await smartAccount.simulator.sendUserOperationSimulation(
-  //     preparedUserOperation as UserOperation<"v0.6">,
-  //   );
+  const userOperationSimulationResponse: UserOperationSimulationResponse =
+    await smartAccount.simulator.sendUserOperationSimulation(
+      preparedUserOperation as UserOperation<"v0.6">,
+    );
 
   // const sp = await smartAccount.paymasterManager.getSupportedPaymasters();
 
@@ -193,14 +195,14 @@ async function smokeTest() {
 
   // const receipt = await smartAccount.accountManager.refreshAccountTransactionReceipts(preparedUserOperation.sender);
 
-  // await delay(20000);
+  await delay(20000);
 
-  // const updatedReceipt =
-  //   await smartAccount.accountManager.refreshAccountTransactionReceipts(
-  //     preparedUserOperation.sender,
-  //   );
-  //
-  // console.log("Updated Receipt", updatedReceipt);
+  const updatedReceipt =
+    await smartAccount.accountManager.refreshAccountTransactionReceipts(
+      preparedUserOperation.sender,
+    );
+
+  console.log("Updated Receipt", updatedReceipt);
 }
 
 smokeTest();

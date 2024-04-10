@@ -32,6 +32,11 @@ export const configuration = {
     PREVERIFICATION_GAS: BigInt(900000),
     MAX_FEE_PER_GAS: BigInt(300000000000), //300 gwei
     MAX_PRIORITY_FEE_PER_GAS: BigInt(300000000000),
+  },
+  paymaster: {
+    privateKey: "",
+    address: "0xFeeCC911175C2B6D46BaE4fd357c995a4DC43C60",
+    policyPaymaster: "0x2b6240b12C86Ac775509F903d6a631F53C36bA31",
   }
 };
 

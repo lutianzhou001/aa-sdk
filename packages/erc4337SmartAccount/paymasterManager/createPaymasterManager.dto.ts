@@ -10,4 +10,6 @@ export class CreatePaymasterParameters<
   readonly entryPointAddress: Address;
 
   readonly baseUrl: string;
+
+  readonly version: string;
 }

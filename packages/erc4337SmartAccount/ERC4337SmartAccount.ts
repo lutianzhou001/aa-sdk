@@ -13,6 +13,7 @@ import {
   http,
   keccak256,
   publicActions,
+  PublicClient,
   SignTypedDataParameters,
   toHex,
   type Transport,
@@ -56,6 +57,7 @@ import {
 } from "../error/constants";
 import { mainnet } from "viem/chains";
 import { EntryPointV0_7ABI } from "../../abis/EntryPointV0_7.abi";
+import { compileBigInt, compileMode, getSigTime } from "../common/utils";
 
 export class ERC4337SmartContractAccount<
   TTransport extends Transport = Transport,
@@ -124,6 +126,7 @@ export class ERC4337SmartContractAccount<
       walletClient: this.owner.getWalletClient(),
       entryPointAddress: this.entryPointAddress,
       baseUrl: this.baseUrl,
+      version: this.version,
     });
   }
 
@@ -152,7 +155,7 @@ export class ERC4337SmartContractAccount<
         ],
       });
     } else {
-      const mode = this.compileMode(args.execMode);
+      const mode = compileMode(args.execMode);
       const calldata = encodePacked(
         ["address", "uint256", "bytes"],
         [args.execRawData.to, args.execRawData.value, args.execRawData.data],
@@ -207,7 +210,11 @@ export class ERC4337SmartContractAccount<
           args.paymaster,
         )
       : userOperationWithGasEstimated;
-    const sigTime = args._sigTime ?? (await this.getSigTime());
+    const sigTime =
+      args._sigTime ??
+      (await getSigTime(
+        this.owner.getWalletClient().extend(publicActions) as PublicClient,
+      ));
     if (args.signType == "EIP712") {
       let domain: any;
       if (this.version == "2.0.0") {
@@ -399,15 +406,6 @@ export class ERC4337SmartContractAccount<
     }
   }
 
-  private async getSigTime() {
-    const block = await this.owner
-      .getWalletClient()
-      .extend(publicActions)
-      .getBlock();
-    // make the signature validate in 72h
-    return BigInt(block.timestamp) + BigInt(86400 * 3);
-  }
-
   async generateUserOperationWithGasEstimation(
     userOperationDraft: UserOperationDraft,
     role: Hex,
@@ -455,13 +453,13 @@ export class ERC4337SmartContractAccount<
           ? userOperationDraft.paymasterAndData
           : "0x",
         signature: "0x",
-        accountGasLimits: this.compileBigInt(
+        accountGasLimits: compileBigInt(
           userOperationDraft.callGasLimit ??
             configuration.defaultGasConfig.CALL_GAS_LIMIT,
           userOperationDraft.verificationGasLimit ??
             configuration.defaultGasConfig.VERIFICATION_GAS_LIMIT,
         ),
-        gasFees: this.compileBigInt(
+        gasFees: compileBigInt(
           userOperationDraft.maxFeePerGas ??
             configuration.defaultGasConfig.MAX_FEE_PER_GAS,
           userOperationDraft.maxPriorityFeePerGas ??
@@ -645,40 +643,6 @@ export class ERC4337SmartContractAccount<
         address: this.accountManager.getAccounts()[0].accountAddress,
       });
     return byteCode == undefined ? zeroHash : keccak256(byteCode);
-  }
-
-  private compileBigInt(a: bigint, b: bigint): Hex {
-    return ("0x" +
-      toHex(this.bigIntToBytes16(a)).slice(2, 34) +
-      toHex(this.bigIntToBytes16(b)).slice(2, 34)) as Hex;
-  }
-
-  private bigIntToBytes16(bigInt: bigint): Uint8Array {
-    const bytes = new Uint8Array(16);
-    for (let i = 0; i < 16; i++) {
-      bytes[15 - i] = Number((bigInt >> (8n * BigInt(i))) & 0xffn);
-    }
-    return bytes;
-  }
-
-  private compileMode(mode: ExecutionMode) {
-    let callType: string;
-    if (mode.callType == "delegatecall") {
-      callType = "0xFF";
-    } else if (mode.callType == "batch") {
-      callType = "0x01";
-    } else {
-      callType = "0x00";
-    }
-    const execType = mode.try ? "01" : "00";
-    const modeSelector = mode.allowFailedExecution
-      ? keccak256(
-          new TextEncoder().encode("default.mode.allow_failed_execution"),
-        ).slice(2, 10)
-      : "00000000";
-    const modeParams =
-      mode.modeParams ?? "00000000000000000000000000000000000000000000";
-    return callType + execType + "00000000" + modeSelector + modeParams;
   }
 
   private async mockUserOperationPackedWithTokenPayMaster(
