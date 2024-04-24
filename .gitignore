@@ -12,6 +12,8 @@ abi
 package-lock.json
 yarn.lock
 .idea/
+configuration.ts
+test/test.ts
 
 # Hardhat files
 cache
