@@ -6,6 +6,7 @@ import {
   encodePacked,
   Hex,
   keccak256,
+  pad,
   padHex,
   parseAbiParameters,
   publicActions,
@@ -94,15 +95,60 @@ export class PaymasterManager<
     } else {
       const userOperation_0_7 = userOperation as UserOperation0_7;
       const sigTime = BigInt(
-          "0x000000000000ffffffffffff0000000000000000000000000000000000000000"
+        "0x000000000000ffffffffffff0000000000000000000000000000000000000000",
       );
-      const additionalData = encodeAbiParameters(
-        [
-          { name: "sigTime", type: "uint256" },
-          { name: "businessId", type: "uint64" },
-        ],
-        [sigTime, 0n],
-      );
+      let additionalData: Hex;
+      if (paymaster.token) {
+        // token paymaster
+        additionalData = encodeAbiParameters(
+          [
+            {
+              internalType: "uint256",
+              name: "sigTime",
+              type: "uint256",
+            },
+            {
+              internalType: "uint64",
+              name: "businessId",
+              type: "uint64",
+            },
+            {
+              components: [
+                {
+                  internalType: "address",
+                  name: "token",
+                  type: "address",
+                },
+                {
+                  internalType: "uint256",
+                  name: "exchangeRate",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct testabi.TokenData",
+              name: "tokenData",
+              type: "tuple",
+            },
+          ],
+          [
+            sigTime,
+            0n,
+            {
+              token: paymaster.token,
+              exchangeRate: configuration.paymaster.tokenExchange,
+            },
+          ],
+        );
+      } else {
+        // free gas paymaster
+        additionalData = encodeAbiParameters(
+          [
+            { name: "sigTime", type: "uint256" },
+            { name: "businessId", type: "uint64" },
+          ],
+          [sigTime, 0n],
+        );
+      }
       const encodedData = encodeAbiParameters(
         [
           { name: "sender", type: "address" },
@@ -132,15 +178,32 @@ export class PaymasterManager<
       const pmSignature = await paymasterWalletConnectSigner.signMessage(
         keccak256(encodedData),
       );
-
       userOperation.paymasterAndData = ((configuration.paymaster
         .policyPaymaster as Address) +
-        padHex(toHex(500000), { size: 16 }).slice(2) +
-        padHex(toHex(500000), { size: 16 }).slice(2) +
-        padHex(toHex(0), { size: 1 }).slice(2) +
+        padHex(
+          toHex(
+            paymaster.paymasterVerificationGasLimit ??
+              configuration.paymaster.paymasterVerificationGasLimit,
+          ),
+          { size: 16 },
+        ).slice(2) +
+        padHex(
+          toHex(
+            paymaster.paymasterPostOpGasLimit ??
+              configuration.paymaster.paymasterPostOpGasLimit,
+          ),
+          { size: 16 },
+        ).slice(2) +
+        padHex(toHex(paymaster.token ? 1 : 0), { size: 1 }).slice(2) +
         padHex(toHex(0), { size: 8 }).slice(2) +
         padHex(toHex(sigTime), { size: 32 }).slice(2) +
-        pmSignature.slice(2)) as Hex;
+        (paymaster.token
+          ? ((paymaster.token?.slice(2) +
+              padHex(toHex(configuration.paymaster.tokenExchange), {
+                size: 32,
+              }).slice(2) +
+              pmSignature.slice(2)) as Hex)
+          : (pmSignature.slice(2) as Hex))) as Hex;
       return userOperation;
     }
   }

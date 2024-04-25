@@ -488,7 +488,7 @@ export class ERC4337SmartContractAccount<
         paymasterAndData: paymaster
           ? await this.mockUserOperationPackedWithTokenPayMaster(
               paymaster.paymaster,
-              paymaster.token,
+              paymaster.token ?? zeroAddress,
               BigInt(1),
             )
           : "0x",
