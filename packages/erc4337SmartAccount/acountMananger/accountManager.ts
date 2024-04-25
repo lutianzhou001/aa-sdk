@@ -12,6 +12,7 @@ import {
   publicActions,
   Transport,
   WalletClient,
+  zeroHash,
 } from "viem";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
 import { configuration, networkConfigurations } from "../../../configuration";
@@ -58,6 +59,16 @@ export class AccountManager<
     this.version = args.version;
     this.factoryAddress = args.factoryAddress;
     this.baseUrl = args.baseUrl;
+  }
+
+  private async getDeploymentHash(owner: TOwner, address: Hex): Promise<Hex> {
+    const byteCode = await owner
+      .getWalletClient()
+      .extend(publicActions)
+      .getBytecode({
+        address: address,
+      });
+    return byteCode == undefined ? zeroHash : keccak256(byteCode);
   }
 
   pushAccountTransaction(
@@ -235,6 +246,8 @@ export class AccountManager<
       initCode: initCode,
       isDeployed: isDeployed,
       receipts: [],
+      version: "2.0.0",
+      deploymentHash: await this.getDeploymentHash(this.owner, accountAddress),
     };
 
     for (const account of this.accounts) {
@@ -243,11 +256,10 @@ export class AccountManager<
         account.initCode = _account.initCode;
         account.initializeAccountData = _account.initializeAccountData;
         account.isDeployed = _account.isDeployed;
+        return _account;
       }
     }
-
     this.accounts.push(_account);
-
     return _account;
   }
 
@@ -348,14 +360,18 @@ export class AccountManager<
       authenticationManagerAddress,
       defaultECDSAValidator: defaultECDSAValidator,
       receipts: [],
+      version: "3.0.0",
+      deploymentHash: await this.getDeploymentHash(this.owner, accountAddress),
     };
 
+    // if the account exists.
     for (const account of this.accounts) {
       if (account.index === index) {
         account.accountAddress = _account.accountAddress;
         account.initCode = _account.initCode;
         account.initializeAccountData = _account.initializeAccountData;
         account.isDeployed = _account.isDeployed;
+        return _account;
       }
     }
     this.accounts.push(_account);

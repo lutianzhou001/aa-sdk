@@ -3,14 +3,9 @@ import {
   Chain,
   Client,
   encodeAbiParameters,
-  encodePacked,
   Hex,
   keccak256,
-  pad,
   padHex,
-  parseAbiParameters,
-  publicActions,
-  PublicClient,
   toHex,
   Transport,
   WalletClient,
@@ -208,22 +203,3 @@ export class PaymasterManager<
     }
   }
 }
-
-// function signPmData(
-//     uint256 bundlerKey,
-//     PackedUserOperation memory userOp,
-//     address paymaster,
-//     bytes memory additionalData
-// ) public view
-// returns (PackedUserOperation memory)
-// {
-//   // Generate hash for the PackedUserOperation
-//   bytes32 hash = getHash(userOp, userOp.sender, paymaster, additionalData);
-//   bytes32 ethSignedHash = hash.toEthSignedMessageHash();
-//
-//   // Sign the hash
-//   (uint8 v, bytes32 r, bytes32 s) = vm.sign(bundlerKey, ethSignedHash);
-//   userOp.paymasterAndData = abi.encodePacked(userOp.paymasterAndData, r, s, v);
-//
-//   return userOp;
-// }

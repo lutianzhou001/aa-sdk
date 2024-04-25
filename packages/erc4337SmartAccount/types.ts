@@ -64,6 +64,8 @@ export type AccountV2 = {
   isDeployed: boolean;
   defaultECDSAValidator: Address;
   receipts: SmartAccountTransactionReceipt[];
+  version: string;
+  deploymentHash: string;
 };
 
 export type SmartAccountTransactionReceipt = {
@@ -100,9 +102,6 @@ export interface ISmartContractAccount {
   signUserOperationHash(uopHash: Hash): Promise<Hash>;
   signMessage(msg: string | Uint8Array | Hex): Promise<Hex>;
   signTypedData(args: SignTypedDataParameters): Promise<Hash>;
-
-  getVersion(): string;
-  getImplHash(): Promise<Hex | undefined>;
 
   installValidator(
     accountAddress: Address,

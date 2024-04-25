@@ -631,20 +631,6 @@ export class ERC4337SmartContractAccount<
     });
   }
 
-  getVersion(): string {
-    return this.version;
-  }
-
-  async getImplHash(): Promise<Hex> {
-    const byteCode = await this.owner
-      .getWalletClient()
-      .extend(publicActions)
-      .getBytecode({
-        address: this.accountManager.getAccounts()[0].accountAddress,
-      });
-    return byteCode == undefined ? zeroHash : keccak256(byteCode);
-  }
-
   private async mockUserOperationPackedWithTokenPayMaster(
     tokenPayMaster: Address,
     tokenAddress: Address,

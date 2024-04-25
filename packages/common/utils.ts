@@ -5,7 +5,6 @@ import {
   createWalletClient,
   keccak256,
   encodePacked,
-  publicActions,
   PublicClient,
   toHex,
 } from "viem";
