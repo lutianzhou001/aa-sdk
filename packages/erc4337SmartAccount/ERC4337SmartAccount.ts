@@ -140,10 +140,31 @@ export class ERC4337SmartContractAccount<
     ) {
       throw new Error("batchCall must be an array");
     }
-    if (Array.isArray(args.execRawData)) {
-      throw new Error("batchCall will be supported soon");
+    if (Array.isArray(args.execRawData) && this.version == "3.0.0") {
+      const mode = compileMode(args.execMode);
+      const calldata = encodeAbiParameters(
+        [
+          {
+            name: "executions",
+            type: "tuple[]",
+            components: [
+              { name: "to", type: "address" },
+              { name: "value", type: "uint256" },
+              { name: "data", type: "bytes" },
+            ],
+          },
+        ],
+        [args.execRawData],
+      );
+      return encodeFunctionData({
+        abi: smartAccountV3ABI,
+        functionName: "execute",
+        args: [mode, calldata],
+      });
+    } else if (Array.isArray(args.execRawData) && this.version == "2.0.0") {
+      throw new Error("n.i");
     }
-    if (this.version == "2.0.0") {
+    if (!Array.isArray(args.execRawData) && this.version == "2.0.0") {
       // 2.0.0 single encode
       return encodeFunctionData({
         abi: smartAccountV2ABI,
@@ -154,7 +175,7 @@ export class ERC4337SmartContractAccount<
           args.execRawData.data,
         ],
       });
-    } else {
+    } else if (!Array.isArray(args.execRawData) && this.version == "3.0.0") {
       const mode = compileMode(args.execMode);
       const calldata = encodePacked(
         ["address", "uint256", "bytes"],
@@ -165,6 +186,8 @@ export class ERC4337SmartContractAccount<
         functionName: "execute",
         args: [mode, calldata],
       });
+    } else {
+      throw new Error("invalid version");
     }
   }
 

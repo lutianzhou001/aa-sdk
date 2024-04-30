@@ -42,6 +42,14 @@ export type ExecuteCallDataArgs =
         allowFailed: boolean;
       }[];
       execMode: ExecutionMode;
+    }
+  | {
+      execRawData: {
+        to: Address;
+        value: bigint;
+        data: Hex;
+      }[];
+      execMode: ExecutionMode;
     };
 
 export type AccountV3 = AccountV2 & {
