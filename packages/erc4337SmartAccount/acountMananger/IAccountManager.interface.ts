@@ -1,30 +1,36 @@
 import type { Hex } from "viem";
 import type { Address } from "abitype";
-import {
-  Account,
-  AccountV2,
-  AccountV3,
-  SmartAccountTransactionReceipt,
-} from "../types";
+import { Account, SmartAccountTransactionReceipt } from "../types";
+import { ERC4337SmartAccountSigner } from "../../plugins/types";
 
-export interface IAccountManager {
-  createNewAccount(index: bigint, executions: Hex[]): Promise<Account>;
-  batchCreateNewAccount(amount: number, executions: Hex[]): Promise<Account[]>;
+export interface IAccountManager<
+  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+> {
+  createNewAccount(
+    owner: TOwner,
+    index: bigint,
+    version: string,
+    executions: Hex[],
+  ): Promise<Account<TOwner>>;
 
-  getAccount(indexOrAddress: number | Address): Account;
-  getAccounts(): Account[];
+  batchCreateNewAccount(
+    owner: TOwner,
+    amount: number,
+    version: string,
+    executions: Hex[],
+  ): Promise<void>;
 
-  refreshAccount(indexOrAddress: number | Address): Promise<Account>;
-  refreshAccounts(): Promise<Account[]>;
+  getAccount(indexOrAddress: number | Address): Account<TOwner>;
+  getAccounts(): Account<TOwner>[];
+
+  refreshAccount(indexOrAddress: number | Address): Promise<Account<TOwner>>;
+  refreshAccounts(): Promise<Account<TOwner>[]>;
 
   getNonce(
     accountAddress: Address,
     role: Hex,
     validatorAddress?: Address,
   ): Promise<bigint>;
-
-  getFactoryAddress(): Address;
-  getEntryPointAddress(): Address;
 
   isExist(indexOrAddress: number | Address): boolean;
 
@@ -33,6 +39,7 @@ export interface IAccountManager {
   ): SmartAccountTransactionReceipt[];
 
   refreshAccountTransactionReceipts(
+    account: Account<TOwner>,
     sender: Address,
   ): Promise<SmartAccountTransactionReceipt[]>;
 }

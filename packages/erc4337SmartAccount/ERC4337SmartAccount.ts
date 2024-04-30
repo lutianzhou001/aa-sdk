@@ -19,15 +19,11 @@ import {
   type Transport,
   WalletClient,
   zeroAddress,
-  zeroHash,
 } from "viem";
 import {
   Account,
-  AccountV2,
-  AccountV3,
   ExecuteCallDataArgs,
-  ExecutionMode,
-  ISmartContractAccount,
+  ManagerController,
   SmartAccountTransactionReceipt,
 } from "./types.js";
 import {
@@ -41,15 +37,12 @@ import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
 import { smartAccountV2ABI } from "../../abis/smartAccountV2.abi";
 import axios from "axios";
-import { Simulator } from "./simulator/simulator";
-import { AccountManager } from "./acountMananger/accountManager";
-import { PaymasterManager } from "./paymasterManager/paymaster";
 import {
   GeneratePaymasterSignatureType,
-  GenerateUserOperationAndPackedParams,
+  PackTxParams,
+  SendTxParams,
 } from "./dto/generateUserOperationAndPackedParams.dto";
 import { CreateERC4337SmartAccountParams } from "./dto/createERC4337SmartAccount.dto";
-import { WalletClientSigner } from "../plugins/signers/walletClientSigner";
 import {
   BaseSmartAccountError,
   GasEstimationError,
@@ -57,77 +50,114 @@ import {
 } from "../error/constants";
 import { mainnet } from "viem/chains";
 import { EntryPointV0_7ABI } from "../../abis/EntryPointV0_7.abi";
-import { compileBigInt, compileMode, getSigTime } from "../common/utils";
+import {
+  compileBigInt,
+  compileMode,
+  getConfiguration,
+  getSigTime,
+} from "../common/utils";
+import { IERC4337SmartAccount } from "./IERC4337SmartAccount.interface";
 
 export class ERC4337SmartContractAccount<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
   TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
-> implements ISmartContractAccount
+> implements IERC4337SmartAccount
 {
-  public accountManager: AccountManager;
-  public simulator: Simulator;
-  public paymasterManager: PaymasterManager;
   protected name: string;
-  protected version: string;
-  protected owner: TOwner;
-  protected factoryAddress: Address;
-  protected accounts: Account[];
-  protected entryPointAddress: Address;
-  protected baseUrl: string;
+  protected accounts: Account<TOwner>[];
+  protected currentAccount: Account<TOwner>;
+  protected currentUserOperation: UserOperation<"v0.6"> | UserOperation0_7;
+  protected managerController: ManagerController<TTransport, TChain, TOwner>;
 
   constructor(
     args: CreateERC4337SmartAccountParams<TTransport, TChain, TOwner>,
   ) {
-    if (!args.version) {
-      throw new BaseSmartAccountError(
-        "BaseSmartAccountError",
-        "version is required",
-      );
+    this.managerController = args.managerController;
+  }
+
+  async send(
+    overrideBundler?: WalletClient,
+  ): Promise<SmartAccountTransactionReceipt> {
+    if (this.currentAccount && this.currentUserOperation) {
+      throw new Error("insufficient params");
     }
-    this.owner = new WalletClientSigner(
-      args.walletClient as WalletClient,
-      "admin",
-    ) as TOwner;
-    this.entryPointAddress =
-      args.entryPointAddress ??
-      (args.version == "2.0.0"
-        ? configuration.entryPoint.v0_6_0
-        : configuration.entryPoint.v0_7_0);
-    this.factoryAddress =
-      args.factoryAddress ??
-      (args.version == "2.0.0"
-        ? configuration.v2.FACTORY_ADDRESS
-        : configuration.v3.FACTORY_ADDRESS);
-    this.accounts = args.accounts ?? [];
-    this.name =
-      args.name ??
-      (args.version == "2.0.0" ? configuration.v2.NAME : configuration.v3.NAME);
-    this.version =
-      args.name ??
-      (args.version == "2.0.0"
-        ? configuration.v2.VERSION
-        : configuration.v3.VERSION);
-    this.baseUrl = args.baseUrl ?? networkConfigurations.base_url;
-    this.simulator = new Simulator({
-      entryPointAddress: this.entryPointAddress,
-      owner: this.owner,
-      baseUrl: this.baseUrl,
-      version: this.version,
-    });
-    this.accountManager = new AccountManager({
-      owner: this.owner,
-      entryPointAddress: this.entryPointAddress,
-      version: this.version,
-      factoryAddress: this.factoryAddress,
-      baseUrl: this.baseUrl,
-    });
-    this.paymasterManager = new PaymasterManager({
-      walletClient: this.owner.getWalletClient(),
-      entryPointAddress: this.entryPointAddress,
-      baseUrl: this.baseUrl,
-      version: this.version,
-    });
+    if (this.getCurrentAccount().getVersion() == "2.0.0") {
+      await this.managerController.simulatorManager.sendUserOperationSimulation(this.currentAccount, this.currentUserOperation);
+      const req = {
+        method: "post",
+        maxBodyLength: Infinity,
+        url:
+          networkConfigurations.base_url +
+          "mp/" +
+          String(
+            await getChainId(
+              this.getCurrentAccount().owner.getWalletClient() as Client,
+            ),
+          ) +
+          "/eth_sendUserOperation",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: "locale=en-US",
+        },
+        data: JSON.stringify({
+          id: 1,
+          jsonrpc: "2.0",
+          method: "eth_sendUserOperation",
+          params: [
+            this.currentUserOperation,
+            getConfiguration(this.getCurrentAccount().getVersion())
+              .entryPointAddress,
+          ],
+        }),
+      };
+      const res = await axios.request(req);
+      if (res.data.error) {
+        throw new SendUopError(
+          "sendUserOperationError",
+          res.data.error.message,
+        );
+      } else {
+        return this.managerController.accountManager.pushAccountTransaction(
+          this.currentUserOperation.sender,
+          res.data.result,
+        );
+      }
+    } else {
+      if (!overrideBundler) {
+        throw new Error("in v3, due to not online, client must specified");
+      } else {
+        const { request } = await overrideBundler
+          .extend(publicActions)
+          .simulateContract({
+            address: configuration.entryPoint.v0_7_0,
+            abi: EntryPointV0_7ABI,
+            functionName: "handleOps",
+            args: [
+              [this.currentUserOperation],
+              overrideBundler.account?.address,
+            ],
+          });
+        // @ts-ignore
+        await walletClient.writeContract(request);
+        return this.managerController.accountManager.pushAccountTransaction(
+          this.currentUserOperation.sender,
+          "0x" as Hex,
+        );
+      }
+    }
+  }
+
+  private getCurrentAccount(): Account<TOwner> {
+    if (this.accounts.length === 0) {
+      throw new Error("no account specified");
+    }
+    return this.currentAccount ?? this.accounts[0];
+  }
+
+  connect(account: Account<TOwner>): this {
+    this.currentAccount = account;
+    return this;
   }
 
   async encodeExecute(args: ExecuteCallDataArgs): Promise<Hex> {
@@ -143,7 +173,10 @@ export class ERC4337SmartContractAccount<
     if (Array.isArray(args.execRawData)) {
       throw new Error("batchCall will be supported soon");
     }
-    if (this.version == "2.0.0") {
+    if (!this.currentAccount && this.accounts.length == 0) {
+      throw new Error("No account specified.");
+    }
+    if (this.getCurrentAccount().getVersion() == "2.0.0") {
       // 2.0.0 single encode
       return encodeFunctionData({
         abi: smartAccountV2ABI,
@@ -154,7 +187,7 @@ export class ERC4337SmartContractAccount<
           args.execRawData.data,
         ],
       });
-    } else {
+    } else if (this.currentAccount.getVersion() == "3.0.0") {
       const mode = compileMode(args.execMode);
       const calldata = encodePacked(
         ["address", "uint256", "bytes"],
@@ -165,6 +198,8 @@ export class ERC4337SmartContractAccount<
         functionName: "execute",
         args: [mode, calldata],
       });
+    } else {
+      throw new Error("unknown version");
     }
   }
 
@@ -179,7 +214,7 @@ export class ERC4337SmartContractAccount<
       msg = new TextEncoder().encode(msg);
     }
 
-    return this.owner.signMessage(msg);
+    return this.getCurrentAccount().owner.signMessage(msg);
   }
 
   async signTypedData(args: SignTypedDataParameters): Promise<Hex> {
@@ -189,14 +224,16 @@ export class ERC4337SmartContractAccount<
     );
   }
 
-  async generateUserOperationAndPacked(
-    args: GenerateUserOperationAndPackedParams,
-  ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
-    const account = this.accountManager.getAccount(args.uop.sender);
-    // to avoid send with init code, we should update the isDeployed status;
-    await this.accountManager.updateDeployment(
-      this.owner.getWalletClient(),
-      account.accountAddress,
+  async packTx(args: PackTxParams): Promise<{
+    account: Account<TOwner>;
+    userOperation: UserOperation<"v0.6"> | UserOperation0_7;
+  }> {
+    const chainId = await getChainId(
+      this.getCurrentAccount().owner.getWalletClient() as Client,
+    );
+    await this.managerController.accountManager.updateDeployment(
+      this.getCurrentAccount().owner.getWalletClient(),
+      this.getCurrentAccount().accountAddress,
     );
     const userOperationWithGasEstimated =
       await this.generateUserOperationWithGasEstimation(
@@ -205,7 +242,8 @@ export class ERC4337SmartContractAccount<
         args.paymaster,
       );
     const userOperation = args.paymaster
-      ? await this.paymasterManager.generatePaymasterSignature(
+      ? await this.managerController.paymasterManager.generatePaymasterSignature(
+          this.getCurrentAccount(),
           userOperationWithGasEstimated,
           args.paymaster,
         )
@@ -213,24 +251,25 @@ export class ERC4337SmartContractAccount<
     const sigTime =
       args._sigTime ??
       (await getSigTime(
-        this.owner.getWalletClient().extend(publicActions) as PublicClient,
+        this.getCurrentAccount()
+          .owner.getWalletClient()
+          .extend(publicActions) as PublicClient,
       ));
     if (args.signType == "EIP712") {
       let domain: any;
-      if (this.version == "2.0.0") {
-        const accountV2 = account as AccountV2;
+      if (this.getCurrentAccount().getVersion() == "2.0.0") {
         domain = {
-          version: this.version,
-          chainId: await getChainId(this.owner.getWalletClient() as Client),
-          verifyingContract: accountV2.accountAddress,
+          version: this.getCurrentAccount().getVersion(),
+          chainId: chainId,
+          verifyingContract: this.getCurrentAccount().accountAddress,
         };
       } else {
-        const accountV3 = account as AccountV3;
         domain = {
           name: this.name,
-          version: this.version,
-          chainId: await getChainId(this.owner.getWalletClient() as Client),
-          verifyingContract: accountV3.authenticationManagerAddress,
+          version: this.getCurrentAccount().getVersion(),
+          chainId: chainId,
+          verifyingContract:
+            this.getCurrentAccount().authenticationManagerAddress,
         };
       }
       const types = {
@@ -251,23 +290,27 @@ export class ERC4337SmartContractAccount<
       };
       const value = {
         ...userOperation,
-        EntryPoint: this.entryPointAddress,
+        EntryPoint: getConfiguration(this.currentAccount.getVersion()),
         sigTime: sigTime,
       };
-      const signature = await this.owner.signer.signTypedData({
-        domain: domain,
-        types: types,
-        message: value,
-      });
+      const signature =
+        await this.getCurrentAccount().owner.signer.signTypedData({
+          domain: domain,
+          types: types,
+          message: value,
+        });
       userOperation.signature = encodePacked(
         ["uint8", "uint256", "bytes"],
         [0, sigTime, signature],
       );
-      return userOperation;
+      this.currentUserOperation = userOperation;
+      return {
+        account: this.getCurrentAccount(),
+        userOperation: userOperation,
+      };
     } else {
       let encodedUserOperationData: Hex;
-      if (this.version == "2.0.0") {
-        // 2.0.0 supports V0.6
+      if (this.getCurrentAccount().getVersion() == "2.0.0") {
         const userOperation_0_6_0 =
           userOperation as unknown as UserOperation<"v0.6">;
         encodedUserOperationData = encodeAbiParameters(
@@ -287,7 +330,7 @@ export class ERC4337SmartContractAccount<
             { name: "sigTime", type: "uint256" },
           ],
           [
-            BigInt(await getChainId(this.owner.getWalletClient() as Client)),
+            BigInt(chainId),
             userOperation_0_6_0.sender,
             userOperation_0_6_0.nonce,
             keccak256(userOperation_0_6_0.initCode),
@@ -298,7 +341,8 @@ export class ERC4337SmartContractAccount<
             userOperation_0_6_0.maxFeePerGas,
             userOperation_0_6_0.maxPriorityFeePerGas,
             keccak256(userOperation.paymasterAndData),
-            this.entryPointAddress,
+            getConfiguration(this.getCurrentAccount().getVersion())
+              .entryPointAddress,
             sigTime,
           ],
         );
@@ -321,7 +365,7 @@ export class ERC4337SmartContractAccount<
             { name: "sigTime", type: "uint256" },
           ],
           [
-            BigInt(await getChainId(this.owner.getWalletClient() as Client)),
+            BigInt(chainId),
             userOperation_0_7_0.sender,
             userOperation_0_7_0.nonce,
             keccak256(userOperation_0_7_0.initCode),
@@ -330,7 +374,8 @@ export class ERC4337SmartContractAccount<
             userOperation_0_7_0.preVerificationGas,
             userOperation_0_7_0.gasFees,
             keccak256(userOperation_0_7_0.paymasterAndData),
-            this.entryPointAddress,
+            getConfiguration(this.getCurrentAccount().getVersion())
+              .entryPointAddress,
             sigTime,
           ],
         );
@@ -338,72 +383,24 @@ export class ERC4337SmartContractAccount<
       const userOperationHash = keccak256(encodedUserOperationData);
       userOperation.signature = encodePacked(
         ["uint8", "uint256", "bytes"],
-        [1, sigTime, await this.owner.signMessage(userOperationHash)],
+        [
+          1,
+          sigTime,
+          await this.getCurrentAccount().owner.signMessage(userOperationHash),
+        ],
       );
-      return userOperation;
+      this.currentUserOperation = userOperation;
+      return {
+        account: this.getCurrentAccount(),
+        userOperation: userOperation,
+      };
     }
   }
 
   async execute(request: any): Promise<any> {
-    await this.owner.getWalletClient().writeContract(request);
-  }
-
-  async sendUserOperationByERC4337Bundler(
-    userOperation: UserOperation<"v0.6">,
-    walletClient?: WalletClient,
-  ): Promise<SmartAccountTransactionReceipt> {
-    if (this.version == "2.0.0") {
-      const req = {
-        method: "post",
-        maxBodyLength: Infinity,
-        url:
-          this.baseUrl +
-          "mp/" +
-          String(await getChainId(this.owner.getWalletClient() as Client)) +
-          "/eth_sendUserOperation",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: "locale=en-US",
-        },
-        data: JSON.stringify({
-          id: 1,
-          jsonrpc: "2.0",
-          method: "eth_sendUserOperation",
-          params: [userOperation, this.entryPointAddress],
-        }),
-      };
-      const res = await axios.request(req);
-      if (res.data.error) {
-        throw new SendUopError(
-          "sendUserOperationError",
-          res.data.error.message,
-        );
-      } else {
-        return this.accountManager.pushAccountTransaction(
-          userOperation.sender,
-          res.data.result,
-        );
-      }
-    } else {
-      if (!walletClient) {
-        throw new Error("wallet client must specified");
-      } else {
-        const { request } = await walletClient
-          .extend(publicActions)
-          .simulateContract({
-            address: configuration.entryPoint.v0_7_0,
-            abi: EntryPointV0_7ABI,
-            functionName: "handleOps",
-            args: [[userOperation], walletClient.account?.address],
-          });
-        // @ts-ignore
-        await walletClient.writeContract(request);
-        return this.accountManager.pushAccountTransaction(
-          userOperation.sender,
-          "0x" as Hex,
-        );
-      }
-    }
+    await this.getCurrentAccount()
+      .owner.getWalletClient()
+      .writeContract(request);
   }
 
   async generateUserOperationWithGasEstimation(
@@ -411,37 +408,36 @@ export class ERC4337SmartContractAccount<
     role: Hex,
     paymaster?: GeneratePaymasterSignatureType,
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
-    const account: Account = this.accountManager.getAccount(
-      userOperationDraft.sender,
-    );
+    const account: Account<TOwner> =
+      this.managerController.accountManager.getAccount(
+        userOperationDraft.sender,
+      );
     let nonce: bigint;
     if (account.isDeployed) {
-      if (this.version == "2.0.0") {
-        const accountV2 = account as AccountV2;
+      if (this.getCurrentAccount().getVersion() == "2.0.0") {
         nonce = userOperationDraft.nonce
           ? userOperationDraft.nonce
-          : await this.accountManager.getNonce(
-              accountV2.accountAddress,
+          : await this.managerController.accountManager.getNonce(
+              account.accountAddress,
               role,
               zeroAddress,
             );
       } else {
-        const accountV3 = account as AccountV3;
         nonce = userOperationDraft.nonce
           ? userOperationDraft.nonce
-          : await this.accountManager.getNonce(
-              accountV3.accountAddress,
+          : await this.managerController.accountManager.getNonce(
+              account.accountAddress,
               role,
-              accountV3.defaultECDSAValidator,
+              account.defaultECDSAValidator,
             );
       }
     } else {
       nonce =
-        this.version == "2.0.0"
+        this.getCurrentAccount().getVersion() == "2.0.0"
           ? BigInt(0)
           : BigInt(account.defaultECDSAValidator + "0000000000000000");
     }
-    if (this.version == "3.0.0") {
+    if (this.getCurrentAccount().getVersion() == "3.0.0") {
       return {
         sender: account.accountAddress,
         nonce: toHex(nonce) as any, //nonce,
@@ -496,7 +492,7 @@ export class ERC4337SmartContractAccount<
         signature:
           "0x000000000000000000000000000000000000000000000000000000000065ec8c6cd0677cf78f473ccf0cdf26925f84e7e07b345fd050b014bb436c73b6cba2ca3228faab7a9563284421515609f49bc03f20990c2bfa455e52e839ac4c311a57c01c",
       },
-      this.entryPointAddress,
+      getConfiguration(this.getCurrentAccount().getVersion()).entryPointAddress,
     ];
 
     let data = JSON.stringify({
@@ -510,9 +506,13 @@ export class ERC4337SmartContractAccount<
       method: "post",
       maxBodyLength: Infinity,
       url:
-        this.baseUrl +
+        networkConfigurations.base_url +
         "mp/" +
-        String(await getChainId(this.owner.getWalletClient() as Client)) +
+        String(
+          await getChainId(
+            this.getCurrentAccount().owner.getWalletClient() as Client,
+          ),
+        ) +
         "/eth_estimateUserOperationGas",
       headers: {
         "Content-Type": "application/json",
@@ -536,12 +536,12 @@ export class ERC4337SmartContractAccount<
       );
     }
 
-    const baseGasPrice = await this.owner
-      .getWalletClient()
+    const baseGasPrice = await this.getCurrentAccount()
+      .owner.getWalletClient()
       .extend(publicActions)
       .getGasPrice();
-    const maxPriorityFeePerGas = await this.owner
-      .getWalletClient()
+    const maxPriorityFeePerGas = await this.getCurrentAccount()
+      .owner.getWalletClient()
       .extend(publicActions)
       .estimateMaxPriorityFeePerGas();
     const preVerificationGas =
@@ -602,7 +602,7 @@ export class ERC4337SmartContractAccount<
     validatorTemplate: Address = configuration.v3
       .ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
   ): Hex {
-    if (this.version == "2.0.0") {
+    if (this.getCurrentAccount().getVersion() == "2.0.0") {
       throw new BaseSmartAccountError(
         "BaseSmartAccountError",
         "This function is not supported in version 2.0.0",
@@ -645,7 +645,7 @@ export class ERC4337SmartContractAccount<
         BigInt(
           "0x000000000000ffffffffffff0000000000000000000000000000000000000000",
         ),
-        await this.owner.signMessage("MOCK MESSAGE"),
+        await this.getCurrentAccount().owner.signMessage("MOCK MESSAGE"),
       ],
     );
   }

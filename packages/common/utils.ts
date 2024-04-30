@@ -14,6 +14,27 @@ import * as allChains from "viem/chains";
 import { Address } from "abitype";
 import { BaseSmartAccountError } from "../error/constants";
 import { ExecutionMode } from "../erc4337SmartAccount/types";
+import { configuration } from "../../configuration";
+
+export function getConfiguration(version: string): {
+  entryPointAddress: Address;
+  factoryAddress: Address;
+  name: string;
+} {
+  if (version == "2.0.0") {
+    return {
+      entryPointAddress: configuration.entryPoint.v0_6_0 as Address,
+      factoryAddress: configuration.v2.FACTORY_ADDRESS as Address,
+      name: configuration.v2.NAME,
+    };
+  } else {
+    return {
+      entryPointAddress: configuration.entryPoint.v0_7_0 as Address,
+      factoryAddress: configuration.v3.FACTORY_ADDRESS as Address,
+      name: configuration.v3.NAME,
+    };
+  }
+}
 
 export async function getEoaWalletClient(): Promise<WalletClient> {
   const rpcUrl = process.env.RPC_URL;

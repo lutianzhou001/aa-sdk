@@ -1,8 +1,13 @@
 import { Address, type Hex } from "viem";
-import { UserOperationDraft } from "../../plugins/types";
-import { SignType } from "../types";
+import {
+  ERC4337SmartAccountSigner,
+  UserOperation0_7,
+  UserOperationDraft,
+} from "../../plugins/types";
+import { Account, SignType } from "../types";
+import { UserOperation } from "permissionless/types/userOperation";
 
-export class GenerateUserOperationAndPackedParams {
+export class PackTxParams {
   readonly signType?: SignType = "EIP191";
 
   readonly role?: Hex = "0x00000000";
@@ -12,6 +17,14 @@ export class GenerateUserOperationAndPackedParams {
   readonly _sigTime?: bigint;
 
   readonly paymaster?: GeneratePaymasterSignatureType;
+}
+
+export class SendTxParams<
+  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+> {
+  readonly userOperation: UserOperation<"v0.6"> | UserOperation0_7;
+
+  readonly account: Account<TOwner>;
 }
 
 export type GeneratePaymasterSignatureType = {

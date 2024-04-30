@@ -8,44 +8,40 @@ import {
   padHex,
   toHex,
   Transport,
-  WalletClient,
 } from "viem";
-import { UserOperation0_7 } from "../../plugins/types";
-import { SupportedPayMaster } from "../types";
+import {
+  ERC4337SmartAccountSigner,
+  UserOperation0_7,
+} from "../../plugins/types";
+import { Account, SupportedPayMaster } from "../types";
 import { IPaymasterManager } from "./IPaymasterManager.interface";
 import { CreatePaymasterParameters } from "./createPaymasterManager.dto";
-import { getChainId } from "viem/actions";
 import axios from "axios";
 import { UserOperation } from "permissionless/types/userOperation";
 import { GeneratePaymasterSignatureType } from "../dto/generateUserOperationAndPackedParams.dto";
-import { configuration } from "../../../configuration";
-import { getSigTime } from "../../common/utils";
+import { configuration, networkConfigurations } from "../../../configuration";
 import { paymasterWalletConnectSigner } from "../../../test/testHelper";
+import { getConfiguration } from "../../common/utils";
+import { getChainId } from "viem/actions";
 
 export class PaymasterManager<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
+  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > implements IPaymasterManager
 {
-  protected entryPointAddress: Address;
-  protected walletClient: WalletClient;
-  protected baseUrl: string;
-  protected version: string;
-  constructor(args: CreatePaymasterParameters<TTransport, TChain>) {
-    this.entryPointAddress = args.entryPointAddress;
-    this.walletClient = args.walletClient as WalletClient;
-    this.baseUrl = args.baseUrl;
-    this.version = args.version;
-  }
+  constructor(args: CreatePaymasterParameters<TTransport, TChain>) {}
 
-  async getSupportedPaymasters(): Promise<SupportedPayMaster[]> {
+  async getSupportedPaymasters(
+    account: Account<TOwner>,
+  ): Promise<SupportedPayMaster[]> {
     const config = {
       method: "get",
       maxBodyLength: Infinity,
       url:
-        this.baseUrl +
+        networkConfigurations.base_url +
         "pm/supportedPaymasters?chainBizId=" +
-        String(await getChainId(this.walletClient as Client)),
+        (await getChainId(account.owner.getWalletClient())),
       headers: {
         "Content-Type": "application/json",
         Cookie: "locale=en-US",
@@ -60,25 +56,26 @@ export class PaymasterManager<
   // tokenPaymaster
   // paymaster + paymasterVerificationGasLimit + postOpGasLimit + mod + businessId + sigTime + token + exchangeRate + signature;
   async generatePaymasterSignature(
+    account: Account<TOwner>,
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
     paymaster: GeneratePaymasterSignatureType,
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
     // query paymasterAndDataFrom the endpoint.
-    if (this.version == "2.0.0") {
+    if (account.getVersion() == "2.0.0") {
       const config = {
         method: "post",
         maxBodyLength: Infinity,
         url:
-          this.baseUrl +
+          networkConfigurations.base_url +
           "pm/" +
-          String(await getChainId(this.walletClient as Client)) +
+          (await getChainId(account.owner.getWalletClient())) +
           "/getPaymasterSignature",
         headers: {
           "Content-Type": "application/json",
           Cookie: "locale=en-US",
         },
         data: JSON.stringify({
-          entryPoint: this.entryPointAddress,
+          entryPoint: getConfiguration(account.getVersion()).entryPointAddress,
           token: paymaster.token,
           paymaster: paymaster.paymaster,
           uop: userOperation,
@@ -165,7 +162,7 @@ export class PaymasterManager<
           BigInt(userOperation_0_7.accountGasLimits),
           userOperation_0_7.preVerificationGas,
           BigInt(userOperation_0_7.gasFees),
-          BigInt(await getChainId(this.walletClient as Client)),
+          BigInt(await getChainId(account.owner.getWalletClient())),
           <Address>configuration.paymaster.policyPaymaster,
           additionalData,
         ],

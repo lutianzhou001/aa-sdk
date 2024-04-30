@@ -7,11 +7,9 @@ export class CreateSimulatorParams<
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > {
-  readonly entryPointAddress: Address;
+  readonly version: string;
 
   readonly owner: TSigner;
 
   readonly baseUrl: string;
-
-  readonly version: string;
 }

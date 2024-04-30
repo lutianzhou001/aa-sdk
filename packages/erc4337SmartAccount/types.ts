@@ -1,18 +1,9 @@
 import type { Address } from "abitype";
-import type {
-  Hash,
-  Hex,
-  SignTypedDataParameters,
-  Transport,
-  WalletClient,
-} from "viem";
-import { UserOperation0_7, UserOperationDraft } from "../plugins/types";
-import { UserOperation } from "permissionless/types/userOperation";
-import {
-  GeneratePaymasterSignatureType,
-  GenerateUserOperationAndPackedParams,
-} from "./dto/generateUserOperationAndPackedParams.dto";
-import { mode } from "viem/chains";
+import type { Chain, Hash, Hex, Transport } from "viem";
+import { AccountManager } from "./acountMananger/accountManager";
+import { PaymasterManager } from "./paymasterManager/paymaster";
+import { ERC4337SmartAccountSigner } from "../plugins/types";
+import {Simulator, SimulatorManager} from "./simulator/simulator";
 
 export type CallType = "single" | "delegatecall" | "batch" | undefined;
 
@@ -44,10 +35,6 @@ export type ExecuteCallDataArgs =
       execMode: ExecutionMode;
     };
 
-export type AccountV3 = AccountV2 & {
-  authenticationManagerAddress: Address;
-};
-
 export type SupportedPayMaster = {
   entryPoint: string;
   paymaster: Address;
@@ -56,16 +43,33 @@ export type SupportedPayMaster = {
   type: number;
 };
 
-export type AccountV2 = {
-  initializeAccountData: Hex;
-  initCode: Hex;
+export type ManagerController<
+  TTransport extends Transport = Transport,
+  TChain extends Chain | undefined = Chain | undefined,
+  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+> = {
+  accountManager: AccountManager<TTransport, TChain, TOwner>;
+  paymasterManager: PaymasterManager<TTransport, TChain, TOwner>;
+  simulatorManager: SimulatorManager<TTransport,TChain,TOwner>;
+  // simulatorManager: SimulatorManager;
+  // receiptManager: ReceiptManager;
+  // bundlerManager: BundlerManager;
+};
+
+export type Account<
+  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+> = {
+  owner: TOwner;
   index: bigint;
   accountAddress: Address;
   isDeployed: boolean;
   defaultECDSAValidator: Address;
+  authenticationManagerAddress: Address | undefined;
   receipts: SmartAccountTransactionReceipt[];
-  version: string;
-  deploymentHash: string;
+  initCode: Hex;
+
+  getVersion(): string;
+  getCreationCodeHash: () => Promise<string>;
 };
 
 export type SmartAccountTransactionReceipt = {
@@ -78,39 +82,3 @@ export type UserOperationSimulationResponse = {
   success: boolean;
   message: any;
 };
-
-export type Account = AccountV2 | AccountV3;
-
-export interface ISmartContractAccount {
-  generateUserOperationWithGasEstimation(
-    userOperationDraft: UserOperationDraft,
-    role: Hex,
-    paymaster?: GeneratePaymasterSignatureType,
-  ): Promise<UserOperation<"v0.6"> | UserOperation0_7>;
-
-  generateUserOperationAndPacked(
-    args: GenerateUserOperationAndPackedParams,
-  ): Promise<UserOperation<"v0.6"> | UserOperation0_7>;
-
-  sendUserOperationByERC4337Bundler(
-    userOperation: UserOperation<"v0.6"> | UserOperation0_7,
-    walletClient: WalletClient,
-  ): Promise<SmartAccountTransactionReceipt>;
-
-  execute(request: any): Promise<any>;
-
-  signUserOperationHash(uopHash: Hash): Promise<Hash>;
-  signMessage(msg: string | Uint8Array | Hex): Promise<Hex>;
-  signTypedData(args: SignTypedDataParameters): Promise<Hash>;
-
-  installValidator(
-    accountAddress: Address,
-    newValidatorAddress: Address,
-    validateTemplate: Address,
-  ): Hex;
-  // uninstallValidator(): Promise<Hex>;
-
-  encodeExecute(args: ExecuteCallDataArgs): Promise<Hex>;
-
-  extend: <R>(extendFn: (self: this) => R) => this & R;
-}

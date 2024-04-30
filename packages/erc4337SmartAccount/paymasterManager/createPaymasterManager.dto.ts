@@ -5,11 +5,9 @@ export class CreatePaymasterParameters<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
 > {
+  readonly version: string;
+
   readonly walletClient: WalletClient<TTransport, TChain>;
 
-  readonly entryPointAddress: Address;
-
   readonly baseUrl: string;
-
-  readonly version: string;
 }

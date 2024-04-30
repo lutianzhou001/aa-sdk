@@ -5,15 +5,11 @@ import { ERC4337SmartAccountSigner } from "../../plugins/types";
 export class CreateAccountManagerParameters<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > {
-  readonly entryPointAddress: Address;
-
-  readonly owner: TSigner;
-
   readonly version: string;
 
-  readonly factoryAddress: Address;
+  readonly owner: TOwner;
 
   readonly baseUrl: string;
 }

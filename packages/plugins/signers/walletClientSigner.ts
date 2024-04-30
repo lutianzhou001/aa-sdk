@@ -7,8 +7,6 @@ import {
   zeroAddress,
 } from "viem";
 import type { ERC4337SmartAccountSigner } from "../types";
-import { configuration } from "../../../configuration";
-import { Address } from "abitype";
 import { BaseSmartAccountError } from "../../error/constants";
 
 export class WalletClientSigner
@@ -16,7 +14,6 @@ export class WalletClientSigner
 {
   signerType: string;
   signer: WalletClient;
-  // validatorTemplate: Address;
 
   constructor(signer: WalletClient, signerType: string) {
     this.signer = signer;

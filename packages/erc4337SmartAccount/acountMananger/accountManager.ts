@@ -9,6 +9,7 @@ import {
   type Hash,
   Hex,
   keccak256,
+  parseAbiParameters,
   publicActions,
   Transport,
   WalletClient,
@@ -18,16 +19,14 @@ import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
 import { configuration, networkConfigurations } from "../../../configuration";
 import { ERC4337SmartAccountSigner } from "../../plugins/types";
 import { IAccountManager } from "./IAccountManager.interface";
-import {
-  Account,
-  AccountV2,
-  AccountV3,
-  SmartAccountTransactionReceipt,
-} from "../types";
+import { Account, SmartAccountTransactionReceipt } from "../types";
 import { accountFactoryV2ABI } from "../../../abis/accountFactoryV2.abi";
 import { initializeAccountABI } from "../../../abis/initializeAccount.abi";
 import { accountFactoryV3ABI } from "../../../abis/accountFactoryV3.abi";
-import { predictDeterministicAddress } from "../../common/utils";
+import {
+  getConfiguration,
+  predictDeterministicAddress,
+} from "../../common/utils";
 import { CreateAccountManagerParameters } from "./createAccountManagerParams.dto";
 import { EntryPointABI } from "../../../abis/EntryPoint.abi";
 import { getChainId } from "viem/actions";
@@ -37,31 +36,22 @@ import {
   GetERC4337BundlerReceipt,
 } from "../../error/constants";
 import { EntryPointV0_7ABI } from "../../../abis/EntryPointV0_7.abi";
+import { IManager } from "../moduleManager/IManager.interface";
 
 export class AccountManager<
-  TTransport extends Transport = Transport,
-  TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
-> implements IAccountManager
+    TTransport extends Transport = Transport,
+    TChain extends Chain | undefined = Chain | undefined,
+    TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  >
+  implements IAccountManager, IManager
 {
-  protected owner: TOwner;
-  protected entryPointAddress: Address;
-  protected factoryAddress: Address;
-  protected version: string;
-  protected accounts: Account[] = [];
-  protected baseUrl: string;
+  protected accounts: Account<TOwner>[] = [];
 
   constructor(
     args: CreateAccountManagerParameters<TTransport, TChain, TOwner>,
-  ) {
-    this.owner = args.owner;
-    this.entryPointAddress = args.entryPointAddress;
-    this.version = args.version;
-    this.factoryAddress = args.factoryAddress;
-    this.baseUrl = args.baseUrl;
-  }
+  ) {}
 
-  private async getDeploymentHash(owner: TOwner, address: Hex): Promise<Hex> {
+  private async getCreationCodeHash(owner: TOwner, address: Hex): Promise<Hex> {
     const byteCode = await owner
       .getWalletClient()
       .extend(publicActions)
@@ -93,6 +83,7 @@ export class AccountManager<
   }
 
   async refreshAccountTransactionReceipts(
+    account: Account<TOwner>,
     sender: Address,
   ): Promise<SmartAccountTransactionReceipt[]> {
     const currentAccount = this.getAccount(sender);
@@ -101,6 +92,7 @@ export class AccountManager<
     for (const receipt of receipts) {
       if (receipt.success == undefined) {
         const res = await this.getERC4337BundlerReceipt(
+          account,
           receipt.userOperationHash,
         );
         receipt.success = res.success;
@@ -116,15 +108,16 @@ export class AccountManager<
   }
 
   private async getERC4337BundlerReceipt(
+    account: Account<TOwner>,
     userOperationHash: Hex,
   ): Promise<SmartAccountTransactionReceipt> {
     const req = {
       method: "post",
       maxBodyLength: Infinity,
       url:
-        this.baseUrl +
+        networkConfigurations.base_url +
         "mp/" +
-        String(await getChainId(this.owner.getWalletClient() as Client)) +
+        String(await getChainId(account.owner.getWalletClient())) +
         "/eth_getUserOperationReceipt",
       headers: {
         "Content-Type": "application/json",
@@ -149,70 +142,50 @@ export class AccountManager<
   }
 
   async createNewAccount(
+    owner: TOwner,
     index: bigint = BigInt(0),
+    version: string,
     executions: Hex[] = [],
-  ): Promise<Account> {
-    if (this.version == "2.0.0") {
-      return await this.createNewAccountV2(index);
-    } else {
-      return await this.createNewAccountV3(index, executions);
-    }
+  ): Promise<Account<TOwner>> {
+    return version === "2.0.0"
+      ? await this.createNewAccountV2(owner, index)
+      : await this.createNewAccountV3(owner, index, executions);
   }
 
   async batchCreateNewAccount(
+    owner: TOwner,
     amount: number,
+    version: string,
     executions: Hex[] = [],
-  ): Promise<Account[]> {
-    if (this.version == "2.0.0") {
-      return await this.batchCreateNewAccountV2(amount);
-    } else {
-      return await this.batchCreateNewAccountV3(amount, executions);
+  ): Promise<void> {
+    if (amount <= 0) {
+      throw new Error("invalid amount");
     }
-  }
-
-  private async batchCreateNewAccountV2(amount: number): Promise<AccountV2[]> {
-    let accounts: AccountV2[] = [];
-
-    const maxAccountIndex = this.getMaxAccountIndex();
-    if (maxAccountIndex == undefined) {
-      for (let i = BigInt(0); i < BigInt(amount); i++) {
-        accounts.push(await this.createNewAccountV2(i));
-      }
-    } else {
-      for (
-        let i = maxAccountIndex + BigInt(1);
-        i < maxAccountIndex + BigInt(1) + BigInt(amount);
-        i++
-      ) {
-        accounts.push(await this.createNewAccountV2(BigInt(i)));
-      }
+    const index = this.accounts.filter(
+      (account) => account.getVersion() === version,
+    ).length;
+    for (let i = index; i < index + amount; i++) {
+      version === "2.0.0"
+        ? await this.createNewAccountV2(owner, BigInt(i))
+        : await this.createNewAccountV3(owner, BigInt(i), executions);
     }
-    return accounts;
   }
 
   private async createNewAccountV2(
+    owner: TOwner,
     index: bigint = BigInt(0),
-  ): Promise<AccountV2> {
+  ): Promise<Account<TOwner>> {
     const initializeAccountData = encodeAbiParameters(
-      [
-        {
-          name: "creator",
-          type: "address",
-        },
-        { name: "init", type: "bytes" },
-      ],
-      [await this.owner.getAddress(), "0x"],
+      parseAbiParameters("address creator, bytes init"),
+      [await owner.getAddress(), "0x"],
     );
 
     const salt = keccak256(
-      encodePacked(
-        ["address", "uint256"],
-        [await this.owner.getAddress(), index],
-      ),
+      encodePacked(["address", "uint256"], [await owner.getAddress(), index]),
     );
 
     const accountAddress = getCreate2Address({
-      from: this.factoryAddress,
+      from: getConfiguration("2.0.0").factoryAddress,
       salt: salt,
       bytecodeHash: configuration.v2.CREATION_CODE,
     });
@@ -220,7 +193,7 @@ export class AccountManager<
     const initCode = encodePacked(
       ["address", "bytes"],
       [
-        this.factoryAddress,
+        getConfiguration("2.0.0").factoryAddress,
         encodeFunctionData({
           abi: accountFactoryV2ABI,
           functionName: "createAccount",
@@ -234,70 +207,39 @@ export class AccountManager<
     );
 
     const isDeployed = await this.updateDeployment(
-      this.owner.getWalletClient(),
+      owner.getWalletClient(),
       accountAddress,
     );
 
-    const _account: AccountV2 = {
-      initializeAccountData: initializeAccountData,
-      accountAddress: accountAddress,
+    const _account: Account<TOwner> = {
+      owner: owner,
       index: index,
-      defaultECDSAValidator: await this.owner.getAddress(),
-      initCode: initCode,
+      accountAddress: accountAddress,
       isDeployed: isDeployed,
+      defaultECDSAValidator: await owner.getAddress(),
+      authenticationManagerAddress: undefined,
       receipts: [],
-      version: "2.0.0",
-      deploymentHash: await this.getDeploymentHash(this.owner, accountAddress),
+      initCode: initCode,
+
+      getVersion(): string {
+        return "2.0.0";
+      },
+      getCreationCodeHash: () => {
+        return this.getCreationCodeHash(owner, accountAddress);
+      },
     };
 
-    for (const account of this.accounts) {
-      if (account.index === index) {
-        account.accountAddress = _account.accountAddress;
-        account.initCode = _account.initCode;
-        account.initializeAccountData = _account.initializeAccountData;
-        account.isDeployed = _account.isDeployed;
-        return _account;
-      }
-    }
-    this.accounts.push(_account);
+    checkDuplicateAccount(_account, this.accounts);
     return _account;
   }
 
-  private async batchCreateNewAccountV3(
-    amount: number,
-    executions: Hex[] = [],
-  ): Promise<AccountV3[]> {
-    let accounts: AccountV3[] = [];
-
-    const maxAccountIndex = this.getMaxAccountIndex();
-    if (maxAccountIndex == undefined) {
-      for (let i = BigInt(0); i < BigInt(amount); i++) {
-        accounts.push(await this.createNewAccountV3(i, executions));
-      }
-    } else {
-      for (
-        let i = maxAccountIndex + BigInt(1);
-        i < maxAccountIndex + BigInt(1) + BigInt(amount);
-        i++
-      ) {
-        accounts.push(await this.createNewAccountV3(BigInt(i), executions));
-      }
-    }
-    return accounts;
-  }
-
   private async createNewAccountV3(
+    owner: TOwner,
     index: bigint = BigInt(0),
     executions: Hex[] = [],
-  ): Promise<AccountV3> {
-    if (this.version == "2.0.0") {
-      throw new BaseSmartAccountError(
-        "BaseSmartAccountError",
-        "This function is not supported in version 2.0.0",
-      );
-    }
+  ): Promise<Account<TOwner>> {
     const initializeData = encodeAbiParameters(initializeAccountABI[0].inputs, [
-      await this.owner.getAddress(),
+      await owner.getAddress(),
       configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
       executions,
     ]);
@@ -311,7 +253,7 @@ export class AccountManager<
     const initCode = encodePacked(
       ["address", "bytes"],
       [
-        this.factoryAddress,
+        getConfiguration("3.0.0").factoryAddress,
         encodeFunctionData({
           abi: accountFactoryV3ABI,
           functionName: "createAccount",
@@ -329,7 +271,7 @@ export class AccountManager<
     );
 
     const accountAddress = getCreate2Address({
-      from: this.factoryAddress,
+      from: getConfiguration("3.0.0").factoryAddress,
       salt: salt,
       bytecodeHash: configuration.v3.SMART_ACCOUNT_PROXY_CODE_HASH,
     });
@@ -342,40 +284,33 @@ export class AccountManager<
 
     const defaultECDSAValidator: Address = predictDeterministicAddress(
       configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
-      keccak256(encodePacked(["bytes"], [await this.owner.getAddress()])),
+      keccak256(encodePacked(["bytes"], [await owner.getAddress()])),
       authenticationManagerAddress,
     );
 
     const isDeployed = await this.updateDeployment(
-      this.owner.getWalletClient(),
+      owner.getWalletClient(),
       accountAddress,
     );
 
-    const _account: AccountV3 = {
-      initializeAccountData,
-      initCode,
-      index,
-      accountAddress,
-      isDeployed,
-      authenticationManagerAddress,
+    const _account: Account<TOwner> = {
+      owner: owner,
+      index: index,
+      accountAddress: accountAddress,
+      isDeployed: isDeployed,
       defaultECDSAValidator: defaultECDSAValidator,
+      authenticationManagerAddress: authenticationManagerAddress,
       receipts: [],
-      version: "3.0.0",
-      deploymentHash: await this.getDeploymentHash(this.owner, accountAddress),
+      initCode: initCode,
+
+      getVersion(): string {
+        return "3.0.0";
+      },
+      getCreationCodeHash: () => {
+        return this.getCreationCodeHash(owner, accountAddress);
+      },
     };
-
-    // if the account exists.
-    for (const account of this.accounts) {
-      if (account.index === index) {
-        account.accountAddress = _account.accountAddress;
-        account.initCode = _account.initCode;
-        account.initializeAccountData = _account.initializeAccountData;
-        account.isDeployed = _account.isDeployed;
-        return _account;
-      }
-    }
-    this.accounts.push(_account);
-
+    checkDuplicateAccount(_account, this.accounts);
     return _account;
   }
 
@@ -391,20 +326,7 @@ export class AccountManager<
     return contractCode.length > 2;
   }
 
-  private getMaxAccountIndex(): bigint | undefined {
-    let maxIndex = BigInt(0);
-    if (this.accounts.length == 0) {
-      return undefined;
-    }
-    for (const account of this.accounts) {
-      if (account.index > maxIndex) {
-        maxIndex = account.index;
-      }
-    }
-    return maxIndex;
-  }
-
-  getAccount(indexOrAddress: number | Address): Account {
+  getAccount(indexOrAddress: number | Address): Account<TOwner> {
     if (typeof indexOrAddress === "number") {
       for (const account of this.accounts) {
         if (account.index === BigInt(indexOrAddress)) {
@@ -424,11 +346,13 @@ export class AccountManager<
     );
   }
 
-  getAccounts(): Account[] {
+  getAccounts(): Account<TOwner>[] {
     return this.accounts;
   }
 
-  async refreshAccount(indexOrAddress: number | Address): Promise<Account> {
+  async refreshAccount(
+    indexOrAddress: number | Address,
+  ): Promise<Account<TOwner>> {
     if (typeof indexOrAddress === "number") {
       for (const account of this.accounts) {
         if (account.index === BigInt(indexOrAddress)) {
@@ -437,7 +361,7 @@ export class AccountManager<
             isDeployed: account.isDeployed
               ? true
               : await this.updateDeployment(
-                  this.owner.getWalletClient(),
+                  account.owner.getWalletClient(),
                   account.accountAddress,
                 ),
           };
@@ -451,7 +375,7 @@ export class AccountManager<
             isDeployed: account.isDeployed
               ? true
               : await this.updateDeployment(
-                  this.owner.getWalletClient(),
+                  account.owner.getWalletClient(),
                   account.accountAddress,
                 ),
           };
@@ -463,10 +387,10 @@ export class AccountManager<
       "Account not found",
     );
   }
-  async refreshAccounts(): Promise<Account[]> {
+  async refreshAccounts(): Promise<Account<TOwner>[]> {
     for (const account of this.accounts) {
       account.isDeployed = await this.updateDeployment(
-        this.owner.getWalletClient(),
+        account.owner.getWalletClient(),
         account.accountAddress,
       );
     }
@@ -480,12 +404,12 @@ export class AccountManager<
   ): Promise<bigint> {
     const account = this.getAccount(accountAddress);
     validatorAddress = validatorAddress ?? account.defaultECDSAValidator;
-    if (this.version == "2.0.0") {
-      return await this.owner
+    if (account.getVersion() == "2.0.0") {
+      return await account.owner
         .getWalletClient()
         .extend(publicActions)
         .readContract({
-          address: this.entryPointAddress,
+          address: getConfiguration(account.getVersion()).entryPointAddress,
           abi: EntryPointABI,
           functionName: "getNonce",
           args: [account.accountAddress, BigInt(0)],
@@ -496,7 +420,7 @@ export class AccountManager<
         .getWalletClient()
         .extend(publicActions)
         .readContract({
-          address: this.entryPointAddress,
+          address: getConfiguration(account.getVersion()).entryPointAddress,
           abi: EntryPointV0_7ABI,
           functionName: "getNonce",
           args: [account.accountAddress, BigInt(validatorAddress)],
@@ -521,11 +445,25 @@ export class AccountManager<
     return false;
   }
 
-  getFactoryAddress(): Address {
-    return this.factoryAddress;
-  }
+  onInstall(initialization: any) {}
 
-  getEntryPointAddress(): Address {
-    return this.entryPointAddress;
+  onUninstall(uninstallation: any) {}
+}
+
+function checkDuplicateAccount<
+  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+>(_account: Account<TOwner>, accounts: Account<TOwner>[]): void {
+  const duplicate = accounts.find(
+    (account) =>
+      account.index === _account.index &&
+      account.getVersion() === _account.getVersion(),
+  );
+
+  if (duplicate) {
+    duplicate.accountAddress = _account.accountAddress;
+    duplicate.initCode = _account.initCode;
+    duplicate.isDeployed = _account.isDeployed;
+  } else {
+    accounts.push(_account);
   }
 }

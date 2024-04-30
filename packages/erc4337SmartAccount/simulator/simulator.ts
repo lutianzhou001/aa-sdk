@@ -3,7 +3,7 @@ import { UserOperation } from "permissionless/types/userOperation";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
 import { CreateSimulatorParams } from "./createSimulatorParams.dto";
 import { EntryPointABI } from "../../../abis/EntryPoint.abi";
-import { networkConfigurations } from "../../../configuration";
+import { configuration, networkConfigurations } from "../../../configuration";
 import { getChainId } from "viem/actions";
 import {
   ERC4337SmartAccountSigner,
@@ -12,23 +12,24 @@ import {
 import { ISimulator } from "./ISimulator.interface";
 import axios from "axios";
 import { SendUserOperationSimulationByERC4337Bundler } from "../../error/constants";
-import { UserOperationSimulationResponse } from "../types";
+import {Account, UserOperationSimulationResponse} from "../types";
+import { getConfiguration } from "../../common/utils";
+import { IManager } from "../moduleManager/IManager.interface";
 
-export class Simulator<
-  TTransport extends Transport = Transport,
-  TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
-> implements ISimulator
+export class SimulatorManager<
+    TTransport extends Transport = Transport,
+    TChain extends Chain | undefined = Chain | undefined,
+    TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  >
+  implements ISimulator, IManager
 {
-  protected owner: TOwner;
-  protected entryPointAddress: Address;
-  protected baseUrl: string;
-  protected version: string;
-  constructor(args: CreateSimulatorParams<TTransport, TChain, TOwner>) {
-    this.owner = args.owner as TOwner;
-    this.entryPointAddress = args.entryPointAddress;
-    this.baseUrl = args.baseUrl;
-    this.version = args.version;
+  constructor(args: CreateSimulatorParams<TTransport, TChain, TOwner>) {}
+
+  onInstall(initialization: any): void {
+    throw new Error("Method not implemented.");
+  }
+  onUninstall(uninstallation: any): void {
+    throw new Error("Method not implemented.");
   }
 
   async sendFromEOASimulationByPublicClient(
@@ -51,14 +52,12 @@ export class Simulator<
   }
 
   async sendUserOperationSimulation(
-    userOperation: UserOperation<"v0.6">,
-    bundler?: Address,
+      account:Account<TOwner>,
+    userOperation: UserOperation<"v0.6"> | UserOperation0_7,
+    overrideBundler?: Address,
   ): Promise<UserOperationSimulationResponse> {
-    if (this.version == "3.0.0") {
-      return {
-        success: false,
-        message: "Not supported",
-      };
+    if (account.getVersion()== "3.0.0") {
+      return await this.sendUserOperationSimulationByPublicClient(account, userOperation);
     }
     if (bundler) {
       return await this.sendUserOperationSimulationByPublicClient(
@@ -98,9 +97,9 @@ export class Simulator<
       method: "post",
       maxBodyLength: Infinity,
       url:
-        this.baseUrl +
+        networkConfigurations.base_url +
         "mp/" +
-        String(await getChainId(this.owner.getWalletClient() as Client)) +
+        String(await getChainId(owner.getWalletClient() as Client)) +
         "/eth_simulateUserOperation",
       headers: {
         "Content-Type": "application/json",
