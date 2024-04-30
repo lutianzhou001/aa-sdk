@@ -420,10 +420,10 @@ export class ERC4337SmartContractAccount<
             args: [[userOperation], walletClient.account?.address],
           });
         // @ts-ignore
-        await walletClient.writeContract(request);
+        const res = (await walletClient.writeContract(request)) as Hex;
         return this.accountManager.pushAccountTransaction(
           userOperation.sender,
-          "0x" as Hex,
+          res,
         );
       }
     }
