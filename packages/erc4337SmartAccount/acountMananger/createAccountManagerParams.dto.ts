@@ -1,6 +1,7 @@
 import { Chain, PublicClient, Transport, WalletClient } from "viem";
 import type { Address } from "abitype";
 import { ERC4337SmartAccountSigner } from "../../plugins/types";
+import { Account } from "../types";
 
 export class CreateAccountManagerParameters<
   TTransport extends Transport = Transport,
@@ -16,4 +17,6 @@ export class CreateAccountManagerParameters<
   readonly factoryAddress: Address;
 
   readonly baseUrl: string;
+
+  readonly accounts: Account[];
 }

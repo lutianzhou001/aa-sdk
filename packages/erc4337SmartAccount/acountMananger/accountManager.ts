@@ -59,6 +59,7 @@ export class AccountManager<
     this.version = args.version;
     this.factoryAddress = args.factoryAddress;
     this.baseUrl = args.baseUrl;
+    this.accounts = args.accounts;
   }
 
   private async getDeploymentHash(owner: TOwner, address: Hex): Promise<Hex> {

@@ -121,6 +121,7 @@ export class ERC4337SmartContractAccount<
       version: this.version,
       factoryAddress: this.factoryAddress,
       baseUrl: this.baseUrl,
+      accounts: this.accounts,
     });
     this.paymasterManager = new PaymasterManager({
       walletClient: this.owner.getWalletClient(),
