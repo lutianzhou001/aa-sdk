@@ -4,21 +4,24 @@ import {
   type Hex,
   type WalletClient,
   SignTypedDataParameters,
-  zeroAddress,
+  PublicClient,
+  publicActions,
+  Address,
 } from "viem";
 import type { ERC4337SmartAccountSigner } from "../types";
-import { configuration } from "../../../configuration";
-import { Address } from "abitype";
 import { BaseSmartAccountError } from "../../error/constants";
+import { configuration } from "../../../configuration";
 
 export class WalletClientSigner
   implements ERC4337SmartAccountSigner<WalletClient>
 {
+  // reserved for next version
   signerType: string;
   signer: WalletClient;
-  // validatorTemplate: Address;
+  publicClient: PublicClient;
+  template: Address;
 
-  constructor(signer: WalletClient, signerType: string) {
+  constructor(signer: WalletClient, signerType: string, template?: Address) {
     this.signer = signer;
     if (!signerType) {
       throw new BaseSmartAccountError(
@@ -27,19 +30,18 @@ export class WalletClientSigner
       );
     }
     this.signerType = signerType;
+    this.publicClient = this.signer.extend(publicActions) as PublicClient;
+    this.template =
+      template ?? configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS;
   }
 
-  getWalletClient(): WalletClient {
-    return this.signer;
-  }
-
-  async getAddress(): Promise<Hex> {
+  async getSubject(): Promise<Address> {
     const addresses = await this.signer.getAddresses();
     return getAddress(addresses[0]);
   }
 
   async signMessage(message: Uint8Array | string | Hex): Promise<Hex> {
-    const account = this.signer.account ?? (await this.getAddress());
+    const account = this.signer.account ?? (await this.getSubject());
 
     if (typeof message === "string" && !isHex(message)) {
       return this.signer.signMessage({
@@ -57,7 +59,7 @@ export class WalletClientSigner
   async signTypedData(
     args: Omit<SignTypedDataParameters, "account">,
   ): Promise<Hex> {
-    const account = this.signer.account ?? (await this.getAddress());
+    const account = this.signer.account ?? (await this.getSubject());
 
     // override the account
     return this.signer.signTypedData({

@@ -49,7 +49,6 @@ import {
   GenerateUserOperationAndPackedParams,
 } from "./dto/generateUserOperationAndPackedParams.dto";
 import { CreateERC4337SmartAccountParams } from "./dto/createERC4337SmartAccount.dto";
-import { WalletClientSigner } from "../plugins/signers/walletClientSigner";
 import {
   BaseSmartAccountError,
   GasEstimationError,
@@ -85,10 +84,7 @@ export class ERC4337SmartContractAccount<
         "version is required",
       );
     }
-    this.owner = new WalletClientSigner(
-      args.walletClient as WalletClient,
-      "admin",
-    ) as TOwner;
+    this.owner = args.owner;
     this.entryPointAddress =
       args.entryPointAddress ??
       (args.version == "2.0.0"
@@ -124,7 +120,7 @@ export class ERC4337SmartContractAccount<
       accounts: this.accounts,
     });
     this.paymasterManager = new PaymasterManager({
-      walletClient: this.owner.getWalletClient(),
+      publicClient: this.owner.publicClient,
       entryPointAddress: this.entryPointAddress,
       baseUrl: this.baseUrl,
       version: this.version,
@@ -219,7 +215,7 @@ export class ERC4337SmartContractAccount<
     const account = this.accountManager.getAccount(args.uop.sender);
     // to avoid send with init code, we should update the isDeployed status;
     await this.accountManager.updateDeployment(
-      this.owner.getWalletClient(),
+      this.owner.publicClient,
       account.accountAddress,
     );
     const userOperationWithGasEstimated =
@@ -235,17 +231,14 @@ export class ERC4337SmartContractAccount<
         )
       : userOperationWithGasEstimated;
     const sigTime =
-      args._sigTime ??
-      (await getSigTime(
-        this.owner.getWalletClient().extend(publicActions) as PublicClient,
-      ));
+      args._sigTime ?? (await getSigTime(this.owner.publicClient));
     if (args.signType == "EIP712") {
       let domain: any;
       if (this.version == "2.0.0") {
         const accountV2 = account as AccountV2;
         domain = {
           version: this.version,
-          chainId: await getChainId(this.owner.getWalletClient() as Client),
+          chainId: await getChainId(this.owner.publicClient),
           verifyingContract: accountV2.accountAddress,
         };
       } else {
@@ -253,7 +246,7 @@ export class ERC4337SmartContractAccount<
         domain = {
           name: this.name,
           version: this.version,
-          chainId: await getChainId(this.owner.getWalletClient() as Client),
+          chainId: await getChainId(this.owner.publicClient),
           verifyingContract: accountV3.authenticationManagerAddress,
         };
       }
@@ -311,7 +304,7 @@ export class ERC4337SmartContractAccount<
             { name: "sigTime", type: "uint256" },
           ],
           [
-            BigInt(await getChainId(this.owner.getWalletClient() as Client)),
+            BigInt(await getChainId(this.owner.publicClient)),
             userOperation_0_6_0.sender,
             userOperation_0_6_0.nonce,
             keccak256(userOperation_0_6_0.initCode),
@@ -345,7 +338,7 @@ export class ERC4337SmartContractAccount<
             { name: "sigTime", type: "uint256" },
           ],
           [
-            BigInt(await getChainId(this.owner.getWalletClient() as Client)),
+            BigInt(await getChainId(this.owner.publicClient)),
             userOperation_0_7_0.sender,
             userOperation_0_7_0.nonce,
             keccak256(userOperation_0_7_0.initCode),
@@ -368,10 +361,6 @@ export class ERC4337SmartContractAccount<
     }
   }
 
-  async execute(request: any): Promise<any> {
-    await this.owner.getWalletClient().writeContract(request);
-  }
-
   async sendUserOperationByERC4337Bundler(
     userOperation: UserOperation<"v0.6">,
     walletClient?: WalletClient,
@@ -383,7 +372,7 @@ export class ERC4337SmartContractAccount<
         url:
           this.baseUrl +
           "mp/" +
-          String(await getChainId(this.owner.getWalletClient() as Client)) +
+          String(await getChainId(this.owner.publicClient)) +
           "/eth_sendUserOperation",
         headers: {
           "Content-Type": "application/json",
@@ -456,14 +445,14 @@ export class ERC4337SmartContractAccount<
           : await this.accountManager.getNonce(
               accountV3.accountAddress,
               role,
-              accountV3.defaultECDSAValidator,
+              accountV3.defaultValidator,
             );
       }
     } else {
       nonce =
         this.version == "2.0.0"
           ? BigInt(0)
-          : BigInt(account.defaultECDSAValidator + "0000000000000000");
+          : BigInt(account.defaultValidator + "0000000000000000");
     }
     if (this.version == "3.0.0") {
       return {
@@ -536,7 +525,7 @@ export class ERC4337SmartContractAccount<
       url:
         this.baseUrl +
         "mp/" +
-        String(await getChainId(this.owner.getWalletClient() as Client)) +
+        String(await getChainId(this.owner.publicClient)) +
         "/eth_estimateUserOperationGas",
       headers: {
         "Content-Type": "application/json",
@@ -560,14 +549,9 @@ export class ERC4337SmartContractAccount<
       );
     }
 
-    const baseGasPrice = await this.owner
-      .getWalletClient()
-      .extend(publicActions)
-      .getGasPrice();
-    const maxPriorityFeePerGas = await this.owner
-      .getWalletClient()
-      .extend(publicActions)
-      .estimateMaxPriorityFeePerGas();
+    const baseGasPrice = await this.owner.publicClient.getGasPrice();
+    const maxPriorityFeePerGas =
+      await this.owner.publicClient.estimateMaxPriorityFeePerGas();
     const preVerificationGas =
       userOperationDraft.preVerificationGas ??
       res.data.result.preVerificationGas;

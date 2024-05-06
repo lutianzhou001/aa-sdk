@@ -1,13 +1,18 @@
-import { Address, Hex, SignTypedDataParameters, WalletClient } from "viem";
+import {
+  Address,
+  Hex,
+  PublicClient,
+  SignTypedDataParameters,
+  WalletClient,
+} from "viem";
 
 export interface ERC4337SmartAccountSigner<TSinger = any> {
-  signerType: string;
+  signerType?: string;
   signer: TSinger;
-  // validatorTemplate: Address;
+  publicClient: PublicClient;
+  template: Address;
 
-  getAddress: () => Promise<Address>;
-
-  getWalletClient: () => WalletClient;
+  getSubject: () => Promise<Address>;
 
   signMessage: (msg: Uint8Array | Hex | string) => Promise<Hex>;
 

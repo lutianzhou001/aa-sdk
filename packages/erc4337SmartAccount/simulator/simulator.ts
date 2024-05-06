@@ -3,7 +3,6 @@ import { UserOperation } from "permissionless/types/userOperation";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
 import { CreateSimulatorParams } from "./createSimulatorParams.dto";
 import { EntryPointABI } from "../../../abis/EntryPoint.abi";
-import { networkConfigurations } from "../../../configuration";
 import { getChainId } from "viem/actions";
 import {
   ERC4337SmartAccountSigner,
@@ -37,17 +36,14 @@ export class Simulator<
     value: bigint,
     data: Hex,
   ): Promise<any> {
-    const sender = await this.owner.getAddress();
-    return await this.owner
-      .getWalletClient()
-      .extend(publicActions)
-      .simulateContract({
-        account: sender,
-        address: account,
-        abi: smartAccountV3ABI,
-        functionName: "executeFromEOA",
-        args: [to, value, data],
-      });
+    const sender = await this.owner.getSubject();
+    return await this.owner.publicClient.simulateContract({
+      account: sender,
+      address: account,
+      abi: smartAccountV3ABI,
+      functionName: "executeFromEOA",
+      args: [to, value, data],
+    });
   }
 
   async sendUserOperationSimulation(
@@ -78,16 +74,13 @@ export class Simulator<
   ): Promise<UserOperationSimulationResponse> {
     return {
       success: true,
-      message: await this.owner
-        .getWalletClient()
-        .extend(publicActions)
-        .simulateContract({
-          account: bundler,
-          address: this.entryPointAddress,
-          abi: EntryPointABI,
-          functionName: "handleOps",
-          args: [[userOperation], await this.owner.getAddress()],
-        }),
+      message: await this.owner.publicClient.simulateContract({
+        account: bundler,
+        address: this.entryPointAddress,
+        abi: EntryPointABI,
+        functionName: "handleOps",
+        args: [[userOperation], await this.owner.getSubject()],
+      }),
     };
   }
 
@@ -100,7 +93,7 @@ export class Simulator<
       url:
         this.baseUrl +
         "mp/" +
-        String(await getChainId(this.owner.getWalletClient() as Client)) +
+        String(await getChainId(this.owner.publicClient)) +
         "/eth_simulateUserOperation",
       headers: {
         "Content-Type": "application/json",

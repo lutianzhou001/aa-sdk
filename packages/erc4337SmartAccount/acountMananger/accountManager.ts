@@ -10,6 +10,7 @@ import {
   Hex,
   keccak256,
   publicActions,
+  PublicClient,
   Transport,
   WalletClient,
   zeroHash,
@@ -63,12 +64,9 @@ export class AccountManager<
   }
 
   private async getDeploymentHash(owner: TOwner, address: Hex): Promise<Hex> {
-    const byteCode = await owner
-      .getWalletClient()
-      .extend(publicActions)
-      .getBytecode({
-        address: address,
-      });
+    const byteCode = await this.owner.publicClient.getBytecode({
+      address: address,
+    });
     return byteCode == undefined ? zeroHash : keccak256(byteCode);
   }
 
@@ -125,7 +123,7 @@ export class AccountManager<
       url:
         this.baseUrl +
         "mp/" +
-        String(await getChainId(this.owner.getWalletClient() as Client)) +
+        String(await getChainId(this.owner.publicClient)) +
         "/eth_getUserOperationReceipt",
       headers: {
         "Content-Type": "application/json",
@@ -202,13 +200,13 @@ export class AccountManager<
         },
         { name: "init", type: "bytes" },
       ],
-      [await this.owner.getAddress(), "0x"],
+      [await this.owner.getSubject(), "0x"],
     );
 
     const salt = keccak256(
       encodePacked(
         ["address", "uint256"],
-        [await this.owner.getAddress(), index],
+        [await this.owner.getSubject(), index],
       ),
     );
 
@@ -235,7 +233,7 @@ export class AccountManager<
     );
 
     const isDeployed = await this.updateDeployment(
-      this.owner.getWalletClient(),
+      this.owner.publicClient,
       accountAddress,
     );
 
@@ -243,7 +241,7 @@ export class AccountManager<
       initializeAccountData: initializeAccountData,
       accountAddress: accountAddress,
       index: index,
-      defaultECDSAValidator: await this.owner.getAddress(),
+      defaultValidator: await this.owner.getSubject(),
       initCode: initCode,
       isDeployed: isDeployed,
       receipts: [],
@@ -298,8 +296,8 @@ export class AccountManager<
       );
     }
     const initializeData = encodeAbiParameters(initializeAccountABI[0].inputs, [
-      await this.owner.getAddress(),
-      configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
+      await this.owner.getSubject(),
+      this.owner.template,
       executions,
     ]);
 
@@ -341,14 +339,14 @@ export class AccountManager<
       accountAddress,
     );
 
-    const defaultECDSAValidator: Address = predictDeterministicAddress(
+    const defaultValidator: Address = predictDeterministicAddress(
       configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
-      keccak256(encodePacked(["bytes"], [await this.owner.getAddress()])),
+      keccak256(encodePacked(["bytes"], [await this.owner.getSubject()])),
       authenticationManagerAddress,
     );
 
     const isDeployed = await this.updateDeployment(
-      this.owner.getWalletClient(),
+      this.owner.publicClient,
       accountAddress,
     );
 
@@ -359,7 +357,7 @@ export class AccountManager<
       accountAddress,
       isDeployed,
       authenticationManagerAddress,
-      defaultECDSAValidator: defaultECDSAValidator,
+      defaultValidator: defaultValidator,
       receipts: [],
       version: "3.0.0",
       deploymentHash: await this.getDeploymentHash(this.owner, accountAddress),
@@ -381,11 +379,11 @@ export class AccountManager<
   }
 
   public async updateDeployment(
-    walletClient: WalletClient,
+    publicClient: PublicClient,
     accountAddress: Address,
   ): Promise<boolean> {
     const contractCode =
-      (await walletClient.extend(publicActions).getBytecode({
+      (await publicClient.getBytecode({
         address: accountAddress,
       })) ?? "0x";
 
@@ -438,7 +436,7 @@ export class AccountManager<
             isDeployed: account.isDeployed
               ? true
               : await this.updateDeployment(
-                  this.owner.getWalletClient(),
+                  this.owner.publicClient,
                   account.accountAddress,
                 ),
           };
@@ -452,7 +450,7 @@ export class AccountManager<
             isDeployed: account.isDeployed
               ? true
               : await this.updateDeployment(
-                  this.owner.getWalletClient(),
+                  this.owner.publicClient,
                   account.accountAddress,
                 ),
           };
@@ -467,7 +465,7 @@ export class AccountManager<
   async refreshAccounts(): Promise<Account[]> {
     for (const account of this.accounts) {
       account.isDeployed = await this.updateDeployment(
-        this.owner.getWalletClient(),
+        this.owner.publicClient,
         account.accountAddress,
       );
     }
@@ -480,28 +478,22 @@ export class AccountManager<
     validatorAddress?: Address,
   ): Promise<bigint> {
     const account = this.getAccount(accountAddress);
-    validatorAddress = validatorAddress ?? account.defaultECDSAValidator;
+    validatorAddress = validatorAddress ?? account.defaultValidator;
     if (this.version == "2.0.0") {
-      return await this.owner
-        .getWalletClient()
-        .extend(publicActions)
-        .readContract({
-          address: this.entryPointAddress,
-          abi: EntryPointABI,
-          functionName: "getNonce",
-          args: [account.accountAddress, BigInt(0)],
-        });
+      return await this.owner.publicClient.readContract({
+        address: this.entryPointAddress,
+        abi: EntryPointABI,
+        functionName: "getNonce",
+        args: [account.accountAddress, BigInt(0)],
+      });
     } else {
       // @ts-ignore
-      return await this.owner
-        .getWalletClient()
-        .extend(publicActions)
-        .readContract({
-          address: this.entryPointAddress,
-          abi: EntryPointV0_7ABI,
-          functionName: "getNonce",
-          args: [account.accountAddress, BigInt(validatorAddress)],
-        });
+      return await this.owner.publicClient.readContract({
+        address: this.entryPointAddress,
+        abi: EntryPointV0_7ABI,
+        functionName: "getNonce",
+        args: [account.accountAddress, BigInt(validatorAddress)],
+      });
     }
   }
 

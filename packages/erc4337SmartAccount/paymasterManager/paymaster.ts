@@ -6,6 +6,7 @@ import {
   Hex,
   keccak256,
   padHex,
+  PublicClient,
   toHex,
   Transport,
   WalletClient,
@@ -28,12 +29,12 @@ export class PaymasterManager<
 > implements IPaymasterManager
 {
   protected entryPointAddress: Address;
-  protected walletClient: WalletClient;
+  protected publicClient: PublicClient<TTransport, TChain>;
   protected baseUrl: string;
   protected version: string;
   constructor(args: CreatePaymasterParameters<TTransport, TChain>) {
     this.entryPointAddress = args.entryPointAddress;
-    this.walletClient = args.walletClient as WalletClient;
+    this.publicClient = args.publicClient;
     this.baseUrl = args.baseUrl;
     this.version = args.version;
   }
@@ -45,7 +46,7 @@ export class PaymasterManager<
       url:
         this.baseUrl +
         "pm/supportedPaymasters?chainBizId=" +
-        String(await getChainId(this.walletClient as Client)),
+        String(await getChainId(this.publicClient)),
       headers: {
         "Content-Type": "application/json",
         Cookie: "locale=en-US",
@@ -71,7 +72,7 @@ export class PaymasterManager<
         url:
           this.baseUrl +
           "pm/" +
-          String(await getChainId(this.walletClient as Client)) +
+          String(await getChainId(this.publicClient)) +
           "/getPaymasterSignature",
         headers: {
           "Content-Type": "application/json",
@@ -165,7 +166,7 @@ export class PaymasterManager<
           BigInt(userOperation_0_7.accountGasLimits),
           userOperation_0_7.preVerificationGas,
           BigInt(userOperation_0_7.gasFees),
-          BigInt(await getChainId(this.walletClient as Client)),
+          BigInt(await getChainId(this.publicClient)),
           <Address>configuration.paymaster.policyPaymaster,
           additionalData,
         ],

@@ -70,7 +70,7 @@ export type AccountV2 = {
   index: bigint;
   accountAddress: Address;
   isDeployed: boolean;
-  defaultECDSAValidator: Address;
+  defaultValidator: Address;
   receipts: SmartAccountTransactionReceipt[];
   version: string;
   deploymentHash: string;
@@ -104,8 +104,6 @@ export interface ISmartContractAccount {
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
     walletClient: WalletClient,
   ): Promise<SmartAccountTransactionReceipt>;
-
-  execute(request: any): Promise<any>;
 
   signUserOperationHash(uopHash: Hash): Promise<Hash>;
   signMessage(msg: string | Uint8Array | Hex): Promise<Hex>;

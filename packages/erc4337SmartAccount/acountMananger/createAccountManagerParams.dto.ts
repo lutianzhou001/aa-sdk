@@ -6,11 +6,11 @@ import { Account } from "../types";
 export class CreateAccountManagerParameters<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > {
   readonly entryPointAddress: Address;
 
-  readonly owner: TSigner;
+  readonly owner: TOwner;
 
   readonly version: string;
 
