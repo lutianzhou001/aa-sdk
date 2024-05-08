@@ -1,7 +1,6 @@
 import type { Address } from "abitype";
 import {
   type Chain,
-  Client,
   createPublicClient,
   encodeAbiParameters,
   encodeFunctionData,
@@ -13,20 +12,17 @@ import {
   http,
   keccak256,
   publicActions,
-  PublicClient,
   SignTypedDataParameters,
   toHex,
   type Transport,
   WalletClient,
   zeroAddress,
-  zeroHash,
 } from "viem";
 import {
   Account,
   AccountV2,
   AccountV3,
   ExecuteCallDataArgs,
-  ExecutionMode,
   ISmartContractAccount,
   SmartAccountTransactionReceipt,
 } from "./types.js";
@@ -209,9 +205,38 @@ export class ERC4337SmartContractAccount<
     );
   }
 
-  async generateUserOperationAndPacked(
-    args: GenerateUserOperationAndPackedParams,
+  async signAndPack(
+    userOperation: UserOperation<"v0.6"> | UserOperation0_7,
+    userOperationHash: Hex,
+    sigTime: bigint
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
+    userOperation.signature = encodePacked(
+      ["uint8", "uint256", "bytes"],
+      [1, sigTime, await this.owner.signMessage(userOperationHash)],
+    );
+    return userOperation;
+    // in case of eip712
+    // else {
+    //   const signature = await this.owner.signer.signTypedData({
+    //     domain: domain,
+    //     types: types,
+    //     message: value,
+    //   });
+    //   userOperation.signature = encodePacked(
+    //       ["uint8", "uint256", "bytes"],
+    //       [0, sigTime, signature],
+    //   );
+    //   return userOperation;
+    // }
+  }
+
+  async generateUserOperation(
+    args: GenerateUserOperationAndPackedParams,
+  ): Promise<{
+    userOperation: UserOperation<"v0.6"> | UserOperation0_7;
+    userOperationHash: Hex;
+    sigTime: bigint;
+  }> {
     const account = this.accountManager.getAccount(args.uop.sender);
     // to avoid send with init code, we should update the isDeployed status;
     await this.accountManager.updateDeployment(
@@ -233,54 +258,45 @@ export class ERC4337SmartContractAccount<
     const sigTime =
       args._sigTime ?? (await getSigTime(this.owner.publicClient));
     if (args.signType == "EIP712") {
-      let domain: any;
-      if (this.version == "2.0.0") {
-        const accountV2 = account as AccountV2;
-        domain = {
-          version: this.version,
-          chainId: await getChainId(this.owner.publicClient),
-          verifyingContract: accountV2.accountAddress,
-        };
-      } else {
-        const accountV3 = account as AccountV3;
-        domain = {
-          name: this.name,
-          version: this.version,
-          chainId: await getChainId(this.owner.publicClient),
-          verifyingContract: accountV3.authenticationManagerAddress,
-        };
-      }
-      const types = {
-        SignMessage: [
-          { name: "sender", type: "address" },
-          { name: "nonce", type: "uint256" },
-          { name: "initCode", type: "bytes" },
-          { name: "callData", type: "bytes" },
-          { name: "callGasLimit", type: "uint256" },
-          { name: "verificationGasLimit", type: "uint256" },
-          { name: "preVerificationGas", type: "uint256" },
-          { name: "maxFeePerGas", type: "uint256" },
-          { name: "maxPriorityFeePerGas", type: "uint256" },
-          { name: "paymasterAndData", type: "bytes" },
-          { name: "EntryPoint", type: "address" },
-          { name: "sigTime", type: "uint256" },
-        ],
-      };
-      const value = {
-        ...userOperation,
-        EntryPoint: this.entryPointAddress,
-        sigTime: sigTime,
-      };
-      const signature = await this.owner.signer.signTypedData({
-        domain: domain,
-        types: types,
-        message: value,
-      });
-      userOperation.signature = encodePacked(
-        ["uint8", "uint256", "bytes"],
-        [0, sigTime, signature],
-      );
-      return userOperation;
+      throw new Error("EIP712 currently not impl");
+      // let domain: any;
+      // if (this.version == "2.0.0") {
+      //   const accountV2 = account as AccountV2;
+      //   domain = {
+      //     version: this.version,
+      //     chainId: await getChainId(this.owner.publicClient),
+      //     verifyingContract: accountV2.accountAddress,
+      //   };
+      // } else {
+      //   const accountV3 = account as AccountV3;
+      //   domain = {
+      //     name: this.name,
+      //     version: this.version,
+      //     chainId: await getChainId(this.owner.publicClient),
+      //     verifyingContract: accountV3.authenticationManagerAddress,
+      //   };
+      // }
+      // const types = {
+      //   SignMessage: [
+      //     { name: "sender", type: "address" },
+      //     { name: "nonce", type: "uint256" },
+      //     { name: "initCode", type: "bytes" },
+      //     { name: "callData", type: "bytes" },
+      //     { name: "callGasLimit", type: "uint256" },
+      //     { name: "verificationGasLimit", type: "uint256" },
+      //     { name: "preVerificationGas", type: "uint256" },
+      //     { name: "maxFeePerGas", type: "uint256" },
+      //     { name: "maxPriorityFeePerGas", type: "uint256" },
+      //     { name: "paymasterAndData", type: "bytes" },
+      //     { name: "EntryPoint", type: "address" },
+      //     { name: "sigTime", type: "uint256" },
+      //   ],
+      // };
+      // return {
+      //   ...userOperation,
+      //   EntryPoint: this.entryPointAddress,
+      //   sigTime: sigTime,
+      // }
     } else {
       let encodedUserOperationData: Hex;
       if (this.version == "2.0.0") {
@@ -352,12 +368,11 @@ export class ERC4337SmartContractAccount<
           ],
         );
       }
-      const userOperationHash = keccak256(encodedUserOperationData);
-      userOperation.signature = encodePacked(
-        ["uint8", "uint256", "bytes"],
-        [1, sigTime, await this.owner.signMessage(userOperationHash)],
-      );
-      return userOperation;
+      return {
+        userOperationHash: keccak256(encodedUserOperationData),
+        userOperation: userOperation,
+        sigTime: sigTime
+      };
     }
   }
 
