@@ -340,7 +340,7 @@ export class AccountManager<
     );
 
     const defaultValidator: Address = predictDeterministicAddress(
-      configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
+      this.owner.template,
       keccak256(encodePacked(["bytes"], [await this.owner.getSubject()])),
       authenticationManagerAddress,
     );

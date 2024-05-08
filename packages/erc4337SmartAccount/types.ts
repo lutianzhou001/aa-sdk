@@ -97,14 +97,12 @@ export interface ISmartContractAccount {
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7>;
 
   signAndPack(
-      userOperation: UserOperation<"v0.6"> | UserOperation0_7,
-      userOperationHash: Hex,
-      sigTime: bigint
-  ): Promise<UserOperation<"v0.6"> | UserOperation0_7>
+    userOperation: UserOperation<"v0.6"> | UserOperation0_7,
+    userOperationHash: Hex,
+    sigTime: bigint,
+  ): Promise<UserOperation<"v0.6"> | UserOperation0_7>;
 
-  generateUserOperation(
-      args: GenerateUserOperationAndPackedParams,
-  ): Promise<{
+  generateUserOperation(args: GenerateUserOperationAndPackedParams): Promise<{
     userOperation: UserOperation<"v0.6"> | UserOperation0_7;
     userOperationHash: Hex;
     sigTime: bigint;

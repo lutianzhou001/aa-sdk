@@ -4,24 +4,18 @@ import {
   createPublicClient,
   http,
   PublicClient,
-  Address,
+  Address, zeroAddress,
 } from "viem";
 import type { ERC4337SmartAccountSigner } from "../types";
 import { configuration } from "../../../configuration";
 
-export class ExternalSigner
-  implements ERC4337SmartAccountSigner<any>
-{
+export class ExternalSigner implements ERC4337SmartAccountSigner<any> {
   signer: any;
   publicClient: PublicClient;
   signerType: string;
   template: Address;
 
-  constructor(
-    signer: any,
-    publicClient: PublicClient,
-    template?: Address,
-  ) {
+  constructor(signer: any, publicClient: PublicClient, template?: Address) {
     this.signer = signer;
     this.publicClient = publicClient;
     this.template = template ?? configuration.v3.JWT_VALIDATOR_TEMPLATE_ADDRESS;
@@ -36,6 +30,6 @@ export class ExternalSigner
   }
 
   async getSubject(): Promise<Address> {
-    return this.signer.getSubject();
+    return zeroAddress;
   }
 }

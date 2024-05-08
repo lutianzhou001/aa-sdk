@@ -208,7 +208,7 @@ export class ERC4337SmartContractAccount<
   async signAndPack(
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
     userOperationHash: Hex,
-    sigTime: bigint
+    sigTime: bigint,
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
     userOperation.signature = encodePacked(
       ["uint8", "uint256", "bytes"],
@@ -371,7 +371,7 @@ export class ERC4337SmartContractAccount<
       return {
         userOperationHash: keccak256(encodedUserOperationData),
         userOperation: userOperation,
-        sigTime: sigTime
+        sigTime: sigTime,
       };
     }
   }
