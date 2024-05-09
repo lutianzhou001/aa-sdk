@@ -71,6 +71,7 @@ export type AccountV2 = {
   accountAddress: Address;
   isDeployed: boolean;
   defaultValidator: Address;
+  authenticationManager: Address;
   receipts: SmartAccountTransactionReceipt[];
   version: string;
   deploymentHash: string;

@@ -53,6 +53,8 @@ import {
 import { mainnet } from "viem/chains";
 import { EntryPointV0_7ABI } from "../../abis/EntryPointV0_7.abi";
 import { compileBigInt, compileMode, getSigTime } from "../common/utils";
+import { EntryPointABI } from "../../abis/EntryPoint.abi";
+import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
 
 export class ERC4337SmartContractAccount<
   TTransport extends Transport = Transport,
@@ -203,6 +205,33 @@ export class ERC4337SmartContractAccount<
       "BaseSmartAccountError",
       "signTypedData not supported",
     );
+  }
+
+  async getUOPHash(
+    userOperation: UserOperation<"v0.6"> | UserOperation0_7,
+  ): Promise<Hex> {
+    const account = this.accountManager.getAccount(userOperation.sender);
+    // @ts-ignore
+    return await this.owner.publicClient.readContract({
+      address: account.authenticationManager,
+      abi: authenticationManagerABI,
+      functionName: "getUOPHash",
+      args: [1n, configuration.entryPoint.v0_7_0, userOperation],
+    });
+  }
+
+  async getUOPSignedHash(
+    userOperation: UserOperation<"v0.6"> | UserOperation0_7,
+  ): Promise<Hex> {
+    console.log(userOperation);
+    const account = this.accountManager.getAccount(userOperation.sender);
+    // @ts-ignore
+    return await this.owner.publicClient.readContract({
+      address: account.authenticationManager,
+      abi: authenticationManagerABI,
+      functionName: "getUOPSignedHash",
+      args: [1n, configuration.entryPoint.v0_7_0, userOperation],
+    });
   }
 
   async signAndPack(

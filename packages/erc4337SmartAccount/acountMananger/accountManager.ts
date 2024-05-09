@@ -13,6 +13,7 @@ import {
   PublicClient,
   Transport,
   WalletClient,
+  zeroAddress,
   zeroHash,
 } from "viem";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
@@ -242,6 +243,7 @@ export class AccountManager<
       accountAddress: accountAddress,
       index: index,
       defaultValidator: await this.owner.getSubject(),
+      authenticationManager: zeroAddress,
       initCode: initCode,
       isDeployed: isDeployed,
       receipts: [],
@@ -358,6 +360,7 @@ export class AccountManager<
       isDeployed,
       authenticationManagerAddress,
       defaultValidator: defaultValidator,
+      authenticationManager: authenticationManagerAddress,
       receipts: [],
       version: "3.0.0",
       deploymentHash: await this.getDeploymentHash(this.owner, accountAddress),

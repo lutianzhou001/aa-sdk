@@ -4,7 +4,8 @@ import {
   createPublicClient,
   http,
   PublicClient,
-  Address, zeroAddress,
+  Address,
+  zeroAddress,
 } from "viem";
 import type { ERC4337SmartAccountSigner } from "../types";
 import { configuration } from "../../../configuration";
