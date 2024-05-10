@@ -20,12 +20,7 @@ import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
 import { configuration, networkConfigurations } from "../../../configuration";
 import { ERC4337SmartAccountSigner } from "../../plugins/types";
 import { IAccountManager } from "./IAccountManager.interface";
-import {
-  Account,
-  AccountV2,
-  AccountV3,
-  SmartAccountTransactionReceipt,
-} from "../types";
+import { Account, SmartAccountTransactionReceipt } from "../types";
 import { accountFactoryV2ABI } from "../../../abis/accountFactoryV2.abi";
 import { initializeAccountABI } from "../../../abis/initializeAccount.abi";
 import { accountFactoryV3ABI } from "../../../abis/accountFactoryV3.abi";
@@ -39,6 +34,7 @@ import {
   GetERC4337BundlerReceipt,
 } from "../../error/constants";
 import { EntryPointV0_7ABI } from "../../../abis/EntryPointV0_7.abi";
+import { access } from "node:fs";
 
 export class AccountManager<
   TTransport extends Transport = Transport,
@@ -170,8 +166,8 @@ export class AccountManager<
     }
   }
 
-  private async batchCreateNewAccountV2(amount: number): Promise<AccountV2[]> {
-    let accounts: AccountV2[] = [];
+  private async batchCreateNewAccountV2(amount: number): Promise<Account[]> {
+    let accounts: Account[] = [];
 
     const maxAccountIndex = this.getMaxAccountIndex();
     if (maxAccountIndex == undefined) {
@@ -192,7 +188,7 @@ export class AccountManager<
 
   private async createNewAccountV2(
     index: bigint = BigInt(0),
-  ): Promise<AccountV2> {
+  ): Promise<Account> {
     const initializeAccountData = encodeAbiParameters(
       [
         {
@@ -238,7 +234,7 @@ export class AccountManager<
       accountAddress,
     );
 
-    const _account: AccountV2 = {
+    const _account: Account = {
       initializeAccountData: initializeAccountData,
       accountAddress: accountAddress,
       index: index,
@@ -267,8 +263,8 @@ export class AccountManager<
   private async batchCreateNewAccountV3(
     amount: number,
     executions: Hex[] = [],
-  ): Promise<AccountV3[]> {
-    let accounts: AccountV3[] = [];
+  ): Promise<Account[]> {
+    let accounts: Account[] = [];
 
     const maxAccountIndex = this.getMaxAccountIndex();
     if (maxAccountIndex == undefined) {
@@ -290,7 +286,7 @@ export class AccountManager<
   private async createNewAccountV3(
     index: bigint = BigInt(0),
     executions: Hex[] = [],
-  ): Promise<AccountV3> {
+  ): Promise<Account> {
     if (this.version == "2.0.0") {
       throw new BaseSmartAccountError(
         "BaseSmartAccountError",
@@ -352,13 +348,12 @@ export class AccountManager<
       accountAddress,
     );
 
-    const _account: AccountV3 = {
+    const _account: Account = {
       initializeAccountData,
       initCode,
       index,
       accountAddress,
       isDeployed,
-      authenticationManagerAddress,
       defaultValidator: defaultValidator,
       authenticationManager: authenticationManagerAddress,
       receipts: [],

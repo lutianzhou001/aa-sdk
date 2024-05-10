@@ -20,10 +20,9 @@ import {
 } from "viem";
 import {
   Account,
-  AccountV2,
-  AccountV3,
   ExecuteCallDataArgs,
   ISmartContractAccount,
+  SignType,
   SmartAccountTransactionReceipt,
 } from "./types.js";
 import {
@@ -208,29 +207,43 @@ export class ERC4337SmartContractAccount<
   }
 
   async getUOPHash(
+    signType: SignType,
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
   ): Promise<Hex> {
     const account = this.accountManager.getAccount(userOperation.sender);
     // @ts-ignore
     return await this.owner.publicClient.readContract({
-      address: account.isDeployed ? account.authenticationManager : configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
+      address: account.isDeployed
+        ? account.authenticationManager
+        : configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
       abi: authenticationManagerABI,
       functionName: "getUOPHash",
-      args: [1n, configuration.entryPoint.v0_7_0, userOperation],
+      args: [
+        signType == "EIP712" ? 0 : 1,
+        configuration.entryPoint.v0_7_0,
+        userOperation,
+      ],
     });
   }
 
   async getUOPSignedHash(
+    signType: SignType,
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
   ): Promise<Hex> {
     console.log(userOperation);
     const account = this.accountManager.getAccount(userOperation.sender);
     // @ts-ignore
     return await this.owner.publicClient.readContract({
-      address: account.isDeployed ? account.authenticationManager: configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
+      address: account.isDeployed
+        ? account.authenticationManager
+        : configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
       abi: authenticationManagerABI,
       functionName: "getUOPSignedHash",
-      args: [1n, configuration.entryPoint.v0_7_0, userOperation],
+      args: [
+        signType == "EIP712" ? 0 : 1,
+        configuration.entryPoint.v0_7_0,
+        userOperation,
+      ],
     });
   }
 
@@ -474,22 +487,20 @@ export class ERC4337SmartContractAccount<
     let nonce: bigint;
     if (account.isDeployed) {
       if (this.version == "2.0.0") {
-        const accountV2 = account as AccountV2;
         nonce = userOperationDraft.nonce
           ? userOperationDraft.nonce
           : await this.accountManager.getNonce(
-              accountV2.accountAddress,
+              account.accountAddress,
               role,
               zeroAddress,
             );
       } else {
-        const accountV3 = account as AccountV3;
         nonce = userOperationDraft.nonce
           ? userOperationDraft.nonce
           : await this.accountManager.getNonce(
-              accountV3.accountAddress,
+              account.accountAddress,
               role,
-              accountV3.defaultValidator,
+              account.defaultValidator,
             );
       }
     } else {

@@ -1,11 +1,6 @@
 import type { Hex } from "viem";
 import type { Address } from "abitype";
-import {
-  Account,
-  AccountV2,
-  AccountV3,
-  SmartAccountTransactionReceipt,
-} from "../types";
+import { Account, SmartAccountTransactionReceipt } from "../types";
 
 export interface IAccountManager {
   createNewAccount(index: bigint, executions: Hex[]): Promise<Account>;

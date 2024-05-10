@@ -52,10 +52,6 @@ export type ExecuteCallDataArgs =
       execMode: ExecutionMode;
     };
 
-export type AccountV3 = AccountV2 & {
-  authenticationManagerAddress: Address;
-};
-
 export type SupportedPayMaster = {
   entryPoint: string;
   paymaster: Address;
@@ -64,7 +60,7 @@ export type SupportedPayMaster = {
   type: number;
 };
 
-export type AccountV2 = {
+export type Account = {
   initializeAccountData: Hex;
   initCode: Hex;
   index: bigint;
@@ -87,8 +83,6 @@ export type UserOperationSimulationResponse = {
   success: boolean;
   message: any;
 };
-
-export type Account = AccountV2 | AccountV3;
 
 export interface ISmartContractAccount {
   generateUserOperationWithGasEstimation(
