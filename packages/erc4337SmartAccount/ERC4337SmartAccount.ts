@@ -213,7 +213,7 @@ export class ERC4337SmartContractAccount<
     const account = this.accountManager.getAccount(userOperation.sender);
     // @ts-ignore
     return await this.owner.publicClient.readContract({
-      address: account.authenticationManager,
+      address: account.isDeployed ? account.authenticationManager : configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
       abi: authenticationManagerABI,
       functionName: "getUOPHash",
       args: [1n, configuration.entryPoint.v0_7_0, userOperation],
@@ -227,7 +227,7 @@ export class ERC4337SmartContractAccount<
     const account = this.accountManager.getAccount(userOperation.sender);
     // @ts-ignore
     return await this.owner.publicClient.readContract({
-      address: account.authenticationManager,
+      address: account.isDeployed ? account.authenticationManager: configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
       abi: authenticationManagerABI,
       functionName: "getUOPSignedHash",
       args: [1n, configuration.entryPoint.v0_7_0, userOperation],
