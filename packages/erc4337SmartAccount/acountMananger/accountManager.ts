@@ -156,20 +156,20 @@ export class AccountManager<
 
   async importAccount(accountAddress: Address): Promise<Account> {
     const authenticationManagerAddress: Address = predictDeterministicAddress(
-        configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
-        configuration.v3.VERSION_HASH,
-        accountAddress,
+      configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
+      configuration.v3.VERSION_HASH,
+      accountAddress,
     );
 
     const defaultValidator: Address = predictDeterministicAddress(
-        this.owner.template,
-        keccak256(encodePacked(["bytes"], [await this.owner.getSubject()])),
-        authenticationManagerAddress,
+      this.owner.template,
+      keccak256(encodePacked(["bytes"], [await this.owner.getSubject()])),
+      authenticationManagerAddress,
     );
 
     const isDeployed = await this.updateDeployment(
-        this.owner.publicClient,
-        accountAddress,
+      this.owner.publicClient,
+      accountAddress,
     );
 
     const _account: Account = {
@@ -186,7 +186,7 @@ export class AccountManager<
     };
 
     this.accounts.push(_account);
-    return _account
+    return _account;
   }
 
   async batchCreateNewAccount(
