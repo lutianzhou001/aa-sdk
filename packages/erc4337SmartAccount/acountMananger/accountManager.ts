@@ -34,7 +34,6 @@ import {
   GetERC4337BundlerReceipt,
 } from "../../error/constants";
 import { EntryPointV0_7ABI } from "../../../abis/EntryPointV0_7.abi";
-import { access } from "node:fs";
 
 export class AccountManager<
   TTransport extends Transport = Transport,
@@ -153,6 +152,41 @@ export class AccountManager<
     } else {
       return await this.createNewAccountV3(index, executions);
     }
+  }
+
+  async importAccount(accountAddress: Address): Promise<Account> {
+    const authenticationManagerAddress: Address = predictDeterministicAddress(
+        configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
+        configuration.v3.VERSION_HASH,
+        accountAddress,
+    );
+
+    const defaultValidator: Address = predictDeterministicAddress(
+        this.owner.template,
+        keccak256(encodePacked(["bytes"], [await this.owner.getSubject()])),
+        authenticationManagerAddress,
+    );
+
+    const isDeployed = await this.updateDeployment(
+        this.owner.publicClient,
+        accountAddress,
+    );
+
+    const _account: Account = {
+      initializeAccountData: "0x",
+      initCode: "0x",
+      index: BigInt(-1),
+      accountAddress,
+      isDeployed,
+      defaultValidator: defaultValidator,
+      authenticationManager: authenticationManagerAddress,
+      receipts: [],
+      version: "3.0.0",
+      deploymentHash: await this.getDeploymentHash(this.owner, accountAddress),
+    };
+
+    this.accounts.push(_account);
+    return _account
   }
 
   async batchCreateNewAccount(
