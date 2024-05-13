@@ -64,6 +64,7 @@ export type Account = {
   initializeAccountData: Hex;
   initCode: Hex;
   index: bigint;
+  subject: Hex;
   accountAddress: Address;
   isDeployed: boolean;
   defaultValidator: Address;

@@ -55,7 +55,7 @@ import { compileBigInt, compileMode, getSigTime } from "../common/utils";
 import { EntryPointABI } from "../../abis/EntryPoint.abi";
 import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
 
-export class ERC4337SmartContractAccount<
+export class ERC4337SmartAccount<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
   TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,

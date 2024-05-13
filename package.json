@@ -9,7 +9,7 @@
     "@alchemy/aa-core": "^2.3.1",
     "axios": "^1.6.7",
     "permissionless": "^0.1.11",
-    "viem": "^2.7.15"
+    "viem": "^2.10.5"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
@@ -19,7 +19,7 @@
   },
   "name": "account-abstraction-wallet-sdk",
   "description": "a generic smart account SDK that can be used to interact with erc4337 smart account v3 and later. Developed with viem.sh to minimize the package",
-  "version": "1.1.22",
+  "version": "1.1.23",
   "main": "dist/index.js",
   "directories": {
     "test": "test"
