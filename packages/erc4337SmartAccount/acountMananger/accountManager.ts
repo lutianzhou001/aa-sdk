@@ -36,6 +36,7 @@ import {
   GetERC4337BundlerReceipt,
 } from "../../error/constants";
 import { EntryPointV0_7ABI } from "../../../abis/EntryPointV0_7.abi";
+import { authenticationManagerABI } from "../../../abis/authenticationManager.abi";
 
 export class AccountManager<
   TTransport extends Transport = Transport,
@@ -359,15 +360,14 @@ export class AccountManager<
       ],
     );
 
-    const salt: Hash = keccak256(
-      encodePacked(["bytes", "uint256"], [initializeAccountData, index]),
-    );
-
-    const accountAddress = getCreate2Address({
-      from: this.factoryAddress,
-      salt: salt,
-      bytecodeHash: configuration.v3.SMART_ACCOUNT_PROXY_CODE_HASH,
-    });
+    const accountAddress: Address = (await this.owner.publicClient.readContract(
+      {
+        address: configuration.v3.FACTORY_ADDRESS,
+        abi: accountFactoryV3ABI,
+        functionName: "computeAddress",
+        args: [zeroAddress, initializeAccountData, index],
+      },
+    )) as Address;
 
     const authenticationManagerAddress: Address = predictDeterministicAddress(
       configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,

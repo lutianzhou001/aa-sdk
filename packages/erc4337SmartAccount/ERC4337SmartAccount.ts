@@ -230,7 +230,6 @@ export class ERC4337SmartAccount<
     signType: SignType,
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
   ): Promise<Hex> {
-    console.log(userOperation);
     const account = this.accountManager.getAccount(userOperation.sender);
     // @ts-ignore
     return await this.owner.publicClient.readContract({
