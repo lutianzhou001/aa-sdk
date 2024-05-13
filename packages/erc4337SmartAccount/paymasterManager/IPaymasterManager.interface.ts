@@ -7,15 +7,15 @@ import {
 } from "../../plugins/types";
 
 export interface IPaymasterManager<
-  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > {
   generatePaymasterSignature(
-    account: Account<TOwner>,
+    account: Account<TSigner>,
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
     paymaster: GeneratePaymasterSignatureType,
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7>;
 
   getSupportedPaymasters(
-    account: Account<TOwner>,
+    account: Account<TSigner>,
   ): Promise<SupportedPayMaster[]>;
 }

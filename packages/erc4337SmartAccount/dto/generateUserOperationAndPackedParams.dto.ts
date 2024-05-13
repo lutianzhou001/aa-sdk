@@ -10,8 +10,6 @@ import { UserOperation } from "permissionless/types/userOperation";
 export class PackTxParams {
   readonly signType?: SignType = "EIP191";
 
-  readonly role?: Hex = "0x00000000";
-
   readonly uop: UserOperationDraft;
 
   readonly _sigTime?: bigint;
@@ -20,11 +18,11 @@ export class PackTxParams {
 }
 
 export class SendTxParams<
-  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > {
   readonly userOperation: UserOperation<"v0.6"> | UserOperation0_7;
 
-  readonly account: Account<TOwner>;
+  readonly account: Account<TSigner>;
 }
 
 export type GeneratePaymasterSignatureType = {

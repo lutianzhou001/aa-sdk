@@ -1,18 +1,20 @@
-import { Address, Hex, SignTypedDataParameters, WalletClient } from "viem";
+import {
+  Address,
+  Hex,
+  PublicClient,
+  SignTypedDataParameters,
+  WalletClient,
+} from "viem";
+import type { EntryPoint } from "permissionless/types/entrypoint";
 
-export interface ERC4337SmartAccountSigner<TSinger = any> {
+export type ERC4337SmartAccountSigner = {
   signerType: string;
-  signer: TSinger;
-  // validatorTemplate: Address;
-
-  getAddress: () => Promise<Address>;
-
-  getWalletClient: () => WalletClient;
-
+  signerTemplate: Address;
+  publicClient: PublicClient;
+  getSubject: () => Promise<Address>;
   signMessage: (msg: Uint8Array | Hex | string) => Promise<Hex>;
-
   signTypedData: (args: SignTypedDataParameters) => Promise<Hex>;
-}
+};
 
 export type UserOperationDraft = {
   sender: Address;

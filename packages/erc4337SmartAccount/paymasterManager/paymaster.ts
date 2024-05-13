@@ -15,25 +15,25 @@ import {
 } from "../../plugins/types";
 import { Account, SupportedPayMaster } from "../types";
 import { IPaymasterManager } from "./IPaymasterManager.interface";
-import { CreatePaymasterParameters } from "./createPaymasterManager.dto";
 import axios from "axios";
 import { UserOperation } from "permissionless/types/userOperation";
 import { GeneratePaymasterSignatureType } from "../dto/generateUserOperationAndPackedParams.dto";
 import { configuration, networkConfigurations } from "../../../configuration";
-import { paymasterWalletConnectSigner } from "../../../test/testHelper";
+import { paymasterClient } from "../../../test/testHelper";
 import { getConfiguration } from "../../common/utils";
 import { getChainId } from "viem/actions";
+import { walletClientToERC4337SmartAccountSigner } from "../../plugins/signers/walletClientSigner";
 
 export class PaymasterManager<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > implements IPaymasterManager
 {
-  constructor(args: CreatePaymasterParameters<TTransport, TChain>) {}
+  constructor() {}
 
   async getSupportedPaymasters(
-    account: Account<TOwner>,
+    account: Account<TSigner>,
   ): Promise<SupportedPayMaster[]> {
     const config = {
       method: "get",
@@ -41,7 +41,7 @@ export class PaymasterManager<
       url:
         networkConfigurations.base_url +
         "pm/supportedPaymasters?chainBizId=" +
-        (await getChainId(account.owner.getWalletClient())),
+        (await getChainId(account.signer.publicClient)),
       headers: {
         "Content-Type": "application/json",
         Cookie: "locale=en-US",
@@ -56,7 +56,7 @@ export class PaymasterManager<
   // tokenPaymaster
   // paymaster + paymasterVerificationGasLimit + postOpGasLimit + mod + businessId + sigTime + token + exchangeRate + signature;
   async generatePaymasterSignature(
-    account: Account<TOwner>,
+    account: Account<TSigner>,
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
     paymaster: GeneratePaymasterSignatureType,
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
@@ -68,7 +68,7 @@ export class PaymasterManager<
         url:
           networkConfigurations.base_url +
           "pm/" +
-          (await getChainId(account.owner.getWalletClient())) +
+          (await getChainId(account.signer.publicClient)) +
           "/getPaymasterSignature",
         headers: {
           "Content-Type": "application/json",
@@ -162,11 +162,13 @@ export class PaymasterManager<
           BigInt(userOperation_0_7.accountGasLimits),
           userOperation_0_7.preVerificationGas,
           BigInt(userOperation_0_7.gasFees),
-          BigInt(await getChainId(account.owner.getWalletClient())),
+          BigInt(await getChainId(account.signer.publicClient)),
           <Address>configuration.paymaster.policyPaymaster,
           additionalData,
         ],
       );
+      const paymasterWalletConnectSigner =
+        await walletClientToERC4337SmartAccountSigner(paymasterClient);
       const pmSignature = await paymasterWalletConnectSigner.signMessage(
         keccak256(encodedData),
       );

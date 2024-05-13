@@ -8,7 +8,7 @@
   "dependencies": {
     "@alchemy/aa-core": "^2.3.1",
     "axios": "^1.6.7",
-    "permissionless": "^0.1.11",
+    "permissionless": "^0.1.28",
     "viem": "^2.7.15"
   },
   "devDependencies": {

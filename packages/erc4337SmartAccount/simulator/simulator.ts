@@ -1,9 +1,8 @@
 import { Address, Chain, Client, Hex, publicActions, Transport } from "viem";
 import { UserOperation } from "permissionless/types/userOperation";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
-import { CreateSimulatorParams } from "./createSimulatorParams.dto";
 import { EntryPointABI } from "../../../abis/EntryPoint.abi";
-import { configuration, networkConfigurations } from "../../../configuration";
+import { networkConfigurations } from "../../../configuration";
 import { getChainId } from "viem/actions";
 import {
   ERC4337SmartAccountSigner,
@@ -12,18 +11,18 @@ import {
 import { ISimulator } from "./ISimulator.interface";
 import axios from "axios";
 import { SendUserOperationSimulationByERC4337Bundler } from "../../error/constants";
-import {Account, UserOperationSimulationResponse} from "../types";
-import { getConfiguration } from "../../common/utils";
+import { Account, UserOperationSimulationResponse } from "../types";
 import { IManager } from "../moduleManager/IManager.interface";
+import { getConfiguration } from "../../common/utils";
 
 export class SimulatorManager<
     TTransport extends Transport = Transport,
     TChain extends Chain | undefined = Chain | undefined,
-    TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+    TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
   >
   implements ISimulator, IManager
 {
-  constructor(args: CreateSimulatorParams<TTransport, TChain, TOwner>) {}
+  constructor() {}
 
   onInstall(initialization: any): void {
     throw new Error("Method not implemented.");
@@ -32,65 +31,44 @@ export class SimulatorManager<
     throw new Error("Method not implemented.");
   }
 
-  async sendFromEOASimulationByPublicClient(
-    account: Address,
-    to: Address,
-    value: bigint,
-    data: Hex,
-  ): Promise<any> {
-    const sender = await this.owner.getAddress();
-    return await this.owner
-      .getWalletClient()
-      .extend(publicActions)
-      .simulateContract({
-        account: sender,
-        address: account,
-        abi: smartAccountV3ABI,
-        functionName: "executeFromEOA",
-        args: [to, value, data],
-      });
-  }
-
   async sendUserOperationSimulation(
-      account:Account<TOwner>,
-    userOperation: UserOperation<"v0.6"> | UserOperation0_7,
+    account: Account<TSigner>,
+    userOperation: UserOperation<"v0.6">,
     overrideBundler?: Address,
   ): Promise<UserOperationSimulationResponse> {
-    if (account.getVersion()== "3.0.0") {
-      return await this.sendUserOperationSimulationByPublicClient(account, userOperation);
-    }
-    if (bundler) {
+    if (overrideBundler) {
       return await this.sendUserOperationSimulationByPublicClient(
-        userOperation,
-        bundler,
+        account,
+        userOperation as UserOperation<"v0.6">,
+        overrideBundler,
       );
     } else {
       return await this.sendUserOperationSimulationByERC4337Bundler(
+        account,
         userOperation,
       );
     }
   }
 
   private async sendUserOperationSimulationByPublicClient(
+    account: Account<TSigner>,
     userOperation: UserOperation<"v0.6">,
     bundler: Address,
   ): Promise<UserOperationSimulationResponse> {
     return {
       success: true,
-      message: await this.owner
-        .getWalletClient()
-        .extend(publicActions)
-        .simulateContract({
-          account: bundler,
-          address: this.entryPointAddress,
-          abi: EntryPointABI,
-          functionName: "handleOps",
-          args: [[userOperation], await this.owner.getAddress()],
-        }),
+      message: await account.signer.publicClient.simulateContract({
+        account: bundler,
+        address: getConfiguration(account.getVersion()).entryPointAddress,
+        abi: EntryPointABI,
+        functionName: "handleOps",
+        args: [[userOperation], await account.signer.getSubject()],
+      }),
     };
   }
 
   private async sendUserOperationSimulationByERC4337Bundler(
+    account: Account<TSigner>,
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
   ): Promise<UserOperationSimulationResponse> {
     const req = {
@@ -99,7 +77,7 @@ export class SimulatorManager<
       url:
         networkConfigurations.base_url +
         "mp/" +
-        String(await getChainId(owner.getWalletClient() as Client)) +
+        String(await getChainId(account.signer.publicClient)) +
         "/eth_simulateUserOperation",
       headers: {
         "Content-Type": "application/json",
@@ -109,7 +87,10 @@ export class SimulatorManager<
         id: 1,
         jsonrpc: "2.0",
         method: "eth_simulateUserOperation",
-        params: [userOperation, this.entryPointAddress],
+        params: [
+          userOperation,
+          getConfiguration(account.getVersion()).entryPointAddress,
+        ],
       }),
     };
 

@@ -5,7 +5,7 @@ import { Account, ManagerController } from "../types";
 export class CreateERC4337SmartAccountParams<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > {
-  readonly managerController: ManagerController<TTransport, TChain, TOwner>;
+  readonly managerController: ManagerController<TTransport, TChain, TSigner>;
 }

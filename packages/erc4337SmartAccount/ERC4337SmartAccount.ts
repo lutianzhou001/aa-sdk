@@ -1,7 +1,6 @@
 import type { Address } from "abitype";
 import {
   type Chain,
-  Client,
   createPublicClient,
   encodeAbiParameters,
   encodeFunctionData,
@@ -42,7 +41,6 @@ import {
   PackTxParams,
   SendTxParams,
 } from "./dto/generateUserOperationAndPackedParams.dto";
-import { CreateERC4337SmartAccountParams } from "./dto/createERC4337SmartAccount.dto";
 import {
   BaseSmartAccountError,
   GasEstimationError,
@@ -57,23 +55,35 @@ import {
   getSigTime,
 } from "../common/utils";
 import { IERC4337SmartAccount } from "./IERC4337SmartAccount.interface";
+import { AccountManager } from "./acountMananger/accountManager";
+import { PaymasterManager } from "./paymasterManager/paymaster";
+import { SimulatorManager } from "./simulator/simulator";
+import * as domain from "domain";
+import { types } from "node:util";
 
-export class ERC4337SmartContractAccount<
+export class ERC4337SmartAccount<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > implements IERC4337SmartAccount
 {
   protected name: string;
-  protected accounts: Account<TOwner>[];
-  protected currentAccount: Account<TOwner>;
+  protected accounts: Account<TSigner>[];
+  protected currentAccount: Account<TSigner>;
   protected currentUserOperation: UserOperation<"v0.6"> | UserOperation0_7;
-  protected managerController: ManagerController<TTransport, TChain, TOwner>;
+  public managerController: ManagerController<TTransport, TChain, TSigner>;
 
-  constructor(
-    args: CreateERC4337SmartAccountParams<TTransport, TChain, TOwner>,
-  ) {
-    this.managerController = args.managerController;
+  constructor(args: {
+    accountManager: AccountManager<TTransport, TChain, TSigner>;
+    paymasterManager: PaymasterManager<TTransport, TChain, TSigner>;
+    simulatorManager: SimulatorManager<TTransport, TChain, TSigner>;
+  }) {
+    console.log(this.managerController);
+    console.log(this.managerController.accountManager);
+    console.log(args.accountManager);
+    this.managerController.accountManager = args.accountManager;
+    this.managerController.paymasterManager = args.paymasterManager;
+    this.managerController.simulatorManager = args.simulatorManager;
   }
 
   async send(
@@ -83,7 +93,10 @@ export class ERC4337SmartContractAccount<
       throw new Error("insufficient params");
     }
     if (this.getCurrentAccount().getVersion() == "2.0.0") {
-      await this.managerController.simulatorManager.sendUserOperationSimulation(this.currentAccount, this.currentUserOperation);
+      await this.managerController.simulatorManager.sendUserOperationSimulation(
+        this.currentAccount,
+        this.currentUserOperation as UserOperation<"v0.6">,
+      );
       const req = {
         method: "post",
         maxBodyLength: Infinity,
@@ -91,9 +104,7 @@ export class ERC4337SmartContractAccount<
           networkConfigurations.base_url +
           "mp/" +
           String(
-            await getChainId(
-              this.getCurrentAccount().owner.getWalletClient() as Client,
-            ),
+            await getChainId(this.getCurrentAccount().signer.publicClient),
           ) +
           "/eth_sendUserOperation",
         headers: {
@@ -119,7 +130,7 @@ export class ERC4337SmartContractAccount<
         );
       } else {
         return this.managerController.accountManager.pushAccountTransaction(
-          this.currentUserOperation.sender,
+          this.currentAccount,
           res.data.result,
         );
       }
@@ -141,21 +152,21 @@ export class ERC4337SmartContractAccount<
         // @ts-ignore
         await walletClient.writeContract(request);
         return this.managerController.accountManager.pushAccountTransaction(
-          this.currentUserOperation.sender,
+          this.currentAccount,
           "0x" as Hex,
         );
       }
     }
   }
 
-  private getCurrentAccount(): Account<TOwner> {
+  private getCurrentAccount(): Account<TSigner> {
     if (this.accounts.length === 0) {
       throw new Error("no account specified");
     }
     return this.currentAccount ?? this.accounts[0];
   }
 
-  connect(account: Account<TOwner>): this {
+  connect(account: Account<TSigner>): this {
     this.currentAccount = account;
     return this;
   }
@@ -213,8 +224,7 @@ export class ERC4337SmartContractAccount<
     } else if (typeof msg === "string") {
       msg = new TextEncoder().encode(msg);
     }
-
-    return this.getCurrentAccount().owner.signMessage(msg);
+    return this.getCurrentAccount().signer.signMessage(msg);
   }
 
   async signTypedData(args: SignTypedDataParameters): Promise<Hex> {
@@ -225,20 +235,18 @@ export class ERC4337SmartContractAccount<
   }
 
   async packTx(args: PackTxParams): Promise<{
-    account: Account<TOwner>;
+    account: Account<TSigner>;
     userOperation: UserOperation<"v0.6"> | UserOperation0_7;
+    context: ERC4337SmartAccount;
   }> {
-    const chainId = await getChainId(
-      this.getCurrentAccount().owner.getWalletClient() as Client,
-    );
-    await this.managerController.accountManager.updateDeployment(
-      this.getCurrentAccount().owner.getWalletClient(),
-      this.getCurrentAccount().accountAddress,
-    );
+    const chainId = await getChainId(this.currentAccount.signer.publicClient);
+    await this.managerController.accountManager.refreshAccounts([
+      this.getCurrentAccount(),
+    ]);
     const userOperationWithGasEstimated =
       await this.generateUserOperationWithGasEstimation(
+        this.getCurrentAccount(),
         args.uop,
-        args.role as Hex,
         args.paymaster,
       );
     const userOperation = args.paymaster
@@ -250,11 +258,7 @@ export class ERC4337SmartContractAccount<
       : userOperationWithGasEstimated;
     const sigTime =
       args._sigTime ??
-      (await getSigTime(
-        this.getCurrentAccount()
-          .owner.getWalletClient()
-          .extend(publicActions) as PublicClient,
-      ));
+      (await getSigTime(this.getCurrentAccount().signer.publicClient));
     if (args.signType == "EIP712") {
       let domain: any;
       if (this.getCurrentAccount().getVersion() == "2.0.0") {
@@ -293,12 +297,12 @@ export class ERC4337SmartContractAccount<
         EntryPoint: getConfiguration(this.currentAccount.getVersion()),
         sigTime: sigTime,
       };
-      const signature =
-        await this.getCurrentAccount().owner.signer.signTypedData({
-          domain: domain,
-          types: types,
-          message: value,
-        });
+      const signature = "0x";
+      // const signature = await this.getCurrentAccount().signer.signTypedData({
+      //   domain: domain,
+      //   types: types,
+      //   message: value
+      // });
       userOperation.signature = encodePacked(
         ["uint8", "uint256", "bytes"],
         [0, sigTime, signature],
@@ -307,6 +311,7 @@ export class ERC4337SmartContractAccount<
       return {
         account: this.getCurrentAccount(),
         userOperation: userOperation,
+        context: this,
       };
     } else {
       let encodedUserOperationData: Hex;
@@ -386,57 +391,26 @@ export class ERC4337SmartContractAccount<
         [
           1,
           sigTime,
-          await this.getCurrentAccount().owner.signMessage(userOperationHash),
+          await this.getCurrentAccount().signer.signMessage(userOperationHash),
         ],
       );
       this.currentUserOperation = userOperation;
       return {
         account: this.getCurrentAccount(),
         userOperation: userOperation,
+        context: this,
       };
     }
   }
 
-  async execute(request: any): Promise<any> {
-    await this.getCurrentAccount()
-      .owner.getWalletClient()
-      .writeContract(request);
-  }
-
   async generateUserOperationWithGasEstimation(
+    account: Account<TSigner>,
     userOperationDraft: UserOperationDraft,
-    role: Hex,
     paymaster?: GeneratePaymasterSignatureType,
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
-    const account: Account<TOwner> =
-      this.managerController.accountManager.getAccount(
-        userOperationDraft.sender,
-      );
-    let nonce: bigint;
-    if (account.isDeployed) {
-      if (this.getCurrentAccount().getVersion() == "2.0.0") {
-        nonce = userOperationDraft.nonce
-          ? userOperationDraft.nonce
-          : await this.managerController.accountManager.getNonce(
-              account.accountAddress,
-              role,
-              zeroAddress,
-            );
-      } else {
-        nonce = userOperationDraft.nonce
-          ? userOperationDraft.nonce
-          : await this.managerController.accountManager.getNonce(
-              account.accountAddress,
-              role,
-              account.defaultECDSAValidator,
-            );
-      }
-    } else {
-      nonce =
-        this.getCurrentAccount().getVersion() == "2.0.0"
-          ? BigInt(0)
-          : BigInt(account.defaultECDSAValidator + "0000000000000000");
-    }
+    const nonce = userOperationDraft.nonce
+      ? userOperationDraft.nonce
+      : await this.managerController.accountManager.getNonce(account);
     if (this.getCurrentAccount().getVersion() == "3.0.0") {
       return {
         sender: account.accountAddress,
@@ -508,11 +482,7 @@ export class ERC4337SmartContractAccount<
       url:
         networkConfigurations.base_url +
         "mp/" +
-        String(
-          await getChainId(
-            this.getCurrentAccount().owner.getWalletClient() as Client,
-          ),
-        ) +
+        String(await getChainId(this.getCurrentAccount().signer.publicClient)) +
         "/eth_estimateUserOperationGas",
       headers: {
         "Content-Type": "application/json",
@@ -536,13 +506,10 @@ export class ERC4337SmartContractAccount<
       );
     }
 
-    const baseGasPrice = await this.getCurrentAccount()
-      .owner.getWalletClient()
-      .extend(publicActions)
-      .getGasPrice();
+    const baseGasPrice =
+      await this.getCurrentAccount().signer.publicClient.getGasPrice();
     const maxPriorityFeePerGas = await this.getCurrentAccount()
-      .owner.getWalletClient()
-      .extend(publicActions)
+      .signer.publicClient.extend(publicActions)
       .estimateMaxPriorityFeePerGas();
     const preVerificationGas =
       userOperationDraft.preVerificationGas ??
@@ -645,7 +612,7 @@ export class ERC4337SmartContractAccount<
         BigInt(
           "0x000000000000ffffffffffff0000000000000000000000000000000000000000",
         ),
-        await this.getCurrentAccount().owner.signMessage("MOCK MESSAGE"),
+        await this.getCurrentAccount().signer.signMessage("MOCK MESSAGE"),
       ],
     );
   }

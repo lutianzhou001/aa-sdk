@@ -4,42 +4,27 @@ import { Account, SmartAccountTransactionReceipt } from "../types";
 import { ERC4337SmartAccountSigner } from "../../plugins/types";
 
 export interface IAccountManager<
-  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > {
   createNewAccount(
-    owner: TOwner,
+    owner: TSigner,
     index: bigint,
     version: string,
     executions: Hex[],
-  ): Promise<Account<TOwner>>;
+  ): Promise<Account<TSigner>>;
 
   batchCreateNewAccount(
-    owner: TOwner,
+    owner: TSigner,
     amount: number,
     version: string,
     executions: Hex[],
   ): Promise<void>;
 
-  getAccount(indexOrAddress: number | Address): Account<TOwner>;
-  getAccounts(): Account<TOwner>[];
-
-  refreshAccount(indexOrAddress: number | Address): Promise<Account<TOwner>>;
-  refreshAccounts(): Promise<Account<TOwner>[]>;
-
+  getAccounts(): Account<TSigner>[];
+  getAccountCreationCodeHash(account: Account<TSigner>): Promise<Hex>;
+  refreshAccounts(accounts: Account<TSigner>[]): Promise<void>;
   getNonce(
-    accountAddress: Address,
-    role: Hex,
+    account: Account<TSigner>,
     validatorAddress?: Address,
   ): Promise<bigint>;
-
-  isExist(indexOrAddress: number | Address): boolean;
-
-  getAccountTransactionReceipts(
-    sender: Address,
-  ): SmartAccountTransactionReceipt[];
-
-  refreshAccountTransactionReceipts(
-    account: Account<TOwner>,
-    sender: Address,
-  ): Promise<SmartAccountTransactionReceipt[]>;
 }

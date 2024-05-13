@@ -1,65 +1,53 @@
 import {
   getAddress,
-  isHex,
   type Hex,
-  type WalletClient,
+  isHex,
+  publicActions,
+  PublicClient,
   SignTypedDataParameters,
-  zeroAddress,
+  type WalletClient,
 } from "viem";
 import type { ERC4337SmartAccountSigner } from "../types";
-import { BaseSmartAccountError } from "../../error/constants";
+import { configuration } from "../../../configuration";
 
-export class WalletClientSigner
-  implements ERC4337SmartAccountSigner<WalletClient>
-{
-  signerType: string;
-  signer: WalletClient;
-
-  constructor(signer: WalletClient, signerType: string) {
-    this.signer = signer;
-    if (!signerType) {
-      throw new BaseSmartAccountError(
-        "BaseSmartAccountError",
-        "Valid signerType param is required.",
-      );
-    }
-    this.signerType = signerType;
-  }
-
-  getWalletClient(): WalletClient {
-    return this.signer;
-  }
-
-  async getAddress(): Promise<Hex> {
-    const addresses = await this.signer.getAddresses();
-    return getAddress(addresses[0]);
-  }
-
-  async signMessage(message: Uint8Array | string | Hex): Promise<Hex> {
-    const account = this.signer.account ?? (await this.getAddress());
-
-    if (typeof message === "string" && !isHex(message)) {
-      return this.signer.signMessage({
+export async function walletClientToERC4337SmartAccountSigner(
+  walletClient: WalletClient,
+): Promise<ERC4337SmartAccountSigner> {
+  return {
+    signerType: "walletClientSigner",
+    signerTemplate: configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
+    publicClient: walletClient.extend(publicActions) as PublicClient,
+    async getSubject() {
+      const addresses = await walletClient.getAddresses();
+      return getAddress(addresses[0]);
+    },
+    async signMessage(message: Uint8Array | string | Hex): Promise<Hex> {
+      const account =
+        walletClient.account ??
+        getAddress((await walletClient.getAddresses())[0]);
+      if (typeof message === "string" && !isHex(message)) {
+        return walletClient.signMessage({
+          account,
+          message,
+        });
+      } else {
+        return walletClient.signMessage({
+          account,
+          message: { raw: message },
+        });
+      }
+    },
+    async signTypedData(
+      args: Omit<SignTypedDataParameters, "account">,
+    ): Promise<Hex> {
+      const account =
+        walletClient.account ??
+        getAddress((await walletClient.getAddresses())[0]);
+      // override the account
+      return walletClient.signTypedData({
         account,
-        message,
+        ...args,
       });
-    } else {
-      return this.signer.signMessage({
-        account,
-        message: { raw: message },
-      });
-    }
-  }
-
-  async signTypedData(
-    args: Omit<SignTypedDataParameters, "account">,
-  ): Promise<Hex> {
-    const account = this.signer.account ?? (await this.getAddress());
-
-    // override the account
-    return this.signer.signTypedData({
-      account,
-      ...args,
-    });
-  }
+    },
+  };
 }

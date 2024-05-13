@@ -3,7 +3,7 @@ import type { Chain, Hash, Hex, Transport } from "viem";
 import { AccountManager } from "./acountMananger/accountManager";
 import { PaymasterManager } from "./paymasterManager/paymaster";
 import { ERC4337SmartAccountSigner } from "../plugins/types";
-import {Simulator, SimulatorManager} from "./simulator/simulator";
+import { SimulatorManager } from "./simulator/simulator";
 
 export type CallType = "single" | "delegatecall" | "batch" | undefined;
 
@@ -46,30 +46,27 @@ export type SupportedPayMaster = {
 export type ManagerController<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > = {
-  accountManager: AccountManager<TTransport, TChain, TOwner>;
-  paymasterManager: PaymasterManager<TTransport, TChain, TOwner>;
-  simulatorManager: SimulatorManager<TTransport,TChain,TOwner>;
+  accountManager: AccountManager<TTransport, TChain, TSigner>;
+  paymasterManager: PaymasterManager<TTransport, TChain, TSigner>;
+  simulatorManager: SimulatorManager<TTransport, TChain, TSigner>;
   // simulatorManager: SimulatorManager;
   // receiptManager: ReceiptManager;
   // bundlerManager: BundlerManager;
 };
 
 export type Account<
-  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > = {
-  owner: TOwner;
-  index: bigint;
+  signer: TSigner;
   accountAddress: Address;
+  nonceKey: Hex;
   isDeployed: boolean;
-  defaultECDSAValidator: Address;
   authenticationManagerAddress: Address | undefined;
   receipts: SmartAccountTransactionReceipt[];
   initCode: Hex;
-
   getVersion(): string;
-  getCreationCodeHash: () => Promise<string>;
 };
 
 export type SmartAccountTransactionReceipt = {

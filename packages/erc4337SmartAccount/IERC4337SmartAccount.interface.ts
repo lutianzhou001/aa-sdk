@@ -18,22 +18,20 @@ import {
 } from "./types";
 
 export interface IERC4337SmartAccount<
-  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > {
-  generateUserOperationWithGasEstimation<TOwner>(
+  generateUserOperationWithGasEstimation(
+    account: Account<TSigner>,
     userOperationDraft: UserOperationDraft,
-    role: Hex,
     paymaster?: GeneratePaymasterSignatureType,
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7>;
 
   packTx(args: PackTxParams): Promise<{
-    account: Account<TOwner>;
+    account: Account<TSigner>;
     userOperation: UserOperation<"v0.6"> | UserOperation0_7;
   }>;
 
   send(overrideBundler?: WalletClient): Promise<SmartAccountTransactionReceipt>;
-
-  execute(request: any): Promise<any>;
 
   signUserOperationHash(uopHash: Hash): Promise<Hash>;
   signMessage(msg: string | Uint8Array | Hex): Promise<Hex>;

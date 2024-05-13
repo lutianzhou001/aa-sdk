@@ -1,7 +1,6 @@
 import {
   Address,
   Chain,
-  Client,
   encodeAbiParameters,
   encodeFunctionData,
   encodePacked,
@@ -10,9 +9,7 @@ import {
   Hex,
   keccak256,
   parseAbiParameters,
-  publicActions,
   Transport,
-  WalletClient,
   zeroHash,
 } from "viem";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
@@ -27,133 +24,119 @@ import {
   getConfiguration,
   predictDeterministicAddress,
 } from "../../common/utils";
-import { CreateAccountManagerParameters } from "./createAccountManagerParams.dto";
-import { EntryPointABI } from "../../../abis/EntryPoint.abi";
-import { getChainId } from "viem/actions";
-import axios from "axios";
-import {
-  BaseSmartAccountError,
-  GetERC4337BundlerReceipt,
-} from "../../error/constants";
 import { EntryPointV0_7ABI } from "../../../abis/EntryPointV0_7.abi";
 import { IManager } from "../moduleManager/IManager.interface";
 
 export class AccountManager<
     TTransport extends Transport = Transport,
     TChain extends Chain | undefined = Chain | undefined,
-    TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+    TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
   >
   implements IAccountManager, IManager
 {
-  protected accounts: Account<TOwner>[] = [];
+  protected accounts: Account<TSigner>[] = [];
 
-  constructor(
-    args: CreateAccountManagerParameters<TTransport, TChain, TOwner>,
-  ) {}
+  constructor() {}
 
-  private async getCreationCodeHash(owner: TOwner, address: Hex): Promise<Hex> {
-    const byteCode = await owner
-      .getWalletClient()
-      .extend(publicActions)
-      .getBytecode({
-        address: address,
-      });
+  async getAccountCreationCodeHash(account: Account<TSigner>): Promise<Hex> {
+    const byteCode = await account.signer.publicClient.getBytecode({
+      address: account.accountAddress,
+    });
     return byteCode == undefined ? zeroHash : keccak256(byteCode);
   }
 
   pushAccountTransaction(
-    sender: Address,
+    account: Account<TSigner>,
     userOperationHash: Hex,
   ): SmartAccountTransactionReceipt {
-    const currentAccount = this.getAccount(sender);
     const receipt: SmartAccountTransactionReceipt = {
       userOperationHash: userOperationHash,
       txHash: undefined,
       success: undefined,
     };
-    currentAccount.receipts.push(receipt);
+    account.receipts.push(receipt);
     return receipt;
   }
-
-  getAccountTransactionReceipts(
-    sender: Address,
-  ): SmartAccountTransactionReceipt[] {
-    const currentAccount = this.getAccount(sender);
-    return currentAccount.receipts;
-  }
-
-  async refreshAccountTransactionReceipts(
-    account: Account<TOwner>,
-    sender: Address,
-  ): Promise<SmartAccountTransactionReceipt[]> {
-    const currentAccount = this.getAccount(sender);
-    const receipts = currentAccount.receipts;
-    let receiptsToUpdate: SmartAccountTransactionReceipt[] = [];
-    for (const receipt of receipts) {
-      if (receipt.success == undefined) {
-        const res = await this.getERC4337BundlerReceipt(
-          account,
-          receipt.userOperationHash,
-        );
-        receipt.success = res.success;
-        receipt.txHash = res.txHash;
-      }
-      receiptsToUpdate.push({
-        userOperationHash: receipt.userOperationHash,
-        txHash: receipt.txHash,
-        success: receipt.success,
-      });
-    }
-    return receiptsToUpdate;
-  }
-
-  private async getERC4337BundlerReceipt(
-    account: Account<TOwner>,
-    userOperationHash: Hex,
-  ): Promise<SmartAccountTransactionReceipt> {
-    const req = {
-      method: "post",
-      maxBodyLength: Infinity,
-      url:
-        networkConfigurations.base_url +
-        "mp/" +
-        String(await getChainId(account.owner.getWalletClient())) +
-        "/eth_getUserOperationReceipt",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: "locale=en-US",
-      },
-      data: JSON.stringify({
-        id: 1,
-        jsonrpc: "2.0",
-        method: "eth_getUserOperationReceipt",
-        params: [userOperationHash],
-      }),
-    };
-    const res = await axios.request(req);
-    if (res.data.error) {
-      throw new GetERC4337BundlerReceipt(
-        "getERC4337BundlerReceiptError",
-        res.data.error.message,
-      );
-    } else {
-      return res.data.result;
-    }
-  }
+  //
+  // getAccountTransactionReceipts(
+  //   sender: Address,
+  // ): SmartAccountTransactionReceipt[] {
+  //   const currentAccount = this.getAccount(sender);
+  //   return currentAccount.receipts;
+  // }
+  //
+  // async refreshAccountTransactionReceipts(
+  //   account: Account<TSigner>,
+  //   sender: Address,
+  // ): Promise<SmartAccountTransactionReceipt[]> {
+  //   const currentAccount = this.getAccount(sender);
+  //   const receipts = currentAccount.receipts;
+  //   let receiptsToUpdate: SmartAccountTransactionReceipt[] = [];
+  //   for (const receipt of receipts) {
+  //     if (receipt.success == undefined) {
+  //       const res = await this.getERC4337BundlerReceipt(
+  //         account,
+  //         receipt.userOperationHash,
+  //       );
+  //       receipt.success = res.success;
+  //       receipt.txHash = res.txHash;
+  //     }
+  //     receiptsToUpdate.push({
+  //       userOperationHash: receipt.userOperationHash,
+  //       txHash: receipt.txHash,
+  //       success: receipt.success,
+  //     });
+  //   }
+  //   return receiptsToUpdate;
+  // }
+  //
+  // private async getERC4337BundlerReceipt(
+  //   account: Account<TSigner>,
+  //   userOperationHash: Hex,
+  // ): Promise<SmartAccountTransactionReceipt> {
+  //   const req = {
+  //     method: "post",
+  //     maxBodyLength: Infinity,
+  //     url:
+  //       networkConfigurations.base_url +
+  //       "mp/" +
+  //       String(await getChainId(account.signer.publicClient)) +
+  //       "/eth_getUserOperationReceipt",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //       Cookie: "locale=en-US",
+  //     },
+  //     data: JSON.stringify({
+  //       id: 1,
+  //       jsonrpc: "2.0",
+  //       method: "eth_getUserOperationReceipt",
+  //       params: [userOperationHash],
+  //     }),
+  //   };
+  //   const res = await axios.request(req);
+  //   if (res.data.error) {
+  //     throw new GetERC4337BundlerReceipt(
+  //       "getERC4337BundlerReceiptError",
+  //       res.data.error.message,
+  //     );
+  //   } else {
+  //     return res.data.result;
+  //   }
+  // }
 
   async createNewAccount(
-    owner: TOwner,
+    signer: TSigner,
     index: bigint = BigInt(0),
     version: string,
     executions: Hex[] = [],
-  ): Promise<Account<TOwner>> {
+  ): Promise<Account<TSigner>> {
     return version === "2.0.0"
-      ? await this.createNewAccountV2(owner, index)
-      : await this.createNewAccountV3(owner, index, executions);
+      ? await this.createNewAccountV2(signer, index)
+      : await this.createNewAccountV3(signer, index, executions);
   }
 
   async batchCreateNewAccount(
-    owner: TOwner,
+    signer: TSigner,
     amount: number,
     version: string,
     executions: Hex[] = [],
@@ -166,22 +149,22 @@ export class AccountManager<
     ).length;
     for (let i = index; i < index + amount; i++) {
       version === "2.0.0"
-        ? await this.createNewAccountV2(owner, BigInt(i))
-        : await this.createNewAccountV3(owner, BigInt(i), executions);
+        ? await this.createNewAccountV2(signer, BigInt(i))
+        : await this.createNewAccountV3(signer, BigInt(i), executions);
     }
   }
 
   private async createNewAccountV2(
-    owner: TOwner,
+    signer: TSigner,
     index: bigint = BigInt(0),
-  ): Promise<Account<TOwner>> {
+  ): Promise<Account<TSigner>> {
     const initializeAccountData = encodeAbiParameters(
       parseAbiParameters("address creator, bytes init"),
-      [await owner.getAddress(), "0x"],
+      [await signer.getSubject(), "0x"],
     );
 
     const salt = keccak256(
-      encodePacked(["address", "uint256"], [await owner.getAddress(), index]),
+      encodePacked(["address", "uint256"], [await signer.getSubject(), index]),
     );
 
     const accountAddress = getCreate2Address({
@@ -206,40 +189,29 @@ export class AccountManager<
       ],
     );
 
-    const isDeployed = await this.updateDeployment(
-      owner.getWalletClient(),
-      accountAddress,
-    );
-
-    const _account: Account<TOwner> = {
-      owner: owner,
-      index: index,
+    const _account: Account<TSigner> = {
+      signer: signer,
       accountAddress: accountAddress,
-      isDeployed: isDeployed,
-      defaultECDSAValidator: await owner.getAddress(),
+      nonceKey: "0x" as Hex,
+      isDeployed: false,
       authenticationManagerAddress: undefined,
       receipts: [],
       initCode: initCode,
-
       getVersion(): string {
         return "2.0.0";
       },
-      getCreationCodeHash: () => {
-        return this.getCreationCodeHash(owner, accountAddress);
-      },
     };
-
-    checkDuplicateAccount(_account, this.accounts);
+    await this.refreshAccounts([_account]);
     return _account;
   }
 
   private async createNewAccountV3(
-    owner: TOwner,
+    signer: TSigner,
     index: bigint = BigInt(0),
     executions: Hex[] = [],
-  ): Promise<Account<TOwner>> {
+  ): Promise<Account<TSigner>> {
     const initializeData = encodeAbiParameters(initializeAccountABI[0].inputs, [
-      await owner.getAddress(),
+      await signer.getSubject(),
       configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
       executions,
     ]);
@@ -282,188 +254,53 @@ export class AccountManager<
       accountAddress,
     );
 
-    const defaultECDSAValidator: Address = predictDeterministicAddress(
-      configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
-      keccak256(encodePacked(["bytes"], [await owner.getAddress()])),
+    const defaultValidator: Address = predictDeterministicAddress(
+      signer.signerTemplate,
+      keccak256(encodePacked(["bytes"], [await signer.getSubject()])),
       authenticationManagerAddress,
     );
 
-    const isDeployed = await this.updateDeployment(
-      owner.getWalletClient(),
-      accountAddress,
-    );
-
-    const _account: Account<TOwner> = {
-      owner: owner,
-      index: index,
+    const _account: Account<TSigner> = {
+      signer: signer,
       accountAddress: accountAddress,
-      isDeployed: isDeployed,
-      defaultECDSAValidator: defaultECDSAValidator,
+      isDeployed: false,
+      nonceKey: (defaultValidator + "0000000000000000") as Hex,
       authenticationManagerAddress: authenticationManagerAddress,
       receipts: [],
       initCode: initCode,
-
       getVersion(): string {
         return "3.0.0";
       },
-      getCreationCodeHash: () => {
-        return this.getCreationCodeHash(owner, accountAddress);
-      },
     };
-    checkDuplicateAccount(_account, this.accounts);
+    await this.refreshAccounts([_account]);
     return _account;
   }
 
-  public async updateDeployment(
-    walletClient: WalletClient,
-    accountAddress: Address,
-  ): Promise<boolean> {
-    const contractCode =
-      (await walletClient.extend(publicActions).getBytecode({
-        address: accountAddress,
-      })) ?? "0x";
-
-    return contractCode.length > 2;
-  }
-
-  getAccount(indexOrAddress: number | Address): Account<TOwner> {
-    if (typeof indexOrAddress === "number") {
-      for (const account of this.accounts) {
-        if (account.index === BigInt(indexOrAddress)) {
-          return account;
-        }
-      }
-    } else {
-      for (const account of this.accounts) {
-        if (account.accountAddress === indexOrAddress) {
-          return account;
-        }
-      }
-    }
-    throw new BaseSmartAccountError(
-      "BaseSmartAccountError",
-      "Account not found",
-    );
-  }
-
-  getAccounts(): Account<TOwner>[] {
+  getAccounts(): Account<TSigner>[] {
     return this.accounts;
   }
 
-  async refreshAccount(
-    indexOrAddress: number | Address,
-  ): Promise<Account<TOwner>> {
-    if (typeof indexOrAddress === "number") {
-      for (const account of this.accounts) {
-        if (account.index === BigInt(indexOrAddress)) {
-          return {
-            ...account,
-            isDeployed: account.isDeployed
-              ? true
-              : await this.updateDeployment(
-                  account.owner.getWalletClient(),
-                  account.accountAddress,
-                ),
-          };
-        }
-      }
-    } else {
-      for (const account of this.accounts) {
-        if (account.accountAddress === indexOrAddress) {
-          return {
-            ...account,
-            isDeployed: account.isDeployed
-              ? true
-              : await this.updateDeployment(
-                  account.owner.getWalletClient(),
-                  account.accountAddress,
-                ),
-          };
-        }
-      }
-    }
-    throw new BaseSmartAccountError(
-      "BaseSmartAccountError",
-      "Account not found",
-    );
-  }
-  async refreshAccounts(): Promise<Account<TOwner>[]> {
+  async refreshAccounts(accounts: Account<TSigner>[]): Promise<void> {
     for (const account of this.accounts) {
-      account.isDeployed = await this.updateDeployment(
-        account.owner.getWalletClient(),
-        account.accountAddress,
-      );
-    }
-    return this.accounts;
-  }
-
-  async getNonce(
-    accountAddress: Address,
-    role: Hex, // for future use(v4)
-    validatorAddress?: Address,
-  ): Promise<bigint> {
-    const account = this.getAccount(accountAddress);
-    validatorAddress = validatorAddress ?? account.defaultECDSAValidator;
-    if (account.getVersion() == "2.0.0") {
-      return await account.owner
-        .getWalletClient()
-        .extend(publicActions)
-        .readContract({
-          address: getConfiguration(account.getVersion()).entryPointAddress,
-          abi: EntryPointABI,
-          functionName: "getNonce",
-          args: [account.accountAddress, BigInt(0)],
-        });
-    } else {
-      // @ts-ignore
-      return await this.owner
-        .getWalletClient()
-        .extend(publicActions)
-        .readContract({
-          address: getConfiguration(account.getVersion()).entryPointAddress,
-          abi: EntryPointV0_7ABI,
-          functionName: "getNonce",
-          args: [account.accountAddress, BigInt(validatorAddress)],
-        });
+      const contractCode =
+        (await account.signer.publicClient.getBytecode({
+          address: account.accountAddress,
+        })) ?? "0x";
+      account.isDeployed = contractCode.length > 2;
     }
   }
 
-  isExist(indexOrAddress: number | Address) {
-    if (typeof indexOrAddress === "number") {
-      for (const account of this.accounts) {
-        if (account.index === BigInt(indexOrAddress)) {
-          return true;
-        }
-      }
-    } else {
-      for (const account of this.accounts) {
-        if (account.accountAddress === indexOrAddress) {
-          return true;
-        }
-      }
-    }
-    return false;
+  async getNonce(account: Account<TSigner>): Promise<bigint> {
+    // @ts-ignore
+    return await account.signer.publicClient.readContract({
+      address: getConfiguration(account.getVersion()).entryPointAddress,
+      abi: EntryPointV0_7ABI,
+      functionName: "getNonce",
+      args: [account.accountAddress, BigInt(account.nonceKey)],
+    });
   }
 
   onInstall(initialization: any) {}
 
   onUninstall(uninstallation: any) {}
-}
-
-function checkDuplicateAccount<
-  TOwner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
->(_account: Account<TOwner>, accounts: Account<TOwner>[]): void {
-  const duplicate = accounts.find(
-    (account) =>
-      account.index === _account.index &&
-      account.getVersion() === _account.getVersion(),
-  );
-
-  if (duplicate) {
-    duplicate.accountAddress = _account.accountAddress;
-    duplicate.initCode = _account.initCode;
-    duplicate.isDeployed = _account.isDeployed;
-  } else {
-    accounts.push(_account);
-  }
 }
