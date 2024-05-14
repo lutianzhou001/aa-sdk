@@ -12,11 +12,10 @@ import {
   GeneratePaymasterSignatureType,
   GenerateUserOperationAndPackedParams,
 } from "./dto/generateUserOperationAndPackedParams.dto";
-import { mode } from "viem/chains";
 
 export type CallType = "single" | "delegatecall" | "batch" | undefined;
 
-export type SignType = "EIP712" | "EIP191";
+export type SigType = "EIP712" | "EIP191";
 
 export type ExecutionMode = {
   callType?: CallType;
@@ -93,9 +92,10 @@ export interface ISmartContractAccount {
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7>;
 
   signAndPack(
+    sigType: SigType,
+    sigTime: bigint,
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
     userOperationHash: Hex,
-    sigTime: bigint,
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7>;
 
   generateUserOperation(args: GenerateUserOperationAndPackedParams): Promise<{

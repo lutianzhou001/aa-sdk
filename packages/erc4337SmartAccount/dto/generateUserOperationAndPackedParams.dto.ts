@@ -1,9 +1,9 @@
 import { Address, type Hex } from "viem";
 import { UserOperationDraft } from "../../plugins/types";
-import { SignType } from "../types";
+import { SigType } from "../types";
 
 export class GenerateUserOperationAndPackedParams {
-  readonly signType?: SignType = "EIP191";
+  readonly sigType: SigType;
 
   readonly role?: Hex = "0x00000000";
 

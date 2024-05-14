@@ -22,7 +22,7 @@ import {
   Account,
   ExecuteCallDataArgs,
   ISmartContractAccount,
-  SignType,
+  SigType,
   SmartAccountTransactionReceipt,
 } from "./types.js";
 import {
@@ -52,8 +52,8 @@ import {
 import { mainnet } from "viem/chains";
 import { EntryPointV0_7ABI } from "../../abis/EntryPointV0_7.abi";
 import { compileBigInt, compileMode, getSigTime } from "../common/utils";
-import { EntryPointABI } from "../../abis/EntryPoint.abi";
 import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
+import { smartAccountV2WithInscriptionSupportedABI } from "../../abis/smartAccountV2WithInscriptionSupported.abi";
 
 export class ERC4337SmartAccount<
   TTransport extends Transport = Transport,
@@ -207,7 +207,7 @@ export class ERC4337SmartAccount<
   }
 
   async getUOPHash(
-    signType: SignType,
+    signType: SigType,
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
   ): Promise<Hex> {
     const account = this.accountManager.getAccount(userOperation.sender);
@@ -227,7 +227,7 @@ export class ERC4337SmartAccount<
   }
 
   async getUOPSignedHash(
-    signType: SignType,
+    signType: SigType,
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
   ): Promise<Hex> {
     const account = this.accountManager.getAccount(userOperation.sender);
@@ -247,28 +247,20 @@ export class ERC4337SmartAccount<
   }
 
   async signAndPack(
+    sigType: SigType,
+    sigTime: bigint,
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
     userOperationHash: Hex,
-    sigTime: bigint,
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
     userOperation.signature = encodePacked(
       ["uint8", "uint256", "bytes"],
-      [1, sigTime, await this.owner.signMessage(userOperationHash)],
+      [
+        sigType == "EIP712" ? 0 : 1,
+        sigTime,
+        await this.owner.signMessage(userOperationHash),
+      ],
     );
     return userOperation;
-    // in case of eip712
-    // else {
-    //   const signature = await this.owner.signer.signTypedData({
-    //     domain: domain,
-    //     types: types,
-    //     message: value,
-    //   });
-    //   userOperation.signature = encodePacked(
-    //       ["uint8", "uint256", "bytes"],
-    //       [0, sigTime, signature],
-    //   );
-    //   return userOperation;
-    // }
   }
 
   async generateUserOperation(
@@ -298,119 +290,15 @@ export class ERC4337SmartAccount<
       : userOperationWithGasEstimated;
     const sigTime =
       args._sigTime ?? (await getSigTime(this.owner.publicClient));
-    if (args.signType == "EIP712") {
-      throw new Error("EIP712 currently not impl");
-      // let domain: any;
-      // if (this.version == "2.0.0") {
-      //   const accountV2 = account as AccountV2;
-      //   domain = {
-      //     version: this.version,
-      //     chainId: await getChainId(this.owner.publicClient),
-      //     verifyingContract: accountV2.accountAddress,
-      //   };
-      // } else {
-      //   const accountV3 = account as AccountV3;
-      //   domain = {
-      //     name: this.name,
-      //     version: this.version,
-      //     chainId: await getChainId(this.owner.publicClient),
-      //     verifyingContract: accountV3.authenticationManagerAddress,
-      //   };
-      // }
-      // const types = {
-      //   SignMessage: [
-      //     { name: "sender", type: "address" },
-      //     { name: "nonce", type: "uint256" },
-      //     { name: "initCode", type: "bytes" },
-      //     { name: "callData", type: "bytes" },
-      //     { name: "callGasLimit", type: "uint256" },
-      //     { name: "verificationGasLimit", type: "uint256" },
-      //     { name: "preVerificationGas", type: "uint256" },
-      //     { name: "maxFeePerGas", type: "uint256" },
-      //     { name: "maxPriorityFeePerGas", type: "uint256" },
-      //     { name: "paymasterAndData", type: "bytes" },
-      //     { name: "EntryPoint", type: "address" },
-      //     { name: "sigTime", type: "uint256" },
-      //   ],
-      // };
-      // return {
-      //   ...userOperation,
-      //   EntryPoint: this.entryPointAddress,
-      //   sigTime: sigTime,
-      // }
+    userOperation.signature = encodePacked(
+      ["uint8", "uint256"],
+      [args.sigType == "EIP712" ? 0 : 1, sigTime],
+    );
+    if (this.version == "2.0.0") {
+      throw new Error("not impl");
     } else {
-      let encodedUserOperationData: Hex;
-      if (this.version == "2.0.0") {
-        // 2.0.0 supports V0.6
-        const userOperation_0_6_0 =
-          userOperation as unknown as UserOperation<"v0.6">;
-        encodedUserOperationData = encodeAbiParameters(
-          [
-            { name: "chainId", type: "uint256" },
-            { name: "sender", type: "address" },
-            { name: "nonce", type: "uint256" },
-            { name: "initCodeHash", type: "bytes32" },
-            { name: "callDataHash", type: "bytes32" },
-            { name: "callGasLimit", type: "uint256" },
-            { name: "verificationGasLimit", type: "uint256" },
-            { name: "preVerificationGas", type: "uint256" },
-            { name: "maxFeePerGas", type: "uint256" },
-            { name: "maxPriorityFeePerGas", type: "uint256" },
-            { name: "paymasterAndDataHash", type: "bytes32" },
-            { name: "EntryPoint", type: "address" },
-            { name: "sigTime", type: "uint256" },
-          ],
-          [
-            BigInt(await getChainId(this.owner.publicClient)),
-            userOperation_0_6_0.sender,
-            userOperation_0_6_0.nonce,
-            keccak256(userOperation_0_6_0.initCode),
-            keccak256(userOperation_0_6_0.callData),
-            userOperation_0_6_0.callGasLimit,
-            userOperation_0_6_0.verificationGasLimit,
-            userOperation_0_6_0.preVerificationGas,
-            userOperation_0_6_0.maxFeePerGas,
-            userOperation_0_6_0.maxPriorityFeePerGas,
-            keccak256(userOperation.paymasterAndData),
-            this.entryPointAddress,
-            sigTime,
-          ],
-        );
-      } else {
-        // 3.0.0 supports V0.7
-        const userOperation_0_7_0 =
-          userOperation as unknown as UserOperation0_7;
-        encodedUserOperationData = encodeAbiParameters(
-          [
-            { name: "chainId", type: "uint256" },
-            { name: "sender", type: "address" },
-            { name: "nonce", type: "uint256" },
-            { name: "initCodeHash", type: "bytes32" },
-            { name: "callDataHash", type: "bytes32" },
-            { name: "accountsGasLimits", type: "bytes32" },
-            { name: "preVerificationGas", type: "uint256" },
-            { name: "gasFees", type: "bytes32" },
-            { name: "paymasterAndDataHash", type: "bytes32" },
-            { name: "EntryPoint", type: "address" },
-            { name: "sigTime", type: "uint256" },
-          ],
-          [
-            BigInt(await getChainId(this.owner.publicClient)),
-            userOperation_0_7_0.sender,
-            userOperation_0_7_0.nonce,
-            keccak256(userOperation_0_7_0.initCode),
-            keccak256(userOperation_0_7_0.callData),
-            userOperation_0_7_0.accountGasLimits,
-            userOperation_0_7_0.preVerificationGas,
-            userOperation_0_7_0.gasFees,
-            keccak256(userOperation_0_7_0.paymasterAndData),
-            this.entryPointAddress,
-            sigTime,
-          ],
-        );
-      }
       return {
-        userOperationHash: keccak256(encodedUserOperationData),
+        userOperationHash: await this.getUOPHash(args.sigType, userOperation),
         userOperation: userOperation,
         sigTime: sigTime,
       };
