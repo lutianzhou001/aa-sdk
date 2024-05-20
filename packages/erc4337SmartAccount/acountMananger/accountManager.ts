@@ -90,6 +90,20 @@ export class AccountManager<
     return currentAccount.receipts;
   }
 
+  async getAdminValidator(sender: Address): Promise<Address> {
+    const currentAccount = this.getAccount(sender);
+    if (currentAccount.isDeployed) {
+      return (await this.owner.publicClient.readContract({
+        address: currentAccount.authenticationManager,
+        abi: authenticationManagerABI,
+        functionName: "adminValidator",
+        args: [],
+      })) as Address;
+    } else {
+      return currentAccount.defaultValidator;
+    }
+  }
+
   async refreshAccountTransactionReceipts(
     sender: Address,
   ): Promise<SmartAccountTransactionReceipt[]> {
