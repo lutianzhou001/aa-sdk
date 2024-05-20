@@ -10,7 +10,6 @@ import {
   hexToBigInt,
   hexToBytes,
   http,
-  keccak256,
   publicActions,
   SignTypedDataParameters,
   toHex,

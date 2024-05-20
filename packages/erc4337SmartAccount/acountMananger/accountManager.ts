@@ -37,6 +37,7 @@ import {
 } from "../../error/constants";
 import { EntryPointV0_7ABI } from "../../../abis/EntryPointV0_7.abi";
 import { authenticationManagerABI } from "../../../abis/authenticationManager.abi";
+import { BaseValiadatorABI } from "../../../abis/baseValiadator.abi";
 
 export class AccountManager<
   TTransport extends Transport = Transport,
@@ -90,17 +91,33 @@ export class AccountManager<
     return currentAccount.receipts;
   }
 
-  async getAdminValidator(sender: Address): Promise<Address> {
+  async getAdminValidatorAndSubject(
+    sender: Address,
+  ): Promise<{ adminValidator: Address; subject: Hex }> {
     const currentAccount = this.getAccount(sender);
+    let adminValidator: Address;
+    let subject: Hex;
     if (currentAccount.isDeployed) {
-      return (await this.owner.publicClient.readContract({
+      adminValidator = (await this.owner.publicClient.readContract({
         address: currentAccount.authenticationManager,
         abi: authenticationManagerABI,
         functionName: "adminValidator",
         args: [],
       })) as Address;
+      subject = (await this.owner.publicClient.readContract({
+        address: adminValidator,
+        abi: BaseValiadatorABI,
+        functionName: "subject",
+        args: [],
+      })) as Hex;
+      return { adminValidator: adminValidator, subject: subject };
     } else {
-      return currentAccount.defaultValidator;
+      adminValidator = currentAccount.defaultValidator;
+      subject = currentAccount.subject;
+      return {
+        adminValidator: adminValidator,
+        subject: subject,
+      };
     }
   }
 
