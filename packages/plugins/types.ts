@@ -5,6 +5,7 @@ import {
   SignTypedDataParameters,
   WalletClient,
 } from "viem";
+import { UserOperation } from "permissionless/types/userOperation";
 
 export interface ERC4337SmartAccountSigner<TSinger = any> {
   signerType?: string;

@@ -1,698 +1,900 @@
-export const smartAccountV3ABI = [
+export const smartAccountV3ABI =  [
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "_entryPoint",
-        type: "address",
+        "internalType": "address",
+        "name": "_entryPoint",
+        "type": "address"
       },
       {
-        internalType: "address",
-        name: "_validations",
-        type: "address",
+        "internalType": "address",
+        "name": "_validations",
+        "type": "address"
       },
       {
-        internalType: "address",
-        name: "_authenticationManagerTemplate",
-        type: "address",
+        "internalType": "address",
+        "name": "_authenticationManagerTemplate",
+        "type": "address"
       },
       {
-        internalType: "string",
-        name: "_version",
-        type: "string",
-      },
+        "internalType": "string",
+        "name": "_version",
+        "type": "string"
+      }
     ],
-    stateMutability: "nonpayable",
-    type: "constructor",
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
-    inputs: [],
-    name: "AuthenticationManagerNotAvailable",
-    type: "error",
+    "inputs": [],
+    "name": "AlreadyInitialized",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "DelegateCallDisabled",
-    type: "error",
+    "inputs": [],
+    "name": "AuthenticationManagerNotAvailable",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "DelegateCallDisabled",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ERC1167FailedCreateClone",
+    "type": "error"
+  },
+  {
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "index",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
     ],
-    name: "IndexTooBig",
-    type: "error",
+    "name": "IndexTooBig",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "InvalidInitialization",
+    "type": "error"
+  },
+  {
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "level",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "level",
+        "type": "uint256"
+      }
     ],
-    name: "LevelTooDeep",
-    type: "error",
+    "name": "LevelTooDeep",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "ModuleNotAvailable",
-    type: "error",
+    "inputs": [],
+    "name": "ModuleNotAvailable",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "NotFromEOA",
-    type: "error",
+    "inputs": [],
+    "name": "NotFromEOA",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "NotFromEntryPoint",
-    type: "error",
+    "inputs": [],
+    "name": "NotFromEntryPoint",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "NotFromEntryPointOrSelf",
-    type: "error",
+    "inputs": [],
+    "name": "NotFromEntryPointOrController",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "NotFromSelf",
-    type: "error",
+    "inputs": [],
+    "name": "NotFromEntryPointOrSelf",
+    "type": "error"
   },
   {
-    inputs: [],
-    name: "OnlyAdmin",
-    type: "error",
+    "inputs": [],
+    "name": "NotFromSelf",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "NotInitialized",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotInitializing",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OnlyAdmin",
+    "type": "error"
+  },
+  {
+    "inputs": [
       {
-        internalType: "CallType",
-        name: "callType",
-        type: "bytes1",
-      },
+        "internalType": "CallType",
+        "name": "callType",
+        "type": "bytes1"
+      }
     ],
-    name: "UnsupportedCallType",
-    type: "error",
+    "name": "UnsupportedCallType",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "ExecType",
-        name: "execType",
-        type: "bytes1",
-      },
+        "internalType": "ExecType",
+        "name": "execType",
+        "type": "bytes1"
+      }
     ],
-    name: "UnsupportedExecType",
-    type: "error",
+    "name": "UnsupportedExecType",
+    "type": "error"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "moduleType",
-        type: "uint256",
-      },
+        "internalType": "ModeSelector",
+        "name": "modeSelector",
+        "type": "bytes4"
+      }
     ],
-    name: "UnsupportedModuleType",
-    type: "error",
+    "name": "UnsupportedModeSelector",
+    "type": "error"
   },
   {
-    anonymous: false,
-    inputs: [
+    "inputs": [
       {
-        components: [
+        "internalType": "uint256",
+        "name": "moduleType",
+        "type": "uint256"
+      }
+    ],
+    "name": "UnsupportedModuleType",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ZeroAddress",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "components": [
           {
-            internalType: "address",
-            name: "target",
-            type: "address",
+            "internalType": "address",
+            "name": "target",
+            "type": "address"
           },
           {
-            internalType: "uint256",
-            name: "value",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
           },
           {
-            internalType: "bytes",
-            name: "callData",
-            type: "bytes",
-          },
+            "internalType": "bytes",
+            "name": "callData",
+            "type": "bytes"
+          }
         ],
-        indexed: false,
-        internalType: "struct Execution",
-        name: "execution",
-        type: "tuple",
+        "indexed": false,
+        "internalType": "struct Execution",
+        "name": "execution",
+        "type": "tuple"
       },
       {
-        indexed: false,
-        internalType: "bytes",
-        name: "reason",
-        type: "bytes",
-      },
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "reason",
+        "type": "bytes"
+      }
     ],
-    name: "BatchExeFailed",
-    type: "event",
+    "name": "ExeFailed",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "implement",
-        type: "address",
+        "indexed": false,
+        "internalType": "address",
+        "name": "session",
+        "type": "address"
       },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "role",
+        "type": "bytes32"
+      }
     ],
-    name: "ImplementUpdated",
-    type: "event",
+    "name": "HookAssigned",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: false,
-        internalType: "uint8",
-        name: "version",
-        type: "uint8",
-      },
+        "indexed": true,
+        "internalType": "address",
+        "name": "implement",
+        "type": "address"
+      }
     ],
-    name: "Initialized",
-    type: "event",
+    "name": "ImplementUpdated",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "moduleTypeId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "module",
-        type: "address",
-      },
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      }
     ],
-    name: "ModuleInstalled",
-    type: "event",
+    "name": "Initialized",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "moduleTypeId",
-        type: "uint256",
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "moduleTypeId",
+        "type": "uint256"
       },
       {
-        indexed: false,
-        internalType: "address",
-        name: "module",
-        type: "address",
-      },
+        "indexed": false,
+        "internalType": "address",
+        "name": "module",
+        "type": "address"
+      }
     ],
-    name: "ModuleUninstalled",
-    type: "event",
+    "name": "ModuleInstalled",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "sender",
-        type: "address",
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "moduleTypeId",
+        "type": "uint256"
       },
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "value",
-        type: "uint256",
-      },
+        "indexed": false,
+        "internalType": "address",
+        "name": "module",
+        "type": "address"
+      }
     ],
-    name: "SafeReceived",
-    type: "event",
+    "name": "ModuleUninstalled",
+    "type": "event"
   },
   {
-    stateMutability: "nonpayable",
-    type: "fallback",
+    "anonymous": false,
+    "inputs": [],
+    "name": "MyValidatorRemoved",
+    "type": "event"
   },
   {
-    inputs: [],
-    name: "AUTH_MANAGER_TEMPLATE",
-    outputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
+        "indexed": false,
+        "internalType": "address",
+        "name": "newValidator",
+        "type": "address"
       },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "subject",
+        "type": "bytes"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "Recover",
+    "type": "event"
   },
   {
-    inputs: [],
-    name: "ENTRYPOINT",
-    outputs: [
-      {
-        internalType: "contract IEntryPoint",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "anonymous": false,
+    "inputs": [],
+    "name": "RecoverCancelled",
+    "type": "event"
   },
   {
-    inputs: [],
-    name: "VALIDATIONS",
-    outputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        internalType: "contract IValidations",
-        name: "",
-        type: "address",
-      },
+        "indexed": false,
+        "internalType": "address",
+        "name": "recoveryModule",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "RecoveryModuleInstalled",
+    "type": "event"
   },
   {
-    inputs: [],
-    name: "VERSION",
-    outputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
+        "indexed": false,
+        "internalType": "address",
+        "name": "recoveryModule",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "RecoveryModuleUninstalledRequested",
+    "type": "event"
   },
   {
-    inputs: [],
-    name: "accountId",
-    outputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        internalType: "string",
-        name: "",
-        type: "string",
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
       },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "SafeReceived",
+    "type": "event"
   },
   {
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        internalType: "ModeCode",
-        name: "mode",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes",
-        name: "executionCalldata",
-        type: "bytes",
-      },
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
     ],
-    name: "execute",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
+    "name": "UnresolvedFallbackdata",
+    "type": "event"
   },
   {
-    inputs: [
-      {
-        internalType: "ModeCode",
-        name: "mode",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes",
-        name: "executionCalldata",
-        type: "bytes",
-      },
-    ],
-    name: "executeFromExecutor",
-    outputs: [
-      {
-        internalType: "bytes[]",
-        name: "returnData",
-        type: "bytes[]",
-      },
-    ],
-    stateMutability: "payable",
-    type: "function",
+    "stateMutability": "nonpayable",
+    "type": "fallback"
   },
   {
-    inputs: [],
-    name: "getAuthenticationManager",
-    outputs: [
+    "inputs": [],
+    "name": "AUTH_MANAGER_TEMPLATE",
+    "outputs": [
       {
-        internalType: "contract IAuthenticationManager",
-        name: "",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "ENTRYPOINT",
+    "outputs": [
       {
-        internalType: "bytes",
-        name: "params",
-        type: "bytes",
-      },
+        "internalType": "contract IEntryPoint",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "initializeAccount",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "moduleType",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "module",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "initData",
-        type: "bytes",
-      },
+        "internalType": "address",
+        "name": "_owner",
+        "type": "address"
+      }
     ],
-    name: "installModule",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
+    "name": "Initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "VALIDATIONS",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "moduleType",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "module",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "additionalContext",
-        type: "bytes",
-      },
+        "internalType": "contract IValidations",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "isModuleInstalled",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "VERSION",
+    "outputs": [
       {
-        internalType: "bytes32",
-        name: "_hash",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes",
-        name: "_signature",
-        type: "bytes",
-      },
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
     ],
-    name: "isValidSignature",
-    outputs: [
-      {
-        internalType: "bytes4",
-        name: "",
-        type: "bytes4",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "accountId",
+    "outputs": [
       {
-        internalType: "address",
-        name: "validator",
-        type: "address",
-      },
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
     ],
-    name: "nonce",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "cancelRecover",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
-        components: [
+        "internalType": "ModeCode",
+        "name": "mode",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "executionCalldata",
+        "type": "bytes"
+      }
+    ],
+    "name": "execute",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "ModeCode",
+        "name": "mode",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "executionCalldata",
+        "type": "bytes"
+      }
+    ],
+    "name": "executeFromEOA",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "ModeCode",
+        "name": "mode",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "executionCalldata",
+        "type": "bytes"
+      }
+    ],
+    "name": "executeFromExecutor",
+    "outputs": [
+      {
+        "internalType": "bytes[]",
+        "name": "returnData",
+        "type": "bytes[]"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAuthenticationManager",
+    "outputs": [
+      {
+        "internalType": "contract IAuthenticationManager",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "",
+        "type": "bytes"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "params",
+        "type": "bytes"
+      }
+    ],
+    "name": "initializeAccount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "moduleType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "module",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "initData",
+        "type": "bytes"
+      }
+    ],
+    "name": "installModule",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "recoveryModule",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
+    ],
+    "name": "installRecoveryModule",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "moduleType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "module",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "",
+        "type": "bytes"
+      }
+    ],
+    "name": "isModuleInstalled",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "_hash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_signature",
+        "type": "bytes"
+      }
+    ],
+    "name": "isValidSignature",
+    "outputs": [
+      {
+        "internalType": "bytes4",
+        "name": "",
+        "type": "bytes4"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "migrate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "validator",
+        "type": "address"
+      }
+    ],
+    "name": "nonce",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newValidatorTemplate",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_subject",
+        "type": "bytes"
+      }
+    ],
+    "name": "recover",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "removeMyValidator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "ModeCode",
+        "name": "mode",
+        "type": "bytes32"
+      }
+    ],
+    "name": "supportsAccountMode",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "isSupported",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "moduleTypeId",
+        "type": "uint256"
+      }
+    ],
+    "name": "supportsModule",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "moduleType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "module",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "deInitData",
+        "type": "bytes"
+      }
+    ],
+    "name": "uninstallModule",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "recoveryModule",
+        "type": "address"
+      }
+    ],
+    "name": "uninstallRecoveryModule",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "implement",
+        "type": "address"
+      }
+    ],
+    "name": "updateImplement",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "implement",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
+    ],
+    "name": "updateImplementAndCall",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
           {
-            internalType: "uint64",
-            name: "validUntil",
-            type: "uint64",
+            "internalType": "address",
+            "name": "sender",
+            "type": "address"
           },
           {
-            internalType: "address",
-            name: "validator",
-            type: "address",
+            "internalType": "uint256",
+            "name": "nonce",
+            "type": "uint256"
           },
+          {
+            "internalType": "bytes",
+            "name": "initCode",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "callData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "accountGasLimits",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "preVerificationGas",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "gasFees",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes",
+            "name": "paymasterAndData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "signature",
+            "type": "bytes"
+          }
         ],
-        internalType: "struct IAuthenticationManager.StaleValidator",
-        name: "staleValidator",
-        type: "tuple",
+        "internalType": "struct PackedUserOperation",
+        "name": "userOp",
+        "type": "tuple"
       },
       {
-        components: [
-          {
-            internalType: "uint64",
-            name: "validFrom",
-            type: "uint64",
-          },
-          {
-            internalType: "uint64",
-            name: "validUntil",
-            type: "uint64",
-          },
-          {
-            internalType: "bytes",
-            name: "subject",
-            type: "bytes",
-          },
-        ],
-        internalType: "struct ISession.Session",
-        name: "newValidator",
-        type: "tuple",
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
       },
       {
-        internalType: "address",
-        name: "newValidatorTemplate",
-        type: "address",
-      },
+        "internalType": "uint256",
+        "name": "missingAccountFunds",
+        "type": "uint256"
+      }
     ],
-    name: "recover",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "validateUserOp",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "validationData",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
   },
   {
-    inputs: [
-      {
-        internalType: "ModeCode",
-        name: "mode",
-        type: "bytes32",
-      },
-    ],
-    name: "supportsAccountMode",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "isSupported",
-        type: "bool",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "moduleTypeId",
-        type: "uint256",
-      },
-    ],
-    name: "supportsModule",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "moduleType",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "module",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "deInitData",
-        type: "bytes",
-      },
-    ],
-    name: "uninstallModule",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "implement",
-        type: "address",
-      },
-    ],
-    name: "updateImplement",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "implement",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
-    ],
-    name: "updateImplementAndCall",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            internalType: "address",
-            name: "sender",
-            type: "address",
-          },
-          {
-            internalType: "uint256",
-            name: "nonce",
-            type: "uint256",
-          },
-          {
-            internalType: "bytes",
-            name: "initCode",
-            type: "bytes",
-          },
-          {
-            internalType: "bytes",
-            name: "callData",
-            type: "bytes",
-          },
-          {
-            internalType: "bytes32",
-            name: "accountGasLimits",
-            type: "bytes32",
-          },
-          {
-            internalType: "uint256",
-            name: "preVerificationGas",
-            type: "uint256",
-          },
-          {
-            internalType: "bytes32",
-            name: "gasFees",
-            type: "bytes32",
-          },
-          {
-            internalType: "bytes",
-            name: "paymasterAndData",
-            type: "bytes",
-          },
-          {
-            internalType: "bytes",
-            name: "signature",
-            type: "bytes",
-          },
-        ],
-        internalType: "struct PackedUserOperation",
-        name: "userOp",
-        type: "tuple",
-      },
-      {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-      {
-        internalType: "uint256",
-        name: "missingAccountFunds",
-        type: "uint256",
-      },
-    ],
-    name: "validateUserOp",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "validationData",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    stateMutability: "payable",
-    type: "receive",
-  },
-];
+    "stateMutability": "payable",
+    "type": "receive"
+  }
+]

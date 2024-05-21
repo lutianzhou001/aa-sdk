@@ -20,5 +20,3 @@ export type GeneratePaymasterSignatureType = {
   paymasterVerificationGasLimit?: bigint;
   paymasterPostOpGasLimit?: bigint;
 };
-
-export type Version = "2.0.0" | "3.0.0";

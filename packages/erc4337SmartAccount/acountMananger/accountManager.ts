@@ -38,6 +38,7 @@ import {
 import { EntryPointV0_7ABI } from "../../../abis/EntryPointV0_7.abi";
 import { authenticationManagerABI } from "../../../abis/authenticationManager.abi";
 import { BaseValiadatorABI } from "../../../abis/baseValiadator.abi";
+import { arbitrum } from "viem/chains";
 
 export class AccountManager<
   TTransport extends Transport = Transport,
@@ -89,6 +90,20 @@ export class AccountManager<
   ): SmartAccountTransactionReceipt[] {
     const currentAccount = this.getAccount(sender);
     return currentAccount.receipts;
+  }
+
+  async installRecoveryValidator(
+    sender: Address,
+    recoveryModule: Address,
+    callData: Hex,
+  ): Promise<void> {
+    return await this.owner.signer.writeContract({
+      address: sender,
+      abi: smartAccountV3ABI,
+      functionName: "installRecoveryModule",
+      args: [recoveryModule, callData],
+      account: (await this.owner.signer.getAddresses())[0],
+    });
   }
 
   async getAdminValidatorAndSubject(
@@ -181,7 +196,7 @@ export class AccountManager<
     index: bigint = BigInt(0),
     executions: Hex[] = [],
   ): Promise<Account> {
-    if (this.version == "2.0.0") {
+    if (this.version.slice(0, 1) == "2") {
       return await this.createNewAccountV2(index);
     } else {
       return await this.createNewAccountV3(index, executions);
@@ -228,7 +243,7 @@ export class AccountManager<
     amount: number,
     executions: Hex[] = [],
   ): Promise<Account[]> {
-    if (this.version == "2.0.0") {
+    if (this.version.slice(0, 1) == "2") {
       return await this.batchCreateNewAccountV2(amount);
     } else {
       return await this.batchCreateNewAccountV3(amount, executions);
@@ -357,7 +372,7 @@ export class AccountManager<
     index: bigint = BigInt(0),
     executions: Hex[] = [],
   ): Promise<Account> {
-    if (this.version == "2.0.0") {
+    if (this.version.slice(0, 1) == "2") {
       throw new BaseSmartAccountError(
         "BaseSmartAccountError",
         "This function is not supported in version 2.0.0",
@@ -547,7 +562,7 @@ export class AccountManager<
   ): Promise<bigint> {
     const account = this.getAccount(accountAddress);
     validatorAddress = validatorAddress ?? account.defaultValidator;
-    if (this.version == "2.0.0") {
+    if (this.version.slice(0, 1) == "2") {
       return await this.owner.publicClient.readContract({
         address: this.entryPointAddress,
         abi: EntryPointABI,

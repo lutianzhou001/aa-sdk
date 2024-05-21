@@ -120,7 +120,7 @@ export interface ISmartContractAccount {
   ): Hex;
   // uninstallValidator(): Promise<Hex>;
 
-  encodeExecute(args: ExecuteCallDataArgs): Promise<Hex>;
+  encodeExecute(args: ExecuteCallDataArgs): Hex;
 
   extend: <R>(extendFn: (self: this) => R) => this & R;
 }

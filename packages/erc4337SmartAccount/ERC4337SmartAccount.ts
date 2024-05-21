@@ -123,7 +123,7 @@ export class ERC4337SmartAccount<
     });
   }
 
-  async encodeExecute(args: ExecuteCallDataArgs): Promise<Hex> {
+  encodeExecute(args: ExecuteCallDataArgs): Hex {
     if (args.execMode.callType == "delegatecall") {
       throw new Error("delegateCall not impl");
     }
@@ -133,7 +133,7 @@ export class ERC4337SmartAccount<
     ) {
       throw new Error("batchCall must be an array");
     }
-    if (Array.isArray(args.execRawData) && this.version == "3.0.0") {
+    if (Array.isArray(args.execRawData) && this.version.slice(0, 1) == "3") {
       const mode = compileMode(args.execMode);
       const calldata = encodeAbiParameters(
         [
@@ -154,10 +154,13 @@ export class ERC4337SmartAccount<
         functionName: "execute",
         args: [mode, calldata],
       });
-    } else if (Array.isArray(args.execRawData) && this.version == "2.0.0") {
+    } else if (
+      Array.isArray(args.execRawData) &&
+      this.version.slice(0, 1) == "2"
+    ) {
       throw new Error("n.i");
     }
-    if (!Array.isArray(args.execRawData) && this.version == "2.0.0") {
+    if (!Array.isArray(args.execRawData) && this.version.slice(0, 1) == "2") {
       // 2.0.0 single encode
       return encodeFunctionData({
         abi: smartAccountV2ABI,
@@ -168,7 +171,10 @@ export class ERC4337SmartAccount<
           args.execRawData.data,
         ],
       });
-    } else if (!Array.isArray(args.execRawData) && this.version == "3.0.0") {
+    } else if (
+      !Array.isArray(args.execRawData) &&
+      this.version.slice(0, 1) == "3"
+    ) {
       const mode = compileMode(args.execMode);
       const calldata = encodePacked(
         ["address", "uint256", "bytes"],
@@ -251,14 +257,57 @@ export class ERC4337SmartAccount<
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
     userOperationHash: Hex,
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
-    userOperation.signature = encodePacked(
-      ["uint8", "uint256", "bytes"],
-      [
-        sigType == "EIP712" ? 0 : 1,
-        sigTime,
-        await this.owner.signMessage(userOperationHash),
-      ],
-    );
+    if (sigType == "EIP712") {
+      const account = this.accountManager.getAccount(userOperation.sender);
+      const domain = {
+        name: this.name,
+        version: this.version,
+        chainId: await getChainId(this.owner.publicClient),
+        verifyingContract: account.authenticationManager,
+      };
+      const types = {
+        SignMessage: [
+          { name: "sender", type: "address" },
+          { name: "nonce", type: "uint256" },
+          { name: "initCode", type: "bytes" },
+          { name: "callData", type: "bytes" },
+          { name: "accountGasLimits", type: "uint256" },
+          { name: "gasFees", type: "uint256" },
+          { name: "preVerificationGas", type: "uint256" },
+          { name: "paymasterAndData", type: "bytes" },
+          { name: "EntryPoint", type: "address" },
+          { name: "sigTime", type: "uint256" },
+        ],
+      };
+      const value = {
+        sender: userOperation.sender,
+        nonce: userOperation.nonce,
+        initCode: userOperation.initCode,
+        callData: userOperation.callData,
+        accountGasLimits: (userOperation as UserOperation0_7).accountGasLimits,
+        preVerificationGas: (userOperation as UserOperation0_7)
+          .preVerificationGas,
+        gasFees: (userOperation as UserOperation0_7).gasFees,
+        paymasterAndData: userOperation.paymasterAndData,
+        EntryPoint: this.entryPointAddress,
+        sigTime: sigTime,
+      };
+      const signature = await this.owner.signer.signTypedData({
+        domain: domain,
+        types: types,
+        message: value,
+      });
+      userOperation.signature = encodePacked(
+        ["uint8", "uint256", "bytes"],
+        [0, sigTime, signature],
+      );
+      return userOperation;
+    } else {
+      userOperation.signature = encodePacked(
+        ["uint8", "uint256", "bytes"],
+        [1, sigTime, await this.owner.signMessage(userOperationHash)],
+      );
+    }
     return userOperation;
   }
 
@@ -293,7 +342,7 @@ export class ERC4337SmartAccount<
       ["uint8", "uint256"],
       [args.sigType == "EIP712" ? 0 : 1, sigTime],
     );
-    if (this.version == "2.0.0") {
+    if (this.version.slice(0, 1) == "2") {
       throw new Error("not impl");
     } else {
       return {
@@ -308,7 +357,7 @@ export class ERC4337SmartAccount<
     userOperation: UserOperation<"v0.6">,
     walletClient?: WalletClient,
   ): Promise<SmartAccountTransactionReceipt> {
-    if (this.version == "2.0.0") {
+    if (this.version.slice(0, 1) == "2") {
       const req = {
         method: "post",
         maxBodyLength: Infinity,
@@ -372,7 +421,7 @@ export class ERC4337SmartAccount<
     );
     let nonce: bigint;
     if (account.isDeployed) {
-      if (this.version == "2.0.0") {
+      if (this.version.slice(0, 1) == "2") {
         nonce = userOperationDraft.nonce
           ? userOperationDraft.nonce
           : await this.accountManager.getNonce(
@@ -391,11 +440,11 @@ export class ERC4337SmartAccount<
       }
     } else {
       nonce =
-        this.version == "2.0.0"
+        this.version.slice(0, 1) == "2"
           ? BigInt(0)
           : BigInt(account.defaultValidator + "0000000000000000");
     }
-    if (this.version == "3.0.0") {
+    if (this.version.slice(0, 1) == "3") {
       return {
         sender: account.accountAddress,
         nonce: toHex(nonce) as any, //nonce,
@@ -551,7 +600,7 @@ export class ERC4337SmartAccount<
     validatorTemplate: Address = configuration.v3
       .ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
   ): Hex {
-    if (this.version == "2.0.0") {
+    if (this.version.slice(0, 1) == "2") {
       throw new BaseSmartAccountError(
         "BaseSmartAccountError",
         "This function is not supported in version 2.0.0",

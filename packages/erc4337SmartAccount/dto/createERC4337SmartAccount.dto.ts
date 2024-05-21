@@ -10,7 +10,7 @@ export class CreateERC4337SmartAccountParams<
 > {
   readonly owner: TOwner;
 
-  readonly version: Version;
+  readonly version: string;
 
   readonly name?: string;
 
@@ -22,5 +22,3 @@ export class CreateERC4337SmartAccountParams<
 
   readonly baseUrl?: string;
 }
-
-export type Version = "2.0.0" | "3.0.0";

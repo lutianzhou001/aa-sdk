@@ -7,10 +7,12 @@ import {
   PublicClient,
   publicActions,
   Address,
+  domainSeparator,
 } from "viem";
-import type { ERC4337SmartAccountSigner } from "../types";
+import type { ERC4337SmartAccountSigner, UserOperation0_7 } from "../types";
 import { BaseSmartAccountError } from "../../error/constants";
 import { configuration } from "../../../configuration";
+import { UserOperation } from "permissionless/types/userOperation";
 
 export class WalletClientSigner
   implements ERC4337SmartAccountSigner<WalletClient>
@@ -56,15 +58,7 @@ export class WalletClientSigner
     }
   }
 
-  async signTypedData(
-    args: Omit<SignTypedDataParameters, "account">,
-  ): Promise<Hex> {
-    const account = this.signer.account ?? (await this.getSubject());
-
-    // override the account
-    return this.signer.signTypedData({
-      account,
-      ...args,
-    });
+  async signTypedData(args: SignTypedDataParameters): Promise<Hex> {
+    return this.signer.signTypedData(args);
   }
 }

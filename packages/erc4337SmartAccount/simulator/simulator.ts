@@ -50,7 +50,7 @@ export class Simulator<
     userOperation: UserOperation<"v0.6">,
     bundler?: Address,
   ): Promise<UserOperationSimulationResponse> {
-    if (this.version == "3.0.0") {
+    if (this.version.slice(0, 1) == "3") {
       return {
         success: false,
         message: "Not supported",

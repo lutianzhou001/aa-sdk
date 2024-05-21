@@ -65,7 +65,7 @@ export class PaymasterManager<
     paymaster: GeneratePaymasterSignatureType,
   ): Promise<UserOperation<"v0.6"> | UserOperation0_7> {
     // query paymasterAndDataFrom the endpoint.
-    if (this.version == "2.0.0") {
+    if (this.version.slice(0, 1) == "2") {
       const config = {
         method: "post",
         maxBodyLength: Infinity,
