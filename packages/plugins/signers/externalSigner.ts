@@ -9,17 +9,25 @@ import {
 } from "viem";
 import type { ERC4337SmartAccountSigner } from "../types";
 import { configuration } from "../../../configuration";
+import { subtle } from "node:crypto";
 
 export class ExternalSigner implements ERC4337SmartAccountSigner<any> {
   signer: any;
   publicClient: PublicClient;
   signerType: string;
   template: Address;
+  subject: Hex;
 
-  constructor(signer: any, publicClient: PublicClient, template?: Address) {
+  constructor(
+    signer: any,
+    publicClient: PublicClient,
+    subject: Hex,
+    template?: Address,
+  ) {
     this.signer = signer;
     this.publicClient = publicClient;
     this.template = template ?? configuration.v3.JWT_VALIDATOR_TEMPLATE_ADDRESS;
+    this.subject = subject;
   }
 
   async signMessage(message: Uint8Array | string | Hex): Promise<Hex> {
@@ -30,7 +38,7 @@ export class ExternalSigner implements ERC4337SmartAccountSigner<any> {
     throw new Error("not impl");
   }
 
-  async getSubject(): Promise<Address> {
-    return zeroAddress;
+  async getSubject(): Promise<Hex> {
+    return this.subject;
   }
 }

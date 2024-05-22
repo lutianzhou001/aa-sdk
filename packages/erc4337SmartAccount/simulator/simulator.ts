@@ -1,4 +1,12 @@
-import { Address, Chain, Client, Hex, publicActions, Transport } from "viem";
+import {
+  Address,
+  ByteArray,
+  Chain,
+  Client,
+  Hex,
+  publicActions,
+  Transport,
+} from "viem";
 import { UserOperation } from "permissionless/types/userOperation";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
 import { CreateSimulatorParams } from "./createSimulatorParams.dto";

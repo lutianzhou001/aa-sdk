@@ -37,14 +37,13 @@ export class WalletClientSigner
       template ?? configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS;
   }
 
-  async getSubject(): Promise<Address> {
+  async getSubject(): Promise<Hex> {
     const addresses = await this.signer.getAddresses();
     return getAddress(addresses[0]);
   }
 
   async signMessage(message: Uint8Array | string | Hex): Promise<Hex> {
     const account = this.signer.account ?? (await this.getSubject());
-
     if (typeof message === "string" && !isHex(message)) {
       return this.signer.signMessage({
         account,

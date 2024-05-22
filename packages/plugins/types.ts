@@ -13,7 +13,7 @@ export interface ERC4337SmartAccountSigner<TSinger = any> {
   publicClient: PublicClient;
   template: Address;
 
-  getSubject: () => Promise<Address>;
+  getSubject: () => Promise<Hex>;
 
   signMessage: (msg: Uint8Array | Hex | string) => Promise<Hex>;
 
