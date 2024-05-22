@@ -92,20 +92,6 @@ export class AccountManager<
     return currentAccount.receipts;
   }
 
-  async installRecoveryValidator(
-    sender: Address,
-    recoveryModule: Address,
-    callData: Hex,
-  ): Promise<void> {
-    return await this.owner.signer.writeContract({
-      address: sender,
-      abi: smartAccountV3ABI,
-      functionName: "installRecoveryModule",
-      args: [recoveryModule, callData],
-      account: (await this.owner.signer.getAddresses())[0],
-    });
-  }
-
   async getAdminValidatorAndSubject(
     sender: Address,
   ): Promise<{ adminValidator: Address; subject: Hex }> {

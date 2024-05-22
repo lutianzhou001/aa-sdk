@@ -52,7 +52,6 @@ import { mainnet } from "viem/chains";
 import { EntryPointV0_7ABI } from "../../abis/EntryPointV0_7.abi";
 import { compileBigInt, compileMode, getSigTime } from "../common/utils";
 import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
-import { smartAccountV2WithInscriptionSupportedABI } from "../../abis/smartAccountV2WithInscriptionSupported.abi";
 
 export class ERC4337SmartAccount<
   TTransport extends Transport = Transport,
@@ -263,39 +262,42 @@ export class ERC4337SmartAccount<
         name: this.name,
         version: this.version,
         chainId: await getChainId(this.owner.publicClient),
-        verifyingContract: account.authenticationManager,
+        verifyingContract: configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
       };
-      const types = {
+      // keccak256("SignMessage(address sender,uint256 nonce,bytes initCode,bytes callData,bytes32 accountGasLimits,uint256 preVerificationGas,bytes32 gasFees,bytes paymasterAndData,address EntryPoint,uint256 sigTime)")
+      let types = {
         SignMessage: [
           { name: "sender", type: "address" },
           { name: "nonce", type: "uint256" },
           { name: "initCode", type: "bytes" },
           { name: "callData", type: "bytes" },
-          { name: "accountGasLimits", type: "uint256" },
-          { name: "gasFees", type: "uint256" },
+          { name: "accountGasLimits", type: "bytes32" },
           { name: "preVerificationGas", type: "uint256" },
+          { name: "gasFees", type: "bytes32" },
           { name: "paymasterAndData", type: "bytes" },
           { name: "EntryPoint", type: "address" },
           { name: "sigTime", type: "uint256" },
         ],
       };
-      const value = {
-        sender: userOperation.sender,
-        nonce: userOperation.nonce,
+      let value = {
+        sender: userOperation.sender as Address,
+        nonce: BigInt(userOperation.nonce),
         initCode: userOperation.initCode,
         callData: userOperation.callData,
         accountGasLimits: (userOperation as UserOperation0_7).accountGasLimits,
-        preVerificationGas: (userOperation as UserOperation0_7)
-          .preVerificationGas,
+        preVerificationGas: BigInt(
+          (userOperation as UserOperation0_7).preVerificationGas,
+        ),
         gasFees: (userOperation as UserOperation0_7).gasFees,
         paymasterAndData: userOperation.paymasterAndData,
         EntryPoint: this.entryPointAddress,
         sigTime: sigTime,
       };
-      const signature = await this.owner.signer.signTypedData({
+      const signature = await this.owner.signer.account.signTypedData({
         domain: domain,
         types: types,
         message: value,
+        primaryType: "SignMessage",
       });
       userOperation.signature = encodePacked(
         ["uint8", "uint256", "bytes"],
