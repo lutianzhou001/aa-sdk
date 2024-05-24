@@ -8,17 +8,11 @@ export interface IAccountManager<
 > {
   createNewAccount(
     owner: TSigner,
-    index: bigint,
+    name: string,
     version: string,
+    index: bigint,
     executions: Hex[],
   ): Promise<Account<TSigner>>;
-
-  batchCreateNewAccount(
-    owner: TSigner,
-    amount: number,
-    version: string,
-    executions: Hex[],
-  ): Promise<void>;
 
   getAccounts(): Account<TSigner>[];
   getAccountCreationCodeHash(account: Account<TSigner>): Promise<Hex>;

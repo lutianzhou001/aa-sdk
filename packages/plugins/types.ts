@@ -17,7 +17,7 @@ export type ERC4337SmartAccountSigner = {
 };
 
 export type UserOperationDraft = {
-  sender: Address;
+  sender?: Address;
   nonce?: bigint;
   initCode?: Hex;
   callData: Hex;

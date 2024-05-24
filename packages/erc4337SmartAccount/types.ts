@@ -1,19 +1,41 @@
 import type { Address } from "abitype";
 import type { Chain, Hash, Hex, Transport } from "viem";
-import { AccountManager } from "./acountMananger/accountManager";
-import { PaymasterManager } from "./paymasterManager/paymaster";
-import { ERC4337SmartAccountSigner } from "../plugins/types";
-import { SimulatorManager } from "./simulator/simulator";
+import {
+  ERC4337SmartAccountSigner,
+} from "../plugins/types";
+import { UserOperation } from "permissionless/types/userOperation";
+import { PackedUserOperation } from "permissionless/types";
 
 export type CallType = "single" | "delegatecall" | "batch" | undefined;
 
-export type SignType = "EIP712" | "EIP191";
+export type SigType = "EIP712" | "EIP191";
 
 export type ExecutionMode = {
   callType?: CallType;
   try?: boolean;
   allowFailedExecution?: boolean;
   modeParams?: string;
+};
+
+export type GasEstimationMiddleware = {
+  callGasLimit: bigint;
+  preVerificationGas: bigint;
+  verificationGasLimit: bigint;
+};
+
+export type FeeDataMiddleware = {
+  maxFeePerGas: bigint;
+  maxPriorityFeePerGas: bigint;
+};
+
+export type PackTxMiddlewareOverride = {
+  gasEstimationMiddleware: GasEstimationMiddleware;
+  feeDataMiddleware: FeeDataMiddleware;
+};
+
+export type ClientsUrls = {
+  bundlerUrl?: string;
+  paymasterUrl?: string;
 };
 
 export type ExecuteCallDataArgs =
@@ -43,17 +65,25 @@ export type SupportedPayMaster = {
   type: number;
 };
 
-export type ManagerController<
+export type Runtime<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > = {
-  accountManager: AccountManager<TTransport, TChain, TSigner>;
-  paymasterManager: PaymasterManager<TTransport, TChain, TSigner>;
-  simulatorManager: SimulatorManager<TTransport, TChain, TSigner>;
-  // simulatorManager: SimulatorManager;
-  // receiptManager: ReceiptManager;
-  // bundlerManager: BundlerManager;
+  account: Account<TSigner> | undefined;
+  userOperation: UserOperation<"v0.7">;
+  packedUserOperation: PackedUserOperation;
+  rawPaymaster?: RawPaymaster;
+  userOperationHash?: Hex;
+  sigType?: SigType;
+  sigTime?: bigint;
+};
+
+export type RawPaymaster = {
+  paymasterAddress: Address;
+  paymasterToken?: Address;
+  paymasterVerificationGasLimit?: bigint;
+  paymasterPostOpGasLimit?: bigint;
 };
 
 export type Account<
@@ -66,7 +96,8 @@ export type Account<
   authenticationManagerAddress: Address | undefined;
   receipts: SmartAccountTransactionReceipt[];
   initCode: Hex;
-  getVersion(): string;
+  version: string;
+  name: string;
 };
 
 export type SmartAccountTransactionReceipt = {

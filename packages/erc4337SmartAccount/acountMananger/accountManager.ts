@@ -8,7 +8,7 @@ import {
   type Hash,
   Hex,
   keccak256,
-  parseAbiParameters,
+  toHex,
   Transport,
   zeroHash,
 } from "viem";
@@ -17,7 +17,6 @@ import { configuration, networkConfigurations } from "../../../configuration";
 import { ERC4337SmartAccountSigner } from "../../plugins/types";
 import { IAccountManager } from "./IAccountManager.interface";
 import { Account, SmartAccountTransactionReceipt } from "../types";
-import { accountFactoryV2ABI } from "../../../abis/accountFactoryV2.abi";
 import { initializeAccountABI } from "../../../abis/initializeAccount.abi";
 import { accountFactoryV3ABI } from "../../../abis/accountFactoryV3.abi";
 import {
@@ -26,6 +25,8 @@ import {
 } from "../../common/utils";
 import { EntryPointV0_7ABI } from "../../../abis/EntryPointV0_7.abi";
 import { IManager } from "../moduleManager/IManager.interface";
+import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
+import { EntryPointAbi } from "@alchemy/aa-core";
 
 export class AccountManager<
     TTransport extends Transport = Transport,
@@ -126,87 +127,24 @@ export class AccountManager<
 
   async createNewAccount(
     signer: TSigner,
-    index: bigint = BigInt(0),
+    name: string,
     version: string,
+    index: bigint = BigInt(0),
     executions: Hex[] = [],
   ): Promise<Account<TSigner>> {
-    return version === "2.0.0"
-      ? await this.createNewAccountV2(signer, index)
-      : await this.createNewAccountV3(signer, index, executions);
-  }
-
-  async batchCreateNewAccount(
-    signer: TSigner,
-    amount: number,
-    version: string,
-    executions: Hex[] = [],
-  ): Promise<void> {
-    if (amount <= 0) {
-      throw new Error("invalid amount");
-    }
-    const index = this.accounts.filter(
-      (account) => account.getVersion() === version,
-    ).length;
-    for (let i = index; i < index + amount; i++) {
-      version === "2.0.0"
-        ? await this.createNewAccountV2(signer, BigInt(i))
-        : await this.createNewAccountV3(signer, BigInt(i), executions);
-    }
-  }
-
-  private async createNewAccountV2(
-    signer: TSigner,
-    index: bigint = BigInt(0),
-  ): Promise<Account<TSigner>> {
-    const initializeAccountData = encodeAbiParameters(
-      parseAbiParameters("address creator, bytes init"),
-      [await signer.getSubject(), "0x"],
+    return await this.createNewAccountV3(
+      signer,
+      name,
+      version,
+      index,
+      executions,
     );
-
-    const salt = keccak256(
-      encodePacked(["address", "uint256"], [await signer.getSubject(), index]),
-    );
-
-    const accountAddress = getCreate2Address({
-      from: getConfiguration("2.0.0").factoryAddress,
-      salt: salt,
-      bytecodeHash: configuration.v2.CREATION_CODE,
-    });
-
-    const initCode = encodePacked(
-      ["address", "bytes"],
-      [
-        getConfiguration("2.0.0").factoryAddress,
-        encodeFunctionData({
-          abi: accountFactoryV2ABI,
-          functionName: "createAccount",
-          args: [
-            configuration.v2.SMART_ACCOUNT_TEMPLATE_ADDRESS,
-            initializeAccountData,
-            index,
-          ],
-        }),
-      ],
-    );
-
-    const _account: Account<TSigner> = {
-      signer: signer,
-      accountAddress: accountAddress,
-      nonceKey: "0x" as Hex,
-      isDeployed: false,
-      authenticationManagerAddress: undefined,
-      receipts: [],
-      initCode: initCode,
-      getVersion(): string {
-        return "2.0.0";
-      },
-    };
-    await this.refreshAccounts([_account]);
-    return _account;
   }
 
   private async createNewAccountV3(
     signer: TSigner,
+    name: string,
+    version: string,
     index: bigint = BigInt(0),
     executions: Hex[] = [],
   ): Promise<Account<TSigner>> {
@@ -225,7 +163,7 @@ export class AccountManager<
     const initCode = encodePacked(
       ["address", "bytes"],
       [
-        getConfiguration("3.0.0").factoryAddress,
+        getConfiguration(version).factoryAddress,
         encodeFunctionData({
           abi: accountFactoryV3ABI,
           functionName: "createAccount",
@@ -243,7 +181,7 @@ export class AccountManager<
     );
 
     const accountAddress = getCreate2Address({
-      from: getConfiguration("3.0.0").factoryAddress,
+      from: getConfiguration(version).factoryAddress,
       salt: salt,
       bytecodeHash: configuration.v3.SMART_ACCOUNT_PROXY_CODE_HASH,
     });
@@ -260,6 +198,12 @@ export class AccountManager<
       authenticationManagerAddress,
     );
 
+    if (keccak256(toHex(name)) != "0x" || keccak256(toHex(version)) != "0x") {
+      throw new Error(
+        "name or version hash not match onchain version, pls check",
+      );
+    }
+
     const _account: Account<TSigner> = {
       signer: signer,
       accountAddress: accountAddress,
@@ -268,9 +212,8 @@ export class AccountManager<
       authenticationManagerAddress: authenticationManagerAddress,
       receipts: [],
       initCode: initCode,
-      getVersion(): string {
-        return "3.0.0";
-      },
+      version: version,
+      name: name,
     };
     await this.refreshAccounts([_account]);
     return _account;
@@ -293,7 +236,7 @@ export class AccountManager<
   async getNonce(account: Account<TSigner>): Promise<bigint> {
     // @ts-ignore
     return await account.signer.publicClient.readContract({
-      address: getConfiguration(account.getVersion()).entryPointAddress,
+      address: ENTRYPOINT_ADDRESS_V07,
       abi: EntryPointV0_7ABI,
       functionName: "getNonce",
       args: [account.accountAddress, BigInt(account.nonceKey)],

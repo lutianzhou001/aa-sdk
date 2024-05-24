@@ -1,20 +1,21 @@
 import {
-  http,
-  Hex,
-  type WalletClient,
   createWalletClient,
-  keccak256,
   encodePacked,
+  Hex,
+  http,
+  keccak256,
   PublicClient,
   toHex,
+  type WalletClient,
 } from "viem";
 import { type Account, privateKeyToAccount } from "viem/accounts";
-import { type Chain, goerli } from "viem/chains";
 import * as allChains from "viem/chains";
+import { type Chain, goerli } from "viem/chains";
 import { Address } from "abitype";
 import { BaseSmartAccountError } from "../error/constants";
 import { ExecutionMode } from "../erc4337SmartAccount/types";
 import { configuration } from "../../configuration";
+import axios from "axios";
 
 export function getConfiguration(version: string): {
   entryPointAddress: Address;
@@ -76,10 +77,20 @@ export function getTestingChain(): Chain {
   return chain;
 }
 
-export function compileBigInt(a: bigint, b: bigint): Hex {
-  return ("0x" +
+export function compileBigInt(
+  a: bigint,
+  b: bigint,
+): `0x${string & { length: 64 }}` {
+  const res =
+    "0x" +
     toHex(bigIntToBytes16(a)).slice(2, 34) +
-    toHex(bigIntToBytes16(b)).slice(2, 34)) as Hex;
+    toHex(bigIntToBytes16(b)).slice(2, 34);
+  if (res.slice(2).length != 64) {
+    throw new Error(
+      `Resulting string length must be 64, but got ${res.length - 2}`,
+    );
+  }
+  return res as `0x${string & { length: 64 }}`;
 }
 
 export function bigIntToBytes16(bigInt: bigint): Uint8Array {
@@ -140,4 +151,18 @@ export function predictDeterministicAddress(
     encodePacked(["bytes"], [("0x" + assembly.slice(110, 280)) as Hex]),
   ).slice(-40);
   return ("0x" + address) as Address;
+}
+
+export async function callClient(url: string, data: string) {
+  const config = {
+    method: "post",
+    maxBodyLength: Infinity,
+    url: url,
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: "locale=en-US",
+    },
+    data: data,
+  };
+  return await axios.request(config);
 }

@@ -1,35 +1,17 @@
 import {
   ERC4337SmartAccountSigner,
-  UserOperation0_7,
-  UserOperationDraft,
 } from "../plugins/types";
 import type { Hash, Hex, SignTypedDataParameters, WalletClient } from "viem";
 import {
-  GeneratePaymasterSignatureType,
-  PackTxParams,
-  SendTxParams,
-} from "./dto/generateUserOperationAndPackedParams.dto";
-import { UserOperation } from "permissionless/types/userOperation";
-import type { Address } from "abitype";
-import {
-  Account,
   ExecuteCallDataArgs,
+  PackTxMiddlewareOverride,
   SmartAccountTransactionReceipt,
 } from "./types";
 
 export interface IERC4337SmartAccount<
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > {
-  generateUserOperationWithGasEstimation(
-    account: Account<TSigner>,
-    userOperationDraft: UserOperationDraft,
-    paymaster?: GeneratePaymasterSignatureType,
-  ): Promise<UserOperation<"v0.6"> | UserOperation0_7>;
-
-  packTx(args: PackTxParams): Promise<{
-    account: Account<TSigner>;
-    userOperation: UserOperation<"v0.6"> | UserOperation0_7;
-  }>;
+  packTx(packTxMiddlewareOverride: PackTxMiddlewareOverride): Promise<this>;
 
   send(overrideBundler?: WalletClient): Promise<SmartAccountTransactionReceipt>;
 
@@ -37,13 +19,7 @@ export interface IERC4337SmartAccount<
   signMessage(msg: string | Uint8Array | Hex): Promise<Hex>;
   signTypedData(args: SignTypedDataParameters): Promise<Hash>;
 
-  installValidator(
-    accountAddress: Address,
-    newValidatorAddress: Address,
-    validateTemplate: Address,
-  ): Hex;
-
-  encodeExecute(args: ExecuteCallDataArgs): Promise<Hex>;
+  encodeExecute(args: ExecuteCallDataArgs): this;
 
   extend: <R>(extendFn: (self: this) => R) => this & R;
 }
