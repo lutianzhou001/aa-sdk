@@ -257,13 +257,13 @@ export class ERC4337SmartAccount<
         EntryPoint: ENTRYPOINT_ADDRESS_V07,
         sigTime: this.runtime.sigTime,
       };
-      const signature = "0x";
-      // const signature = await this.runtime.account.signer.signTypedData({
-      //   domain: domain,
-      //   types: types,
-      //   message: value,
-      //   primaryType: "SignMessage",
-      // });
+      const signature = await this.runtime.account.signer.signTypedData({
+        account: this.runtime.account.accountAddress,
+        domain: domain,
+        types: types,
+        message: value,
+        primaryType: "SignMessage",
+      });
       this.runtime.packedUserOperation.signature = encodePacked(
         ["uint8", "uint256", "bytes"],
         [0, this.runtime.sigTime, signature],

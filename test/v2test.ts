@@ -8,7 +8,7 @@ import {
 } from "viem";
 import { arbitrum } from "viem/chains";
 import { ERC4337SmartAccount } from "../packages/erc4337SmartAccount/ERC4337SmartAccount";
-import { walletClientToERC4337SmartAccountSigner } from "../packages/plugins/signers/walletClientSigner";
+import { walletClientToERC4337SmartAccountSigner } from "../packages/plugins/signers/walletClientToSmartAccountSigner";
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));

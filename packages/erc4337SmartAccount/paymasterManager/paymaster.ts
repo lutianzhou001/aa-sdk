@@ -14,7 +14,7 @@ import axios from "axios";
 import { configuration } from "../../../configuration";
 import { paymasterClient } from "../../../test/testHelper";
 import { getChainId } from "viem/actions";
-import { walletClientToERC4337SmartAccountSigner } from "../../plugins/signers/walletClientSigner";
+import { walletClientToERC4337SmartAccountSigner } from "../../plugins/signers/walletClientToSmartAccountSigner";
 import { ERC4337SmartAccount } from "../ERC4337SmartAccount";
 
 export function paymasterActions<
