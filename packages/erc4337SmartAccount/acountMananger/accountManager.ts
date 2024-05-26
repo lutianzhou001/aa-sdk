@@ -13,7 +13,7 @@ import {
   zeroHash,
 } from "viem";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
-import { configuration, networkConfigurations } from "../../../configuration";
+import { configuration } from "../../../configuration";
 import { ERC4337SmartAccountSigner } from "../../plugins/types";
 import { IAccountManager } from "./IAccountManager.interface";
 import { Account, SmartAccountTransactionReceipt } from "../types";
@@ -26,7 +26,6 @@ import {
 import { EntryPointV0_7ABI } from "../../../abis/EntryPointV0_7.abi";
 import { IManager } from "../moduleManager/IManager.interface";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
-import { EntryPointAbi } from "@alchemy/aa-core";
 
 export class AccountManager<
     TTransport extends Transport = Transport,
@@ -198,11 +197,29 @@ export class AccountManager<
       authenticationManagerAddress,
     );
 
-    if (keccak256(toHex(name)) != "0x" || keccak256(toHex(version)) != "0x") {
-      throw new Error(
-        "name or version hash not match onchain version, pls check",
-      );
-    }
+    // TODO: need to check why the response takes too long time
+    // const nameHash = await signer.publicClient.readContract({
+    //   address: configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
+    //   abi: authenticationManagerABI,
+    //   functionName: "HASH_NAME",
+    //   args: [],
+    // });
+    //
+    // const versionHash = await signer.publicClient.readContract({
+    //   address: configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
+    //   abi: authenticationManagerABI,
+    //   functionName: "HASH_VERSION",
+    //   args: [],
+    // });
+
+    // if (
+    //   keccak256(toHex(name)) != nameHash ||
+    //   keccak256(toHex(version)) != versionHash
+    // ) {
+    //   throw new Error(
+    //     "name or version hash not match onchain version, pls check",
+    //   );
+    // }
 
     const _account: Account<TSigner> = {
       signer: signer,

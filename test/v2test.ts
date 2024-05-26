@@ -6,11 +6,8 @@ import {
   publicActions,
   Address,
 } from "viem";
-import { arbitrum, hardhat, polygon } from "viem/chains";
+import { arbitrum } from "viem/chains";
 import { ERC4337SmartAccount } from "../packages/erc4337SmartAccount/ERC4337SmartAccount";
-import { AccountManager } from "../packages/erc4337SmartAccount/acountMananger/accountManager";
-import {paymasterActions, PaymasterManager} from "../packages/erc4337SmartAccount/paymasterManager/paymaster";
-import { SimulatorManager } from "../packages/erc4337SmartAccount/simulator/simulator";
 import { walletClientToERC4337SmartAccountSigner } from "../packages/plugins/signers/walletClientSigner";
 
 function delay(ms: number) {
@@ -45,32 +42,30 @@ async function smokeTest() {
   }).extend(publicActions);
 
   // STEP2: create a ERC4337SmartContractAccount with the publicClient and owner
-  const smartAccount = new ERC4337SmartAccount({
-    accountManager: new AccountManager(),
-    paymasterManager: new PaymasterManager(),
-    simulatorManager: new SimulatorManager(),
-  });
-
+  const smartAccount = new ERC4337SmartAccount();
   const account = await smartAccount.accountManager.createNewAccount(
     await walletClientToERC4337SmartAccountSigner(walletClient),
-    0n,
+    "SmartAccount",
     "3.0.0",
+    0n,
     [],
   );
 
   smartAccount
-      .connect(account)
-      .encodeExecute({
-        execRawData: {
-          to: "0x9b4b4c715dd9b3b8f39b8da57fe1beee5da5e25e" as Address,
-          value: BigInt(100000000),
-          data: "0x",
-        },
-        execMode: {
-          callType: "single",
-          try: false,
-          allowFailedExecution: false,
-        },
-      }).extend(paymasterActions).usePaymaster({paymasterAddress: "0x000"}). packTx({sigType: "EIP191"}).then((res) => res.send());
+    .connect(account)
+    .encodeExecute({
+      execRawData: {
+        to: "0x9b4b4c715dd9b3b8f39b8da57fe1beee5da5e25e" as Address,
+        value: BigInt(100000000),
+        data: "0x",
+      },
+      execMode: {
+        callType: "single",
+        try: false,
+        allowFailedExecution: false,
+      },
+    })
+    .prepareTx("EIP191")
+    .then((res) => res.signAndPack().then((res) => res.send()));
 }
 smokeTest();

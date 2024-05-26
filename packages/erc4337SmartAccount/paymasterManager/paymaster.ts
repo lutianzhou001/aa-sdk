@@ -11,13 +11,11 @@ import {
 import { ERC4337SmartAccountSigner } from "../../plugins/types";
 import { Account, Runtime, SupportedPayMaster } from "../types";
 import axios from "axios";
-import { configuration, networkConfigurations } from "../../../configuration";
+import { configuration } from "../../../configuration";
 import { paymasterClient } from "../../../test/testHelper";
 import { getChainId } from "viem/actions";
 import { walletClientToERC4337SmartAccountSigner } from "../../plugins/signers/walletClientSigner";
-import { PackedUserOperation } from "permissionless/types";
 import { ERC4337SmartAccount } from "../ERC4337SmartAccount";
-import { run } from "node:test";
 
 export function paymasterActions<
   TTransport extends Transport = Transport,
@@ -25,8 +23,8 @@ export function paymasterActions<
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 >(smartAccount: ERC4337SmartAccount<TTransport, TChain, TSigner>) {
   return {
-    usePaymaster: (paymasterParams: UsePaymasterParams) =>
-      usePaymaster(smartAccount),
+    usePaymaster: (usePaymasterParams: UsePaymasterParams) =>
+      usePaymaster(smartAccount, usePaymasterParams),
     getSupportedPaymasters: () => getSupportedPaymasters(smartAccount),
   };
 }
@@ -34,18 +32,26 @@ export function paymasterActions<
 export type UsePaymasterParams = {
   paymasterAddress: Address;
   tokenAddress?: Address;
-  paymasterVerificationGasLimit?: Hex;
-  paymasterPostOpGasLimit?: Hex;
+  paymasterVerificationGasLimit?: bigint;
+  paymasterPostOpGasLimit?: bigint;
 };
 
-export async function usePaymaster<
+export function usePaymaster<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 >(
   smartAccount: ERC4337SmartAccount<TTransport, TChain, TSigner>,
-): Promise<SupportedPayMaster> {
+  usePaymasterParams: UsePaymasterParams,
+): void {
   // some logic here
+  smartAccount.runtime.rawPaymaster = {
+    paymasterAddress: usePaymasterParams.paymasterAddress,
+    paymasterToken: usePaymasterParams.tokenAddress,
+    paymasterVerificationGasLimit:
+      usePaymasterParams.paymasterVerificationGasLimit,
+    paymasterPostOpGasLimit: usePaymasterParams.paymasterPostOpGasLimit,
+  };
 }
 
 export async function getSupportedPaymasters<
@@ -76,7 +82,9 @@ export async function generatePaymasterSignature<
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 >(runtime: Runtime<TTransport, TChain, TSigner>): Promise<void> {
-  // query paymasterAndDataFrom the endpoint.
+  if (!runtime.packedUserOperation) {
+    throw new Error("packed useroperation must provided");
+  }
   if (!runtime.account) {
     throw new Error("no account specified");
   }
@@ -169,7 +177,7 @@ export async function generatePaymasterSignature<
   const pmSignature = await paymasterWalletConnectSigner.signMessage(
     keccak256(encodedData),
   );
-  runtime.userOperation.paymasterData = ((configuration.paymaster
+  runtime.packedUserOperation.paymasterAndData = ((configuration.paymaster
     .policyPaymaster as Address) +
     padHex(
       toHex(

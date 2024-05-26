@@ -4,6 +4,8 @@ import {
   encodePacked,
   type Hex,
   type Transport,
+  zeroAddress,
+  zeroHash,
 } from "viem";
 import {
   Account,
@@ -14,7 +16,7 @@ import {
   SigType,
   SmartAccountTransactionReceipt,
 } from "./types.js";
-import { ERC4337SmartAccountSigner, UserOperation0_7 } from "../plugins/types";
+import { ERC4337SmartAccountSigner} from "../plugins/types";
 import { configuration } from "../../configuration";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
 import { UserOperation } from "permissionless/types/userOperation";
@@ -48,17 +50,12 @@ export class ERC4337SmartAccount<
   public bundlerUrl: string;
   public paymasterUrl: string;
 
-  constructor(
-    args: {
-      accountManager?: AccountManager<TTransport, TChain, TSigner>;
-    },
-    clientsUrls?: ClientsUrls,
-  ) {
-    this.accountManager =
-      args.accountManager ?? new AccountManager<TTransport, TChain, TSigner>();
-    this.bundlerUrl = clientsUrls?.bundlerUrl ?? configuration.okx.bundlerUrl;
+  constructor(clientsUrls?: ClientsUrls) {
+    this.accountManager = new AccountManager<TTransport, TChain, TSigner>();
+    this.bundlerUrl = clientsUrls?.bundlerUrl ?? configuration.bundlerUrl.okx;
     this.paymasterUrl =
-      clientsUrls?.bundlerUrl ?? configuration.okx.paymasterUrl;
+      clientsUrls?.bundlerUrl ?? configuration.paymasterUrl.okx;
+    this.runtime = {};
   }
 
   async send(): Promise<SmartAccountTransactionReceipt> {
@@ -111,6 +108,7 @@ export class ERC4337SmartAccount<
   }
 
   connect(account: Account<TSigner>): this {
+    console.log(account);
     this.runtime.account = account;
     return this;
   }
@@ -136,11 +134,33 @@ export class ERC4337SmartAccount<
       ["address", "uint256", "bytes"],
       [args.execRawData.to, args.execRawData.value, args.execRawData.data],
     );
-    this.runtime.userOperation.callData = encodeFunctionData({
+    const callDataToEntryPoint = encodeFunctionData({
       abi: smartAccountV3ABI,
       functionName: "execute",
       args: [mode, callData],
     });
+    this.runtime.userOperation = {
+      sender: zeroAddress,
+      nonce: 0n,
+      callData: callDataToEntryPoint,
+      callGasLimit: 0n,
+      verificationGasLimit: 0n,
+      preVerificationGas: 0n,
+      maxFeePerGas: 0n,
+      maxPriorityFeePerGas: 0n,
+      signature: zeroHash,
+    };
+    this.runtime.packedUserOperation = {
+      sender: zeroAddress,
+      nonce: 0n,
+      callData: callDataToEntryPoint,
+      initCode: zeroHash,
+      accountGasLimits: zeroHash as `0x${string & { length: 64 }}`,
+      preVerificationGas: 0n,
+      gasFees: zeroHash as `0x${string & { length: 64 }}`,
+      paymasterAndData: zeroHash,
+      signature: zeroHash,
+    };
     return this;
   }
 
@@ -158,7 +178,7 @@ export class ERC4337SmartAccount<
       functionName: "getUOPHash",
       args: [
         signType == "EIP712" ? 0 : 1,
-        configuration.entryPoint.v0_7_0,
+        ENTRYPOINT_ADDRESS_V07,
         userOperation,
       ],
     });
@@ -169,7 +189,6 @@ export class ERC4337SmartAccount<
     signType: SigType,
     userOperation:
       | UserOperation<"v0.6">
-      | UserOperation0_7
       | UserOperation<"v0.7">,
   ): Promise<Hex> {
     // @ts-ignore
@@ -181,13 +200,16 @@ export class ERC4337SmartAccount<
       functionName: "getUOPSignedHash",
       args: [
         signType == "EIP712" ? 0 : 1,
-        configuration.entryPoint.v0_7_0,
+        ENTRYPOINT_ADDRESS_V07,
         userOperation,
       ],
     });
   }
 
   async signAndPack(): Promise<this> {
+    if (!this.runtime.packedUserOperation) {
+      throw new Error("packed uop is not provided");
+    }
     if (!this.runtime.account) {
       throw new Error("no account connected");
     }
@@ -223,25 +245,25 @@ export class ERC4337SmartAccount<
         ],
       };
       let value = {
-        sender: this.runtime.packedUserOperation.sender as Address,
-        nonce: BigInt(this.runtime.packedUserOperation.nonce),
-        initCode: this.runtime.packedUserOperation.initCode,
-        callData: this.runtime.packedUserOperation.callData,
-        accountGasLimits: this.runtime.packedUserOperation.accountGasLimits,
-        preVerificationGas: BigInt(
-          this.runtime.packedUserOperation.preVerificationGas,
-        ),
-        gasFees: this.runtime.packedUserOperation.gasFees,
-        paymasterAndData: this.runtime.packedUserOperation.paymasterAndData,
+        sender: this.runtime?.packedUserOperation?.sender as Address,
+        nonce: this.runtime?.packedUserOperation?.nonce as bigint,
+        initCode: this.runtime?.packedUserOperation?.initCode,
+        callData: this.runtime?.packedUserOperation?.callData,
+        accountGasLimits: this.runtime?.packedUserOperation?.accountGasLimits,
+        preVerificationGas:
+          this.runtime?.packedUserOperation?.preVerificationGas,
+        gasFees: this.runtime?.packedUserOperation?.gasFees,
+        paymasterAndData: this.runtime?.packedUserOperation?.paymasterAndData,
         EntryPoint: ENTRYPOINT_ADDRESS_V07,
         sigTime: this.runtime.sigTime,
       };
-      const signature = await this.runtime.account.signer.signTypedData({
-        domain: domain,
-        types: types,
-        message: value,
-        primaryType: "SignMessage",
-      });
+      const signature = "0x";
+      // const signature = await this.runtime.account.signer.signTypedData({
+      //   domain: domain,
+      //   types: types,
+      //   message: value,
+      //   primaryType: "SignMessage",
+      // });
       this.runtime.packedUserOperation.signature = encodePacked(
         ["uint8", "uint256", "bytes"],
         [0, this.runtime.sigTime, signature],
@@ -266,13 +288,19 @@ export class ERC4337SmartAccount<
     sigType: SigType,
     packTxMiddlewareOverride?: PackTxMiddlewareOverride,
   ): Promise<this> {
+    if (!this.runtime.userOperation) {
+      throw new Error("userOperation is not provided");
+    }
+    if (!this.runtime.packedUserOperation) {
+      throw new Error("packedUserOperation is not provided");
+    }
     if (!this.runtime.userOperation.callData) {
       throw new Error("callData is not provided");
     }
     if (!this.runtime.account) {
       throw new Error("account has to be specified");
     }
-    await this.accountManager.refreshAccounts([this.getCurrentAccount()]);
+    await this.accountManager.refreshAccounts([this.runtime.account]);
     this.runtime.userOperation.nonce = await this.accountManager.getNonce(
       this.runtime.account,
     );

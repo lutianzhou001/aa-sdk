@@ -37,17 +37,8 @@ export async function walletClientToERC4337SmartAccountSigner(
         });
       }
     },
-    async signTypedData(
-      args: Omit<SignTypedDataParameters, "account">,
-    ): Promise<Hex> {
-      const account =
-        walletClient.account ??
-        getAddress((await walletClient.getAddresses())[0]);
-      // override the account
-      return walletClient.signTypedData({
-        account,
-        ...args,
-      });
+    async signTypedData(args: SignTypedDataParameters): Promise<Hex> {
+      return walletClient.signTypedData(args);
     },
   };
 }

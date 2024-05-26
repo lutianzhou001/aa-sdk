@@ -1,8 +1,6 @@
 import type { Address } from "abitype";
 import type { Chain, Hash, Hex, Transport } from "viem";
-import {
-  ERC4337SmartAccountSigner,
-} from "../plugins/types";
+import { ERC4337SmartAccountSigner } from "../plugins/types";
 import { UserOperation } from "permissionless/types/userOperation";
 import { PackedUserOperation } from "permissionless/types";
 
@@ -70,9 +68,9 @@ export type Runtime<
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > = {
-  account: Account<TSigner> | undefined;
-  userOperation: UserOperation<"v0.7">;
-  packedUserOperation: PackedUserOperation;
+  account?: Account<TSigner>;
+  userOperation?: UserOperation<"v0.7">;
+  packedUserOperation?: PackedUserOperation;
   rawPaymaster?: RawPaymaster;
   userOperationHash?: Hex;
   sigType?: SigType;
