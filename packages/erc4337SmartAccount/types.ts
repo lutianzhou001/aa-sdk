@@ -15,20 +15,21 @@ export type ExecutionMode = {
   modeParams?: string;
 };
 
-export type GasEstimationMiddleware = {
+export type GasEstimationOverride = {
   callGasLimit: bigint;
   preVerificationGas: bigint;
   verificationGasLimit: bigint;
 };
 
-export type FeeDataMiddleware = {
+export type FeeDataOverride = {
   maxFeePerGas: bigint;
   maxPriorityFeePerGas: bigint;
 };
 
 export type PackTxMiddlewareOverride = {
-  gasEstimationMiddleware: GasEstimationMiddleware;
-  feeDataMiddleware: FeeDataMiddleware;
+  gasEstimationOverride?: GasEstimationOverride;
+  feeDataOverride?: FeeDataOverride;
+  sigTimeOverride?: bigint;
 };
 
 export type ClientsUrls = {
@@ -91,7 +92,7 @@ export type Account<
   accountAddress: Address;
   nonceKey: Hex;
   isDeployed: boolean;
-  authenticationManagerAddress: Address | undefined;
+  authenticationManagerAddress: Address;
   receipts: SmartAccountTransactionReceipt[];
   initCode: Hex;
   version: string;

@@ -43,7 +43,7 @@ export function usePaymaster<
 >(
   smartAccount: ERC4337SmartAccount<TTransport, TChain, TSigner>,
   usePaymasterParams: UsePaymasterParams,
-): void {
+): ERC4337SmartAccount<TTransport, TChain, TSigner> {
   // some logic here
   smartAccount.runtime.rawPaymaster = {
     paymasterAddress: usePaymasterParams.paymasterAddress,
@@ -52,6 +52,7 @@ export function usePaymaster<
       usePaymasterParams.paymasterVerificationGasLimit,
     paymasterPostOpGasLimit: usePaymasterParams.paymasterPostOpGasLimit,
   };
+  return smartAccount;
 }
 
 export async function getSupportedPaymasters<

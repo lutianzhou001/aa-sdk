@@ -1,8 +1,13 @@
 import {
   type Chain,
+  createPublicClient,
   encodeFunctionData,
   encodePacked,
   type Hex,
+  hexToBigInt,
+  http,
+  PublicClient,
+  toHex,
   type Transport,
   zeroAddress,
   zeroHash,
@@ -16,7 +21,7 @@ import {
   SigType,
   SmartAccountTransactionReceipt,
 } from "./types.js";
-import { ERC4337SmartAccountSigner} from "../plugins/types";
+import { ERC4337SmartAccountSigner } from "../plugins/types";
 import { configuration } from "../../configuration";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
 import { UserOperation } from "permissionless/types/userOperation";
@@ -25,6 +30,7 @@ import {
   callClient,
   compileBigInt,
   compileMode,
+  convertToHex,
   getSigTime,
 } from "../common/utils";
 import { IERC4337SmartAccount } from "./IERC4337SmartAccount.interface";
@@ -35,6 +41,7 @@ import { getChainId } from "viem/actions";
 import type { Address } from "abitype";
 import { PackedUserOperation } from "permissionless/types";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
+import { mainnet } from "viem/chains";
 
 export class ERC4337SmartAccount<
   TTransport extends Transport = Transport,
@@ -59,7 +66,7 @@ export class ERC4337SmartAccount<
   }
 
   async send(): Promise<SmartAccountTransactionReceipt> {
-    if (this.runtime.account && this.runtime.userOperation) {
+    if (!this.runtime.account || !this.runtime.userOperation) {
       throw new Error("insufficient params");
     }
     if (!this.runtime.account) {
@@ -69,27 +76,35 @@ export class ERC4337SmartAccount<
       id: 1,
       jsonrpc: "2.0",
       method: "eth_simulateUserOperation",
-      params: [this.runtime.userOperation, ENTRYPOINT_ADDRESS_V07],
+      params: [
+        convertToHex(this.runtime.userOperation),
+        ENTRYPOINT_ADDRESS_V07,
+      ],
     });
+    console.log(this.runtime.userOperation);
     const simulateUserOperationRes = await callClient(
+      "https://www.okx.com/priapi/v5/wallet/smart-account/mp/42161/eth_simulateUserOperation",
       simulateUserOperationReq,
-      this.bundlerUrl,
     );
     if (simulateUserOperationRes.data.error) {
-      throw new Error("SIMULATION_ERROR");
+      throw new Error(String(simulateUserOperationRes.data.error));
     } else {
       const sendUserOperationReq = JSON.stringify({
         id: 1,
         jsonrpc: "2.0",
         method: "eth_sendUserOperation",
-        params: [this.runtime.userOperation, ENTRYPOINT_ADDRESS_V07],
+        params: [
+          convertToHex(this.runtime.userOperation),
+          ENTRYPOINT_ADDRESS_V07,
+        ],
       });
       const sendUserOperationRes = await callClient(
+        "https://www.okx.com/priapi/v5/wallet/smart-account/mp/42161/eth_sendUserOperation",
         sendUserOperationReq,
-        this.bundlerUrl,
       );
+      console.log(sendUserOperationRes.data);
       if (sendUserOperationRes.data.error) {
-        throw new Error("Send userOperationError");
+        throw new Error(String(sendUserOperationRes.data.error.message));
       }
       return this.accountManager.pushAccountTransaction(
         this.runtime.account,
@@ -108,7 +123,6 @@ export class ERC4337SmartAccount<
   }
 
   connect(account: Account<TSigner>): this {
-    console.log(account);
     this.runtime.account = account;
     return this;
   }
@@ -140,7 +154,7 @@ export class ERC4337SmartAccount<
       args: [mode, callData],
     });
     this.runtime.userOperation = {
-      sender: zeroAddress,
+      sender: this.runtime.account.accountAddress,
       nonce: 0n,
       callData: callDataToEntryPoint,
       callGasLimit: 0n,
@@ -148,17 +162,21 @@ export class ERC4337SmartAccount<
       preVerificationGas: 0n,
       maxFeePerGas: 0n,
       maxPriorityFeePerGas: 0n,
-      signature: zeroHash,
+      signature:
+        // a mock signature
+        "0x010000000000000000000000000000000000000000000000000000000065f80f5137565d2eb25e3508f7d322d9cf2265ec95ac218945a4eb64fc3d9efe216850dc7e26066839e71d048d3667fd367f5f0532b21075e060a9e4cb0c159c00bf6c121b",
     };
     this.runtime.packedUserOperation = {
-      sender: zeroAddress,
+      sender: this.runtime.account.accountAddress,
       nonce: 0n,
       callData: callDataToEntryPoint,
-      initCode: zeroHash,
+      initCode: this.runtime.account.isDeployed
+        ? "0x"
+        : this.runtime.account.initCode,
       accountGasLimits: zeroHash as `0x${string & { length: 64 }}`,
       preVerificationGas: 0n,
       gasFees: zeroHash as `0x${string & { length: 64 }}`,
-      paymasterAndData: zeroHash,
+      paymasterAndData: "0x",
       signature: zeroHash,
     };
     return this;
@@ -170,7 +188,7 @@ export class ERC4337SmartAccount<
     userOperation: PackedUserOperation,
   ): Promise<Hex> {
     // @ts-ignore
-    return await this.owner.publicClient.readContract({
+    return await account.signer.publicClient.readContract({
       address: account.isDeployed
         ? account.authenticationManagerAddress
         : configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
@@ -187,9 +205,7 @@ export class ERC4337SmartAccount<
   async getUOPSignedHash(
     account: Account,
     signType: SigType,
-    userOperation:
-      | UserOperation<"v0.6">
-      | UserOperation<"v0.7">,
+    userOperation: UserOperation<"v0.6"> | UserOperation<"v0.7">,
   ): Promise<Hex> {
     // @ts-ignore
     return await this.owner.publicClient.readContract({
@@ -269,7 +285,10 @@ export class ERC4337SmartAccount<
         [0, this.runtime.sigTime, signature],
       );
     } else {
-      this.runtime.packedUserOperation.signature = encodePacked(
+      if (!this.runtime.userOperation) {
+        throw new Error("UserOperation not provided");
+      }
+      this.runtime.userOperation.signature = encodePacked(
         ["uint8", "uint256", "bytes"],
         [
           1,
@@ -284,10 +303,11 @@ export class ERC4337SmartAccount<
   }
 
   // overrides some gaslimits and gas estimation
-  async prepareTx(
+  async proposeTx(
     sigType: SigType,
     packTxMiddlewareOverride?: PackTxMiddlewareOverride,
   ): Promise<this> {
+    this.runtime.sigType = sigType;
     if (!this.runtime.userOperation) {
       throw new Error("userOperation is not provided");
     }
@@ -310,33 +330,35 @@ export class ERC4337SmartAccount<
     );
     this.runtime.packedUserOperation.sender = this.runtime.userOperation.sender;
     this.runtime.packedUserOperation.nonce = this.runtime.userOperation.nonce;
+    this.runtime.packedUserOperation.preVerificationGas =
+      this.runtime.userOperation.preVerificationGas;
     this.runtime.packedUserOperation.callData =
       this.runtime.userOperation.callData;
-    this.runtime.packedUserOperation.initCode = this.runtime.account?.isDeployed
-      ? "0x"
-      : this.runtime.account.initCode;
+    // verificationGasLimit high 128, callGasLimit low 128
     this.runtime.packedUserOperation.accountGasLimits = compileBigInt(
-      packTxMiddlewareOverride?.gasEstimationMiddleware.callGasLimit ??
-        this.runtime.userOperation.callGasLimit,
-      packTxMiddlewareOverride?.gasEstimationMiddleware.verificationGasLimit ??
+      packTxMiddlewareOverride?.gasEstimationOverride?.verificationGasLimit ??
         this.runtime.userOperation.verificationGasLimit,
+      packTxMiddlewareOverride?.gasEstimationOverride?.callGasLimit ??
+        this.runtime.userOperation.callGasLimit,
     );
+    // maxPriorityFee high 128, maxFeePerGas low 128
     this.runtime.packedUserOperation.gasFees = compileBigInt(
-      packTxMiddlewareOverride?.feeDataMiddleware.maxFeePerGas ??
-        this.runtime.userOperation.maxFeePerGas,
-      packTxMiddlewareOverride?.feeDataMiddleware.maxPriorityFeePerGas ??
-        this.runtime.userOperation.maxPriorityFeePerGas,
+      this.runtime.userOperation.maxPriorityFeePerGas,
+      this.runtime.userOperation.maxFeePerGas,
     );
-    this.runtime.packedUserOperation.preVerificationGas =
-      packTxMiddlewareOverride?.gasEstimationMiddleware.preVerificationGas ??
-      this.runtime.userOperation.preVerificationGas;
-    await generatePaymasterSignature(this.runtime);
-    const sigTime = await getSigTime(
-      this.getCurrentAccount().signer.publicClient,
-    );
+    this.runtime.rawPaymaster
+      ? await generatePaymasterSignature(this.runtime)
+      : null;
+    const sigTime =
+      packTxMiddlewareOverride?.sigTimeOverride ??
+      (await getSigTime(this.runtime.account.signer.publicClient));
     if (!this.runtime.account) {
       throw new Error("no account specified");
     }
+    this.runtime.packedUserOperation.signature = encodePacked(
+      ["uint8", "uint256"],
+      [sigType == "EIP712" ? 0 : 1, sigTime],
+    );
     this.runtime.userOperationHash = await this.getUOPHash(
       this.runtime.account,
       sigType,
@@ -350,13 +372,37 @@ export class ERC4337SmartAccount<
     userOperation: UserOperation<"v0.7">,
     packTxMiddlewareOverride?: PackTxMiddlewareOverride,
   ): Promise<void> {
+    if (!this.runtime.account) {
+      throw new Error("account must be specified");
+    }
+    if (!this.runtime.userOperation) {
+      throw new Error("userOperation is not provided");
+    }
+    const baseFeePerPrice =
+      await this.runtime.account.signer.publicClient.getGasPrice();
+    const maxPriorityFeePerGas =
+      await this.runtime.account.signer.publicClient.estimateMaxPriorityFeePerGas();
+    const defaultGasFeeCap = baseFeePerPrice + maxPriorityFeePerGas;
+    this.runtime.userOperation.maxPriorityFeePerGas =
+      packTxMiddlewareOverride?.feeDataOverride?.maxPriorityFeePerGas ??
+      defaultGasFeeCap;
+    this.runtime.userOperation.maxFeePerGas =
+      packTxMiddlewareOverride?.feeDataOverride?.maxFeePerGas ??
+      defaultGasFeeCap;
+    const payload = [
+      convertToHex(this.runtime.userOperation),
+      ENTRYPOINT_ADDRESS_V07,
+    ];
     const data = JSON.stringify({
       id: 1,
       jsonrpc: "2.0",
       method: "eth_estimateUserOperationGas",
-      params: [this.runtime.userOperation, ENTRYPOINT_ADDRESS_V07],
+      params: payload,
     });
-    const gasEstimationRes = await callClient(data, this.bundlerUrl);
+    const gasEstimationRes = await callClient(
+      "https://www.okx.com/priapi/v5/wallet/smart-account/mp/42161/eth_estimateUserOperationGas",
+      data,
+    );
     if (gasEstimationRes.data.error) {
       throw new GasEstimationError(
         "GAS_ESTIMATION_ERROR",
@@ -364,21 +410,47 @@ export class ERC4337SmartAccount<
       );
     }
     userOperation.preVerificationGas =
-      packTxMiddlewareOverride?.gasEstimationMiddleware.preVerificationGas ??
-      gasEstimationRes.data.result.preVerificationGas;
+      packTxMiddlewareOverride?.gasEstimationOverride?.preVerificationGas ??
+      BigInt(gasEstimationRes.data.result.preVerificationGas);
     userOperation.verificationGasLimit =
-      packTxMiddlewareOverride?.gasEstimationMiddleware.verificationGasLimit ??
-      gasEstimationRes.data.result.verificationGasLimit;
+      packTxMiddlewareOverride?.gasEstimationOverride?.verificationGasLimit ??
+      BigInt(gasEstimationRes.data.result.verificationGasLimit);
     userOperation.callGasLimit =
-      packTxMiddlewareOverride?.gasEstimationMiddleware.callGasLimit ??
-      gasEstimationRes.data.result.callGasLimit;
-
-    userOperation.paymasterVerificationGasLimit =
-      this.runtime.rawPaymaster?.paymasterVerificationGasLimit ??
-      gasEstimationRes.data.result.paymasterVerificationGasLimit;
-    userOperation.paymasterPostOpGasLimit =
-      this.runtime.rawPaymaster?.paymasterPostOpGasLimit ??
-      gasEstimationRes.data.result.paymasterPostOpGasLimit;
+      packTxMiddlewareOverride?.gasEstimationOverride?.callGasLimit ??
+      BigInt(gasEstimationRes.data.result.callGasLimit);
+    if (this.runtime.rawPaymaster?.paymasterAddress) {
+      userOperation.paymasterVerificationGasLimit =
+        this.runtime.rawPaymaster?.paymasterVerificationGasLimit ??
+        BigInt(gasEstimationRes.data.result.paymasterVerificationGasLimit);
+      userOperation.paymasterPostOpGasLimit =
+        this.runtime.rawPaymaster?.paymasterPostOpGasLimit ??
+        BigInt(gasEstimationRes.data.result.paymasterPostOpGasLimit);
+    }
+    // if the layer2
+    // TODO: layer scenario
+    let preVerificationGas: bigint;
+    if (
+      gasEstimationRes.data.result &&
+      gasEstimationRes.data.result.l1GasLimit
+    ) {
+      const l1publicClient = createPublicClient({
+        chain: mainnet,
+        transport: http("https://eth.llamarpc.com"),
+      });
+      const l1Fee = await l1publicClient.getGasPrice();
+      preVerificationGas =
+        this.runtime.userOperation.preVerificationGas ??
+        hexToBigInt(gasEstimationRes.data.result.preVerificationGas) +
+          (hexToBigInt(gasEstimationRes.data.result.l1GasLimit) * l1Fee) /
+            defaultGasFeeCap;
+    } else {
+      preVerificationGas = BigInt(
+        gasEstimationRes.data.result.preVerificationGas,
+      );
+    }
+    userOperation.preVerificationGas =
+      packTxMiddlewareOverride?.gasEstimationOverride?.preVerificationGas ??
+      configuration.defaultGasConfig.PREVERIFICATION_GAS;
   }
 
   private async mockUserOperationPackedWithTokenPayMaster(

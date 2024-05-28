@@ -8,8 +8,10 @@ import {
   type Hash,
   Hex,
   keccak256,
+  PublicClient,
   toHex,
   Transport,
+  zeroAddress,
   zeroHash,
 } from "viem";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
@@ -25,7 +27,7 @@ import {
 } from "../../common/utils";
 import { EntryPointV0_7ABI } from "../../../abis/EntryPointV0_7.abi";
 import { IManager } from "../moduleManager/IManager.interface";
-import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
+import { ENTRYPOINT_ADDRESS_V07, isSmartAccountDeployed } from "permissionless";
 
 export class AccountManager<
     TTransport extends Transport = Transport,
@@ -124,23 +126,7 @@ export class AccountManager<
   //   }
   // }
 
-  async createNewAccount(
-    signer: TSigner,
-    name: string,
-    version: string,
-    index: bigint = BigInt(0),
-    executions: Hex[] = [],
-  ): Promise<Account<TSigner>> {
-    return await this.createNewAccountV3(
-      signer,
-      name,
-      version,
-      index,
-      executions,
-    );
-  }
-
-  private async createNewAccountV3(
+  public async createNewAccount(
     signer: TSigner,
     name: string,
     version: string,
@@ -179,11 +165,12 @@ export class AccountManager<
       encodePacked(["bytes", "uint256"], [initializeAccountData, index]),
     );
 
-    const accountAddress = getCreate2Address({
-      from: getConfiguration(version).factoryAddress,
-      salt: salt,
-      bytecodeHash: configuration.v3.SMART_ACCOUNT_PROXY_CODE_HASH,
-    });
+    const accountAddress: Address = (await signer.publicClient.readContract({
+      address: configuration.v3.FACTORY_ADDRESS,
+      abi: accountFactoryV3ABI,
+      functionName: "computeAddress",
+      args: [zeroAddress, initializeAccountData, index],
+    })) as Address;
 
     const authenticationManagerAddress: Address = predictDeterministicAddress(
       configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
@@ -224,8 +211,11 @@ export class AccountManager<
     const _account: Account<TSigner> = {
       signer: signer,
       accountAddress: accountAddress,
-      isDeployed: false,
-      nonceKey: (defaultValidator + "0000000000000000") as Hex,
+      isDeployed: await isSmartAccountDeployed(
+        signer.publicClient,
+        accountAddress,
+      ),
+      nonceKey: defaultValidator as Hex,
       authenticationManagerAddress: authenticationManagerAddress,
       receipts: [],
       initCode: initCode,
@@ -242,11 +232,10 @@ export class AccountManager<
 
   async refreshAccounts(accounts: Account<TSigner>[]): Promise<void> {
     for (const account of this.accounts) {
-      const contractCode =
-        (await account.signer.publicClient.getBytecode({
-          address: account.accountAddress,
-        })) ?? "0x";
-      account.isDeployed = contractCode.length > 2;
+      account.isDeployed = await isSmartAccountDeployed(
+        account.signer.publicClient,
+        account.accountAddress,
+      );
     }
   }
 

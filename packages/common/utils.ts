@@ -17,6 +17,7 @@ import { ExecutionMode } from "../erc4337SmartAccount/types";
 import { configuration } from "../../configuration";
 import axios from "axios";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
+import { type } from "node:os";
 
 export function getConfiguration(version: string): {
   entryPointAddress: Address;
@@ -92,6 +93,18 @@ export function bigIntToBytes16(bigInt: bigint): Uint8Array {
     bytes[15 - i] = Number((bigInt >> (8n * BigInt(i))) & 0xffn);
   }
   return bytes;
+}
+
+export function convertToHex(value: object): any {
+  const result: { [key: string]: any } = {};
+  for (const [key, val] of Object.entries(value)) {
+    if (typeof val == "bigint") {
+      result[key] = toHex(val);
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
 }
 
 export function compileMode(mode: ExecutionMode) {

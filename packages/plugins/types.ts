@@ -1,9 +1,4 @@
-import {
-  Address,
-  Hex,
-  PublicClient,
-  SignTypedDataParameters,
-} from "viem";
+import { Address, Hex, PublicClient, SignTypedDataParameters } from "viem";
 
 export type ERC4337SmartAccountSigner = {
   signerType: string;
