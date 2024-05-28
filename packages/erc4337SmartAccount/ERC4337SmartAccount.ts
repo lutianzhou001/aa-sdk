@@ -459,16 +459,16 @@ export class ERC4337SmartAccount<
           : "0x",
         signature: "0x",
         accountGasLimits: compileBigInt(
-          userOperationDraft.callGasLimit ??
-            configuration.defaultGasConfig.CALL_GAS_LIMIT,
           userOperationDraft.verificationGasLimit ??
             configuration.defaultGasConfig.VERIFICATION_GAS_LIMIT,
+          userOperationDraft.callGasLimit ??
+            configuration.defaultGasConfig.CALL_GAS_LIMIT,
         ),
         gasFees: compileBigInt(
-          userOperationDraft.maxFeePerGas ??
-            configuration.defaultGasConfig.MAX_FEE_PER_GAS,
           userOperationDraft.maxPriorityFeePerGas ??
             configuration.defaultGasConfig.MAX_PRIORITY_FEE_PER_GAS,
+          userOperationDraft.maxFeePerGas ??
+            configuration.defaultGasConfig.MAX_FEE_PER_GAS,
         ),
         preVerificationGas: toHex(
           configuration.defaultGasConfig.PREVERIFICATION_GAS,
