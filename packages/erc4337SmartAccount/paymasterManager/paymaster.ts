@@ -22,6 +22,7 @@ import { GeneratePaymasterSignatureType } from "../dto/generateUserOperationAndP
 import { configuration } from "../../../configuration";
 import { getSigTime } from "../../common/utils";
 import { paymasterWalletConnectSigner } from "../../../test/testHelper";
+import { authenticationManagerABI } from "../../../abis/authenticationManager.abi";
 
 export class PaymasterManager<
   TTransport extends Transport = Transport,
@@ -156,6 +157,8 @@ export class PaymasterManager<
           { name: "gasFees", type: "uint256" },
           { name: "chainId", type: "uint256" },
           { name: "caller", type: "address" },
+          { name: "modeId", type: "uint8" },
+          { name: "currentAddress", type: "address" },
           { name: "additionalData", type: "bytes" },
         ],
         [
@@ -168,6 +171,8 @@ export class PaymasterManager<
           BigInt(userOperation_0_7.gasFees),
           BigInt(await getChainId(this.publicClient)),
           <Address>configuration.paymaster.policyPaymaster,
+          0,
+          <Address>configuration.paymaster.freeGasMode,
           additionalData,
         ],
       );
