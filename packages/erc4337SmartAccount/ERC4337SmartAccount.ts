@@ -1,15 +1,13 @@
 import {
   type Chain,
   createPublicClient,
+  encodeAbiParameters,
   encodeFunctionData,
   encodePacked,
   type Hex,
   hexToBigInt,
   http,
-  PublicClient,
-  toHex,
   type Transport,
-  zeroAddress,
   zeroHash,
 } from "viem";
 import {
@@ -22,7 +20,7 @@ import {
   SmartAccountTransactionReceipt,
 } from "./types.js";
 import { ERC4337SmartAccountSigner } from "../plugins/types";
-import { configuration } from "../../configuration";
+import { configuration, networkConfigurations } from "../../configuration";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
 import { UserOperation } from "permissionless/types/userOperation";
 import { GasEstimationError } from "../error/constants";
@@ -35,13 +33,16 @@ import {
 } from "../common/utils";
 import { IERC4337SmartAccount } from "./IERC4337SmartAccount.interface";
 import { AccountManager } from "./acountMananger/accountManager";
-import { generatePaymasterSignature } from "./paymasterManager/paymaster";
 import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
 import { getChainId } from "viem/actions";
 import type { Address } from "abitype";
 import { PackedUserOperation } from "permissionless/types";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
 import { mainnet } from "viem/chains";
+import {
+  generatePaymasterSignature,
+  getPaymasterAndData,
+} from "./paymasterManager/paymaster";
 
 export class ERC4337SmartAccount<
   TTransport extends Transport = Transport,
@@ -81,13 +82,13 @@ export class ERC4337SmartAccount<
         ENTRYPOINT_ADDRESS_V07,
       ],
     });
-    console.log(this.runtime.userOperation);
     const simulateUserOperationRes = await callClient(
-      "https://www.okx.com/priapi/v5/wallet/smart-account/mp/42161/eth_simulateUserOperation",
+      networkConfigurations.base_url +
+        "priapi/v5/wallet/smart-account/mp/42161/eth_simulateUserOperation",
       simulateUserOperationReq,
     );
     if (simulateUserOperationRes.data.error) {
-      throw new Error(String(simulateUserOperationRes.data.error));
+      throw new Error();
     } else {
       const sendUserOperationReq = JSON.stringify({
         id: 1,
@@ -99,10 +100,10 @@ export class ERC4337SmartAccount<
         ],
       });
       const sendUserOperationRes = await callClient(
-        "https://www.okx.com/priapi/v5/wallet/smart-account/mp/42161/eth_sendUserOperation",
+        networkConfigurations.base_url +
+          "priapi/v5/wallet/smart-account/mp/42161/eth_sendUserOperation",
         sendUserOperationReq,
       );
-      console.log(sendUserOperationRes.data);
       if (sendUserOperationRes.data.error) {
         throw new Error(String(sendUserOperationRes.data.error.message));
       }
@@ -346,9 +347,12 @@ export class ERC4337SmartAccount<
       this.runtime.userOperation.maxPriorityFeePerGas,
       this.runtime.userOperation.maxFeePerGas,
     );
-    this.runtime.rawPaymaster
-      ? await generatePaymasterSignature(this.runtime)
-      : null;
+    // get the signature from local
+    // this.runtime.rawPaymaster ? await generatePaymasterSignature(this) : null;
+    // get the signature from backend.
+    if (this.runtime.rawPaymaster) {
+      await getPaymasterAndData(this);
+    }
     const sigTime =
       packTxMiddlewareOverride?.sigTimeOverride ??
       (await getSigTime(this.runtime.account.signer.publicClient));
@@ -389,6 +393,18 @@ export class ERC4337SmartAccount<
     this.runtime.userOperation.maxFeePerGas =
       packTxMiddlewareOverride?.feeDataOverride?.maxFeePerGas ??
       defaultGasFeeCap;
+    if (this.runtime.rawPaymaster?.paymasterAddress) {
+      this.runtime.userOperation.paymaster =
+        this.runtime.rawPaymaster.paymasterAddress;
+      this.runtime.userOperation.paymasterVerificationGasLimit =
+        this.runtime.rawPaymaster.paymasterVerificationGasLimit ?? 0n;
+      this.runtime.userOperation.paymasterPostOpGasLimit =
+        this.runtime.rawPaymaster.paymasterPostOpGasLimit ?? 0n;
+      // mod(uint8) + bizId(uint64)
+      this.runtime.userOperation.paymasterData = "0x000000000000000000";
+      // @ts-ignore
+      // this.runtime.userOperation.paymasterAndData = this.runtime.rawPaymaster.paymasterAddress + "0000"
+    }
     const payload = [
       convertToHex(this.runtime.userOperation),
       ENTRYPOINT_ADDRESS_V07,
@@ -400,7 +416,8 @@ export class ERC4337SmartAccount<
       params: payload,
     });
     const gasEstimationRes = await callClient(
-      "https://www.okx.com/priapi/v5/wallet/smart-account/mp/42161/eth_estimateUserOperationGas",
+      networkConfigurations.base_url +
+        "priapi/v5/wallet/smart-account/mp/42161/eth_estimateUserOperationGas",
       data,
     );
     if (gasEstimationRes.data.error) {
