@@ -15,19 +15,23 @@ import {
   zeroHash,
 } from "viem";
 import { smartAccountV3ABI } from "../../../abis/smartAccountV3.abi";
-import { configuration } from "../../../configuration";
+import { configuration, networkConfigurations } from "../../../configuration";
 import { ERC4337SmartAccountSigner } from "../../plugins/types";
 import { IAccountManager } from "./IAccountManager.interface";
 import { Account, SmartAccountTransactionReceipt } from "../types";
 import { initializeAccountABI } from "../../../abis/initializeAccount.abi";
 import { accountFactoryV3ABI } from "../../../abis/accountFactoryV3.abi";
 import {
+  callClient,
+  convertToHex,
   getConfiguration,
   predictDeterministicAddress,
 } from "../../common/utils";
 import { EntryPointV0_7ABI } from "../../../abis/EntryPointV0_7.abi";
 import { IManager } from "../moduleManager/IManager.interface";
 import { ENTRYPOINT_ADDRESS_V07, isSmartAccountDeployed } from "permissionless";
+import { SmartAccount } from "permissionless/_types/accounts";
+import { smartAccountV2WithInscriptionSupportedABI } from "../../../abis/smartAccountV2WithInscriptionSupported.abi";
 
 export class AccountManager<
     TTransport extends Transport = Transport,
@@ -53,78 +57,11 @@ export class AccountManager<
   ): SmartAccountTransactionReceipt {
     const receipt: SmartAccountTransactionReceipt = {
       userOperationHash: userOperationHash,
-      txHash: undefined,
-      success: undefined,
+      result: undefined,
     };
     account.receipts.push(receipt);
     return receipt;
   }
-  //
-  // getAccountTransactionReceipts(
-  //   sender: Address,
-  // ): SmartAccountTransactionReceipt[] {
-  //   const currentAccount = this.getAccount(sender);
-  //   return currentAccount.receipts;
-  // }
-  //
-  // async refreshAccountTransactionReceipts(
-  //   account: Account<TSigner>,
-  //   sender: Address,
-  // ): Promise<SmartAccountTransactionReceipt[]> {
-  //   const currentAccount = this.getAccount(sender);
-  //   const receipts = currentAccount.receipts;
-  //   let receiptsToUpdate: SmartAccountTransactionReceipt[] = [];
-  //   for (const receipt of receipts) {
-  //     if (receipt.success == undefined) {
-  //       const res = await this.getERC4337BundlerReceipt(
-  //         account,
-  //         receipt.userOperationHash,
-  //       );
-  //       receipt.success = res.success;
-  //       receipt.txHash = res.txHash;
-  //     }
-  //     receiptsToUpdate.push({
-  //       userOperationHash: receipt.userOperationHash,
-  //       txHash: receipt.txHash,
-  //       success: receipt.success,
-  //     });
-  //   }
-  //   return receiptsToUpdate;
-  // }
-  //
-  // private async getERC4337BundlerReceipt(
-  //   account: Account<TSigner>,
-  //   userOperationHash: Hex,
-  // ): Promise<SmartAccountTransactionReceipt> {
-  //   const req = {
-  //     method: "post",
-  //     maxBodyLength: Infinity,
-  //     url:
-  //       networkConfigurations.base_url +
-  //       "mp/" +
-  //       String(await getChainId(account.signer.publicClient)) +
-  //       "/eth_getUserOperationReceipt",
-  //     headers: {
-  //       "Content-Type": "application/json",
-  //       Cookie: "locale=en-US",
-  //     },
-  //     data: JSON.stringify({
-  //       id: 1,
-  //       jsonrpc: "2.0",
-  //       method: "eth_getUserOperationReceipt",
-  //       params: [userOperationHash],
-  //     }),
-  //   };
-  //   const res = await axios.request(req);
-  //   if (res.data.error) {
-  //     throw new GetERC4337BundlerReceipt(
-  //       "getERC4337BundlerReceiptError",
-  //       res.data.error.message,
-  //     );
-  //   } else {
-  //     return res.data.result;
-  //   }
-  // }
 
   public async createNewAccount(
     signer: TSigner,
@@ -221,6 +158,9 @@ export class AccountManager<
       initCode: initCode,
       version: version,
       name: name,
+      updateReceipts() {
+        return refreshAccountTransactionReceipts(this);
+      },
     };
     await this.refreshAccounts([_account]);
     return _account;
@@ -252,4 +192,30 @@ export class AccountManager<
   onInstall(initialization: any) {}
 
   onUninstall(uninstallation: any) {}
+}
+
+export async function refreshAccountTransactionReceipts<
+  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+>(account: Account<TSigner>): Promise<void> {
+  const receipts = account.receipts;
+  for (const receipt of receipts) {
+    if (!receipt.result) {
+      const refreshAccountTransactionReceiptsReq = JSON.stringify({
+        id: 1,
+        jsonrpc: "2.0",
+        method: "eth_getUserOperationReceipt",
+        params: [receipt.userOperationHash],
+      });
+      const refreshAccountTransactionReceiptsRes = await callClient(
+        networkConfigurations.base_url +
+          "priapi/v5/wallet/smart-account/mp/42161/eth_getUserOperationReceipt",
+        refreshAccountTransactionReceiptsReq,
+      );
+      if (refreshAccountTransactionReceiptsRes.data.error) {
+        console.log(refreshAccountTransactionReceiptsRes.data);
+        throw new Error(refreshAccountTransactionReceiptsRes.data.error);
+      }
+      receipt.result = refreshAccountTransactionReceiptsRes.data.result;
+    }
+  }
 }

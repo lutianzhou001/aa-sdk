@@ -14,6 +14,7 @@ import {
   Account,
   ClientsUrls,
   ExecuteCallDataArgs,
+  ExecutionMode,
   PackTxMiddlewareOverride,
   Runtime,
   SigType,
@@ -31,7 +32,6 @@ import {
   convertToHex,
   getSigTime,
 } from "../common/utils";
-import { IERC4337SmartAccount } from "./IERC4337SmartAccount.interface";
 import { AccountManager } from "./acountMananger/accountManager";
 import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
 import { getChainId } from "viem/actions";
@@ -39,17 +39,15 @@ import type { Address } from "abitype";
 import { PackedUserOperation } from "permissionless/types";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
 import { mainnet } from "viem/chains";
-import {
-  generatePaymasterSignature,
-  getPaymasterAndData,
-} from "./paymasterManager/paymaster";
+import { getPaymasterAndData } from "./paymasterManager/paymaster";
+import { isArray } from "node:util";
+import { smartAccountV2ABI } from "../../abis/smartAccountV2.abi";
 
 export class ERC4337SmartAccount<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
-> implements IERC4337SmartAccount
-{
+> {
   protected name: string;
   protected accounts: Account<TSigner>[];
   public runtime: Runtime<TTransport, TChain, TSigner>;
@@ -66,7 +64,7 @@ export class ERC4337SmartAccount<
     this.runtime = {};
   }
 
-  async send(): Promise<SmartAccountTransactionReceipt> {
+  async send(): Promise<this> {
     if (!this.runtime.account || !this.runtime.userOperation) {
       throw new Error("insufficient params");
     }
@@ -107,11 +105,12 @@ export class ERC4337SmartAccount<
       if (sendUserOperationRes.data.error) {
         throw new Error(String(sendUserOperationRes.data.error.message));
       }
-      return this.accountManager.pushAccountTransaction(
-        this.runtime.account,
-        sendUserOperationRes.data.result,
-      );
+      this.runtime.account.receipts.push({
+        userOperationHash: sendUserOperationRes.data.result,
+        result: undefined,
+      });
     }
+    return this;
   }
 
   private getCurrentAccount(): Account<TSigner> {
@@ -128,32 +127,46 @@ export class ERC4337SmartAccount<
     return this;
   }
 
-  encodeExecute(args: ExecuteCallDataArgs): this {
-    if (args.execMode.callType == "delegatecall") {
-      throw new Error("delegateCall not impl");
-    }
-    if (
-      args.execMode.callType == "batch" &&
-      Array.isArray(args.execRawData) == false
-    ) {
-      throw new Error("batchCall must be an array");
-    }
-    if (Array.isArray(args.execRawData)) {
-      throw new Error("batchCall will be supported soon");
-    }
+  encodeExecute(args: ExecuteCallDataArgs, execMode?: ExecutionMode): this {
     if (!this.runtime.account) {
       throw new Error("No account specified.");
     }
-    const mode = compileMode(args.execMode);
-    const callData = encodePacked(
-      ["address", "uint256", "bytes"],
-      [args.execRawData.to, args.execRawData.value, args.execRawData.data],
+    let callDataToEntryPoint: Hex;
+    const mode = compileMode(
+      Array.isArray(args),
+      execMode ?? { allowFailedExecution: false, try: false },
     );
-    const callDataToEntryPoint = encodeFunctionData({
-      abi: smartAccountV3ABI,
-      functionName: "execute",
-      args: [mode, callData],
-    });
+    if (Array.isArray(args)) {
+      const calldata = encodeAbiParameters(
+        [
+          {
+            name: "executions",
+            type: "tuple[]",
+            components: [
+              { name: "to", type: "address" },
+              { name: "value", type: "uint256" },
+              { name: "data", type: "bytes" },
+            ],
+          },
+        ],
+        [args],
+      );
+      callDataToEntryPoint = encodeFunctionData({
+        abi: smartAccountV3ABI,
+        functionName: "execute",
+        args: [mode, calldata],
+      });
+    } else {
+      const callData = encodePacked(
+        ["address", "uint256", "bytes"],
+        [args.to, args.value, args.data],
+      );
+      callDataToEntryPoint = encodeFunctionData({
+        abi: smartAccountV3ABI,
+        functionName: "execute",
+        args: [mode, callData],
+      });
+    }
     this.runtime.userOperation = {
       sender: this.runtime.account.accountAddress,
       nonce: 0n,

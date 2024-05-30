@@ -9,7 +9,6 @@ export type CallType = "single" | "delegatecall" | "batch" | undefined;
 export type SigType = "EIP712" | "EIP191";
 
 export type ExecutionMode = {
-  callType?: CallType;
   try?: boolean;
   allowFailedExecution?: boolean;
   modeParams?: string;
@@ -37,24 +36,19 @@ export type ClientsUrls = {
   paymasterUrl?: string;
 };
 
+interface BaseExecuteCallData {
+  to: Address;
+  value: bigint;
+  data: Hex;
+}
+
+interface ExecuteCallDataWithAllowFailed extends BaseExecuteCallData {
+  allowFailed?: boolean;
+}
+
 export type ExecuteCallDataArgs =
-  | {
-      execRawData: {
-        to: Address;
-        value: bigint;
-        data: Hex;
-      };
-      execMode: ExecutionMode;
-    }
-  | {
-      execRawData: {
-        to: Address;
-        value: bigint;
-        data: Hex;
-        allowFailed: boolean;
-      }[];
-      execMode: ExecutionMode;
-    };
+  | ExecuteCallDataWithAllowFailed
+  | ExecuteCallDataWithAllowFailed[];
 
 export type SupportedPayMaster = {
   entryPoint: string;
@@ -94,6 +88,7 @@ export type Account<
   isDeployed: boolean;
   authenticationManagerAddress: Address;
   receipts: SmartAccountTransactionReceipt[];
+  updateReceipts: () => Promise<void>;
   initCode: Hex;
   version: string;
   name: string;
@@ -101,8 +96,7 @@ export type Account<
 
 export type SmartAccountTransactionReceipt = {
   userOperationHash: Hex;
-  txHash: Hex | undefined;
-  success: Hex | undefined;
+  result: object | undefined;
 };
 
 export type UserOperationSimulationResponse = {

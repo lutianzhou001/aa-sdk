@@ -107,15 +107,8 @@ export function convertToHex(value: object): any {
   return result;
 }
 
-export function compileMode(mode: ExecutionMode) {
-  let callType: string;
-  if (mode.callType == "delegatecall") {
-    callType = "0xFF";
-  } else if (mode.callType == "batch") {
-    callType = "0x01";
-  } else {
-    callType = "0x00";
-  }
+export function compileMode(isBatch: boolean, mode: ExecutionMode) {
+  const callType = isBatch ? "0x01" : "0x00";
   const execType = mode.try ? "01" : "00";
   const modeSelector = mode.allowFailedExecution
     ? keccak256(
