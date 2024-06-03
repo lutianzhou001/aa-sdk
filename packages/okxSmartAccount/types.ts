@@ -63,11 +63,11 @@ export type Runtime<
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > = {
-  account?: Account<TSigner>;
-  userOperation?: UserOperation<"v0.7">;
-  packedUserOperation?: PackedUserOperation;
+  okxSmartAccount: OKXSmartAccount<TSigner>;
+  userOperation: UserOperation<"v0.7">;
+  packedUserOperation: PackedUserOperation;
+  userOperationHash: Hex;
   rawPaymaster?: RawPaymaster;
-  userOperationHash?: Hex;
   sigType?: SigType;
   sigTime?: bigint;
 };
@@ -79,7 +79,7 @@ export type RawPaymaster = {
   paymasterPostOpGasLimit?: bigint;
 };
 
-export type Account<
+export type OKXSmartAccount<
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 > = {
   signer: TSigner;
@@ -88,7 +88,6 @@ export type Account<
   isDeployed: boolean;
   authenticationManagerAddress: Address;
   receipts: SmartAccountTransactionReceipt[];
-  updateReceipts: () => Promise<void>;
   initCode: Hex;
   version: string;
   name: string;

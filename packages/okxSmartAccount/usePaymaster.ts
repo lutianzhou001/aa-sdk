@@ -1,21 +1,21 @@
 import { Address, Chain, Hex, Transport } from "viem";
-import { ERC4337SmartAccountSigner } from "../../plugins/types";
-import { SupportedPayMaster } from "../types";
+import { ERC4337SmartAccountSigner } from "../plugins/types";
+import { SupportedPayMaster } from "./types";
 import axios from "axios";
-import { networkConfigurations } from "../../../configuration";
-import { ERC4337SmartAccount } from "../ERC4337SmartAccount";
-import { callClient, convertToHex } from "../../common/utils";
+import { networkConfigurations } from "../../configuration";
+import { OKXSmartAccountClient } from "./okxSmartAccountClient";
+import { callClient, convertToHex } from "../common/utils";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
 
 export function paymasterActions<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
->(smartAccount: ERC4337SmartAccount<TTransport, TChain, TSigner>) {
+>(okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>) {
   return {
     usePaymaster: (usePaymasterParams: UsePaymasterParams) =>
-      usePaymaster(smartAccount, usePaymasterParams),
-    getSupportedPaymasters: () => getSupportedPaymasters(smartAccount),
+      usePaymaster(okxSmartAccountClient, usePaymasterParams),
+    getSupportedPaymasters: () => getSupportedPaymasters(okxSmartAccountClient),
   };
 }
 
@@ -31,18 +31,18 @@ export function usePaymaster<
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 >(
-  smartAccount: ERC4337SmartAccount<TTransport, TChain, TSigner>,
+  okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
   usePaymasterParams: UsePaymasterParams,
-): ERC4337SmartAccount<TTransport, TChain, TSigner> {
+): OKXSmartAccountClient<TTransport, TChain, TSigner> {
   // some logic here
-  smartAccount.runtime.rawPaymaster = {
+  okxSmartAccountClient.runtime.rawPaymaster = {
     paymasterAddress: usePaymasterParams.paymasterAddress,
     paymasterToken: usePaymasterParams.tokenAddress,
     paymasterVerificationGasLimit:
       usePaymasterParams.paymasterVerificationGasLimit,
     paymasterPostOpGasLimit: usePaymasterParams.paymasterPostOpGasLimit,
   };
-  return smartAccount;
+  return okxSmartAccountClient;
 }
 
 export async function getSupportedPaymasters<
@@ -50,12 +50,12 @@ export async function getSupportedPaymasters<
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 >(
-  smartAccount: ERC4337SmartAccount<TTransport, TChain, TSigner>,
+  okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
 ): Promise<SupportedPayMaster[]> {
   const config = {
     method: "get",
     maxBodyLength: Infinity,
-    url: smartAccount.paymasterUrl,
+    url: okxSmartAccountClient.paymasterUrl,
     headers: {
       "Content-Type": "application/json",
       Cookie: "locale=en-US",
@@ -69,19 +69,19 @@ export async function getPaymasterAndData<
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
 >(
-  smartAccount: ERC4337SmartAccount<TTransport, TChain, TSigner>,
+  okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
 ): Promise<void> {
   if (
-    !smartAccount.runtime.userOperation ||
-    !smartAccount.runtime.packedUserOperation
+    !okxSmartAccountClient.runtime.userOperation ||
+    !okxSmartAccountClient.runtime.packedUserOperation
   ) {
     throw new Error("uop not found");
   }
   // TODO: TO MAKE IT BETTER
   const payload = JSON.stringify({
     entryPoint: ENTRYPOINT_ADDRESS_V07,
-    paymaster: smartAccount.runtime.userOperation.paymaster,
-    uop: convertToHex(smartAccount.runtime.userOperation),
+    paymaster: okxSmartAccountClient.runtime.userOperation.paymaster,
+    uop: convertToHex(okxSmartAccountClient.runtime.userOperation),
   });
   const gasEstimationRes = await callClient(
     networkConfigurations.base_url +
@@ -91,8 +91,8 @@ export async function getPaymasterAndData<
   if (gasEstimationRes.data.error) {
     throw new Error(gasEstimationRes.data.error);
   }
-  smartAccount.runtime.packedUserOperation.paymasterAndData = gasEstimationRes
-    .data.result as Hex;
-  smartAccount.runtime.userOperation.paymasterData = ("0x" +
+  okxSmartAccountClient.runtime.packedUserOperation.paymasterAndData =
+    gasEstimationRes.data.result as Hex;
+  okxSmartAccountClient.runtime.userOperation.paymasterData = ("0x" +
     gasEstimationRes.data.result.slice(106)) as Hex;
 }
