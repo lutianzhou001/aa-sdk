@@ -89,7 +89,6 @@ export async function createOKXSmartAccount<
     authenticationManagerAddress,
   );
 
-  // TODO: need to check why the response takes too long time
   const nameHash = await signer.publicClient.readContract({
     address: configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
     abi: authenticationManagerABI,
