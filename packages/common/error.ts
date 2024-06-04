@@ -1,15 +1,16 @@
-import { BaseError } from "viem";
-
-export class InvalidAddressError extends BaseError {
-  override name = "InvalidAddressError";
-  constructor(address: string) {
-    super(`Invalid address: ${address}`);
+export class BaseError extends Error {
+  constructor(
+    public error: string,
+    message: string,
+  ) {
+    super(message);
+    this.error = error;
   }
 }
 
-export class AccountOrClientNotFoundError extends BaseError {
-  override name = "AccountOrClientNotFoundError";
-  constructor() {
-    super(`Account or client not found`);
-  }
-}
+export class GasEstimationError extends BaseError {}
+export class GetPaymasterSignatureError extends BaseError {}
+export class SendUserOperationError extends BaseError {}
+export class SendUserOperationSimulationError extends BaseError {}
+export class LocalError extends BaseError {}
+export class GetUserOperationReceiptError extends BaseError {}

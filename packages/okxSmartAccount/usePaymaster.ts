@@ -6,6 +6,7 @@ import { networkConfigurations } from "../../configuration";
 import { OKXSmartAccountClient } from "./okxSmartAccountClient";
 import { callClient, convertToHex } from "../common/utils";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
+import { GetPaymasterSignatureError } from "../common/error";
 
 export function paymasterActions<
   TTransport extends Transport = Transport,
@@ -71,28 +72,25 @@ export async function getPaymasterAndData<
 >(
   okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
 ): Promise<void> {
-  if (
-    !okxSmartAccountClient.runtime.userOperation ||
-    !okxSmartAccountClient.runtime.packedUserOperation
-  ) {
-    throw new Error("uop not found");
-  }
   // TODO: TO MAKE IT BETTER
   const payload = JSON.stringify({
     entryPoint: ENTRYPOINT_ADDRESS_V07,
     paymaster: okxSmartAccountClient.runtime.userOperation.paymaster,
     uop: convertToHex(okxSmartAccountClient.runtime.userOperation),
   });
-  const gasEstimationRes = await callClient(
+  const getPaymasterSignatureRes = await callClient(
     networkConfigurations.base_url +
       "priapi/v5/wallet/smart-account/pm/42161/getPaymasterSignature",
     payload,
   );
-  if (gasEstimationRes.data.error) {
-    throw new Error(gasEstimationRes.data.error);
+  if (getPaymasterSignatureRes.data.error) {
+    throw new GetPaymasterSignatureError(
+      "GET_PAYMASTER_SIGNATURE_ERROR",
+      getPaymasterSignatureRes.data.error.message,
+    );
   }
   okxSmartAccountClient.runtime.packedUserOperation.paymasterAndData =
-    gasEstimationRes.data.result as Hex;
+    getPaymasterSignatureRes.data.result as Hex;
   okxSmartAccountClient.runtime.userOperation.paymasterData = ("0x" +
-    gasEstimationRes.data.result.slice(106)) as Hex;
+    getPaymasterSignatureRes.data.result.slice(106)) as Hex;
 }

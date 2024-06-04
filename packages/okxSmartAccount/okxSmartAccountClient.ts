@@ -23,7 +23,13 @@ import { ERC4337SmartAccountSigner } from "../plugins/types";
 import { configuration, networkConfigurations } from "../../configuration";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
 import { UserOperation } from "permissionless/types/userOperation";
-import { GasEstimationError } from "../error/constants";
+import {
+  GasEstimationError,
+  GetUserOperationReceiptError,
+  LocalError,
+  SendUserOperationError,
+  SendUserOperationSimulationError,
+} from "../common/error";
 import {
   callClient,
   compileBigInt,
@@ -119,7 +125,10 @@ export class OKXSmartAccountClient<
       simulateUserOperationReq,
     );
     if (simulateUserOperationRes.data.error) {
-      throw new Error();
+      throw new SendUserOperationSimulationError(
+        "SEND_USER_OPERATION_SIMULATION_ERROR",
+        simulateUserOperationRes.data.error.message,
+      );
     } else {
       const sendUserOperationReq = JSON.stringify({
         id: 1,
@@ -136,7 +145,10 @@ export class OKXSmartAccountClient<
         sendUserOperationReq,
       );
       if (sendUserOperationRes.data.error) {
-        throw new Error(String(sendUserOperationRes.data.error.message));
+        throw new SendUserOperationError(
+          "SEND_USER_OPERATION_ERROR",
+          sendUserOperationRes.data.error.message,
+        );
       }
       return sendUserOperationRes.data.result;
     }
@@ -224,10 +236,10 @@ export class OKXSmartAccountClient<
 
   async signAndPack(): Promise<this> {
     if (!this.runtime.sigType) {
-      throw new Error("sigType not specified");
+      throw new LocalError("SIGN_PACK_ERROR", "sigType not provided");
     }
     if (!this.runtime.sigTime) {
-      throw new Error("sigTime not specified");
+      throw new LocalError("SIGN_PACK_ERROR", "sigTime not provided");
     }
     if (this.runtime.sigType == "EIP712") {
       const domain = {
@@ -280,9 +292,6 @@ export class OKXSmartAccountClient<
         [0, this.runtime.sigTime, signature],
       );
     } else {
-      if (!this.runtime.userOperation) {
-        throw new Error("UserOperation not provided");
-      }
       this.runtime.userOperation.signature = encodePacked(
         ["uint8", "uint256", "bytes"],
         [
@@ -303,9 +312,6 @@ export class OKXSmartAccountClient<
     packTxMiddlewareOverride?: PackTxMiddlewareOverride,
   ): Promise<this> {
     this.runtime.sigType = sigType;
-    if (!this.runtime.userOperation.callData) {
-      throw new Error("callData is not provided");
-    }
     this.runtime.userOperation.factory = (
       (await isSmartAccountDeployed(
         this.runtime.okxSmartAccount.signer.publicClient,
@@ -387,8 +393,6 @@ export class OKXSmartAccountClient<
         this.runtime.rawPaymaster.paymasterPostOpGasLimit ?? 0n;
       // mod(uint8) + bizId(uint64)
       this.runtime.userOperation.paymasterData = "0x000000000000000000";
-      // @ts-ignore
-      // this.runtime.userOperation.paymasterAndData = this.runtime.rawPaymaster.paymasterAddress + "0000"
     }
     const payload = [
       convertToHex(this.runtime.userOperation),
@@ -453,6 +457,26 @@ export class OKXSmartAccountClient<
     userOperation.preVerificationGas =
       packTxMiddlewareOverride?.gasEstimationOverride?.preVerificationGas ??
       configuration.defaultGasConfig.PREVERIFICATION_GAS;
+  }
+
+  async getUserOperationReceipt(hash: Hex) {
+    const data = JSON.stringify({
+      id: 1,
+      jsonrpc: "2.0",
+      method: "eth_getUserOperationReceipt",
+      params: [hash],
+    });
+    const getUserOperationReceiptRes = await callClient(
+      networkConfigurations.base_url +
+        "priapi/v5/wallet/smart-account/mp/42161/eth_getUserOperationReceipt",
+      data,
+    );
+    if (getUserOperationReceiptRes.data.error) {
+      throw new GetUserOperationReceiptError(
+        "GET_USER_OPERATION_RECEIPT_ERROR",
+        getUserOperationReceiptRes.data.error.message,
+      );
+    }
   }
 
   extend = <R>(extendFn: (self: this) => R): this & R => {

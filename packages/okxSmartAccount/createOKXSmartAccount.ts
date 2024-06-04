@@ -1,6 +1,5 @@
 import {
   Address,
-  Chain,
   encodeAbiParameters,
   encodeFunctionData,
   encodePacked,
@@ -20,12 +19,12 @@ import { getConfiguration, predictDeterministicAddress } from "../common/utils";
 import { isSmartAccountDeployed } from "permissionless";
 import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
 
-
 /**
  * create a okxSmartAccount
  *
  * @param signer the signer(ERC4337SmartAccountSigner) of the account
  * @param name the name of the account, if the name is not compatible with the onchain smart account template, it will throw a new error.
+ * @param version the version of the account, if the version is not compatible with the onchain smart account template, it will throw a new error.
  * @param index the index of the account, in default, it will be 0
  * @param executions the executions of the account, in default, it will be []
  */
@@ -112,7 +111,7 @@ export async function createOKXSmartAccount<
     );
   }
 
-  const okxSmartAccount: OKXSmartAccount<TSigner> = {
+  return {
     signer: signer,
     accountAddress: accountAddress,
     isDeployed: await isSmartAccountDeployed(
@@ -126,5 +125,4 @@ export async function createOKXSmartAccount<
     version: version,
     name: name,
   };
-  return okxSmartAccount;
 }

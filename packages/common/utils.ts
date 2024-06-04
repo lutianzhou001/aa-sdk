@@ -12,7 +12,7 @@ import { type Account, privateKeyToAccount } from "viem/accounts";
 import * as allChains from "viem/chains";
 import { type Chain, goerli } from "viem/chains";
 import { Address } from "abitype";
-import { BaseSmartAccountError } from "../error/constants";
+import { BaseError } from "./error";
 import { ExecutionMode } from "../okxSmartAccount/types";
 import { configuration } from "../../configuration";
 import axios from "axios";
@@ -28,46 +28,6 @@ export function getConfiguration(version: string): {
     factoryAddress: configuration.v3.FACTORY_ADDRESS as Address,
     name: configuration.v3.NAME,
   };
-}
-
-export async function getEoaWalletClient(): Promise<WalletClient> {
-  const rpcUrl = process.env.RPC_URL;
-  if (!rpcUrl) {
-    throw new BaseSmartAccountError(
-      "BaseSmartAccountError",
-      "RPC_URL environment variable not set",
-    );
-  }
-
-  return createWalletClient({
-    account: await getPrivateKeyAccount(),
-    chain: getTestingChain(),
-    transport: http(rpcUrl),
-  });
-}
-
-export async function getPrivateKeyAccount(): Promise<Account> {
-  const privateKey = process.env.TEST_PRIVATE_KEY;
-  if (!privateKey) {
-    throw new BaseSmartAccountError(
-      "BaseSmartAccountError",
-      "TEST_PRIVATE_KEY environment variable not set",
-    );
-  }
-  return privateKeyToAccount(privateKey as Hex);
-}
-
-export function getTestingChain(): Chain {
-  const testChainId = process.env.TEST_CHAIN_ID;
-  const chainId = testChainId ? parseInt(testChainId, 10) : goerli.id;
-  const chain = Object.values(allChains).find((c) => c.id === chainId);
-  if (!chain) {
-    throw new BaseSmartAccountError(
-      "BaseSmartAccountError",
-      `Chain with id ${chainId} not found`,
-    );
-  }
-  return chain;
 }
 
 export function compileBigInt(

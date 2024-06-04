@@ -47,8 +47,10 @@ async function smokeTest() {
       .proposeTx("EIP191");
 
     const signed = await encoded.signAndPack();
-    const u = await signed.send();
-    console.log(u);
+    const hash = await signed.send();
+    console.log(hash);
+    // wait for some time
+    const receipt = await smartAccountClient.getUserOperationReceipt(hash);
   } catch (error) {
     console.error("An error occurred:", error);
   }
