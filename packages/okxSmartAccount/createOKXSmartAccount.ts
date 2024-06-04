@@ -120,7 +120,6 @@ export async function createOKXSmartAccount<
     ),
     nonceKey: defaultValidator as Hex,
     authenticationManagerAddress: authenticationManagerAddress,
-    receipts: [],
     initCode: initCode,
     version: version,
     name: name,

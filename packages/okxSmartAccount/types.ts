@@ -87,15 +87,9 @@ export type OKXSmartAccount<
   nonceKey: Hex;
   isDeployed: boolean;
   authenticationManagerAddress: Address;
-  receipts: SmartAccountTransactionReceipt[];
   initCode: Hex;
   version: string;
   name: string;
-};
-
-export type SmartAccountTransactionReceipt = {
-  userOperationHash: Hex;
-  result: object | undefined;
 };
 
 export type UserOperationSimulationResponse = {

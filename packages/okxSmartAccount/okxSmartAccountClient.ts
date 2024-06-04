@@ -65,7 +65,7 @@ export class OKXSmartAccountClient<
   ) {
     this.bundlerUrl = clientsUrls?.bundlerUrl ?? configuration.bundlerUrl.okx;
     this.paymasterUrl =
-      clientsUrls?.bundlerUrl ?? configuration.paymasterUrl.okx;
+      clientsUrls?.paymasterUrl ?? configuration.paymasterUrl.okx;
     this.runtime = {
       okxSmartAccount: okxSmartAccount,
       userOperationHash: zeroHash,
@@ -120,7 +120,7 @@ export class OKXSmartAccountClient<
       ],
     });
     const simulateUserOperationRes = await callClient(
-      networkConfigurations.base_url +
+      this.bundlerUrl +
         "priapi/v5/wallet/smart-account/mp/42161/eth_simulateUserOperation",
       simulateUserOperationReq,
     );
@@ -140,7 +140,7 @@ export class OKXSmartAccountClient<
         ],
       });
       const sendUserOperationRes = await callClient(
-        networkConfigurations.base_url +
+        this.bundlerUrl +
           "priapi/v5/wallet/smart-account/mp/42161/eth_sendUserOperation",
         sendUserOperationReq,
       );
@@ -369,7 +369,7 @@ export class OKXSmartAccountClient<
     return this;
   }
 
-  async gasEstimation(
+  private async gasEstimation(
     userOperation: UserOperation<"v0.7">,
     packTxMiddlewareOverride?: PackTxMiddlewareOverride,
   ): Promise<void> {
@@ -405,7 +405,7 @@ export class OKXSmartAccountClient<
       params: payload,
     });
     const gasEstimationRes = await callClient(
-      networkConfigurations.base_url +
+      this.bundlerUrl +
         "priapi/v5/wallet/smart-account/mp/42161/eth_estimateUserOperationGas",
       data,
     );
@@ -467,7 +467,7 @@ export class OKXSmartAccountClient<
       params: [hash],
     });
     const getUserOperationReceiptRes = await callClient(
-      networkConfigurations.base_url +
+      this.bundlerUrl +
         "priapi/v5/wallet/smart-account/mp/42161/eth_getUserOperationReceipt",
       data,
     );

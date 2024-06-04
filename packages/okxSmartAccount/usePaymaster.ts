@@ -79,7 +79,7 @@ export async function getPaymasterAndData<
     uop: convertToHex(okxSmartAccountClient.runtime.userOperation),
   });
   const getPaymasterSignatureRes = await callClient(
-    networkConfigurations.base_url +
+    networkConfigurations.defaultBundlerUrl +
       "priapi/v5/wallet/smart-account/pm/42161/getPaymasterSignature",
     payload,
   );
