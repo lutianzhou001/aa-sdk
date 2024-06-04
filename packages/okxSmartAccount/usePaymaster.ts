@@ -7,6 +7,7 @@ import { OKXSmartAccountClient } from "./okxSmartAccountClient";
 import { callClient, convertToHex } from "../common/utils";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
 import { GetPaymasterSignatureError } from "../common/error";
+import { getChainId } from "viem/actions";
 
 export function paymasterActions<
   TTransport extends Transport = Transport,
@@ -78,9 +79,14 @@ export async function getPaymasterAndData<
     paymaster: okxSmartAccountClient.runtime.userOperation.paymaster,
     uop: convertToHex(okxSmartAccountClient.runtime.userOperation),
   });
+  const chainId = await getChainId(
+    okxSmartAccountClient.runtime.okxSmartAccount.signer.publicClient,
+  );
   const getPaymasterSignatureRes = await callClient(
     networkConfigurations.defaultBundlerUrl +
-      "priapi/v5/wallet/smart-account/pm/42161/getPaymasterSignature",
+      "priapi/v5/wallet/smart-account/pm/" +
+      chainId +
+      "/getPaymasterSignature",
     payload,
   );
   if (getPaymasterSignatureRes.data.error) {

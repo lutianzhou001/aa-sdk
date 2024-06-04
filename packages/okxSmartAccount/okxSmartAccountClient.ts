@@ -46,6 +46,7 @@ import { mainnet } from "viem/chains";
 import { getPaymasterAndData } from "./usePaymaster";
 import { EntryPointV0_7ABI } from "../../abis/EntryPointV0_7.abi";
 import { smartAccountV2WithInscriptionSupportedABI } from "../../abis/smartAccountV2WithInscriptionSupported.abi";
+import { getChain } from "@alchemy/aa-core";
 
 export class OKXSmartAccountClient<
   TTransport extends Transport = Transport,
@@ -54,6 +55,7 @@ export class OKXSmartAccountClient<
 > {
   protected name: string;
   protected version: string;
+  protected chainId: string;
 
   public runtime: Runtime<TTransport, TChain, TSigner>;
   public bundlerUrl: string;
@@ -121,7 +123,9 @@ export class OKXSmartAccountClient<
     });
     const simulateUserOperationRes = await callClient(
       this.bundlerUrl +
-        "priapi/v5/wallet/smart-account/mp/42161/eth_simulateUserOperation",
+        "priapi/v5/wallet/smart-account/mp/" +
+        this.chainId +
+        "/eth_simulateUserOperation",
       simulateUserOperationReq,
     );
     if (simulateUserOperationRes.data.error) {
@@ -141,7 +145,9 @@ export class OKXSmartAccountClient<
       });
       const sendUserOperationRes = await callClient(
         this.bundlerUrl +
-          "priapi/v5/wallet/smart-account/mp/42161/eth_sendUserOperation",
+          "priapi/v5/wallet/smart-account/mp/" +
+          this.chainId +
+          "/eth_sendUserOperation",
         sendUserOperationReq,
       );
       if (sendUserOperationRes.data.error) {
@@ -311,6 +317,9 @@ export class OKXSmartAccountClient<
     sigType: SigType,
     packTxMiddlewareOverride?: PackTxMiddlewareOverride,
   ): Promise<this> {
+    this.chainId = String(
+      await getChainId(this.runtime.okxSmartAccount.signer.publicClient),
+    );
     this.runtime.sigType = sigType;
     this.runtime.userOperation.factory = (
       (await isSmartAccountDeployed(
@@ -406,7 +415,9 @@ export class OKXSmartAccountClient<
     });
     const gasEstimationRes = await callClient(
       this.bundlerUrl +
-        "priapi/v5/wallet/smart-account/mp/42161/eth_estimateUserOperationGas",
+        "priapi/v5/wallet/smart-account/mp/" +
+        this.chainId +
+        "/eth_estimateUserOperationGas",
       data,
     );
     if (gasEstimationRes.data.error) {
@@ -468,7 +479,9 @@ export class OKXSmartAccountClient<
     });
     const getUserOperationReceiptRes = await callClient(
       this.bundlerUrl +
-        "priapi/v5/wallet/smart-account/mp/42161/eth_getUserOperationReceipt",
+        "priapi/v5/wallet/smart-account/mp/" +
+        this.chainId +
+        "/eth_getUserOperationReceipt",
       data,
     );
     if (getUserOperationReceiptRes.data.error) {
