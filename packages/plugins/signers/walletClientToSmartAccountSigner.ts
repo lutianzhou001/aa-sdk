@@ -38,7 +38,11 @@ export async function walletClientToERC4337SmartAccountSigner(
       }
     },
     async signTypedData(args: SignTypedDataParameters): Promise<Hex> {
-      return walletClient.signTypedData(args);
+      if (!walletClient.account) {
+        throw new Error("not impl");
+      }
+      // @ts-ignore
+      return walletClient.account.signTypedData(args);
     },
   };
 }

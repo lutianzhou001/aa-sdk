@@ -111,6 +111,9 @@ export class OKXSmartAccountClient<
     });
   }
 
+  /**
+   * send: send the current runtime uop to the bundler
+   */
   async send() {
     const simulateUserOperationReq = JSON.stringify({
       id: 1,
@@ -160,6 +163,9 @@ export class OKXSmartAccountClient<
     }
   }
 
+  /**
+   * encodeExecute: encode execute calldata
+   */
   encodeExecute(args: ExecuteCallDataArgs, execMode?: ExecutionMode): this {
     let callDataToEntryPoint: Hex;
     const mode = compileMode(
@@ -293,7 +299,7 @@ export class OKXSmartAccountClient<
           primaryType: "SignMessage",
         },
       );
-      this.runtime.packedUserOperation.signature = encodePacked(
+      this.runtime.userOperation.signature = encodePacked(
         ["uint8", "uint256", "bytes"],
         [0, this.runtime.sigTime, signature],
       );

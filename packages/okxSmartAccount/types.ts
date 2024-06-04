@@ -15,14 +15,14 @@ export type ExecutionMode = {
 };
 
 export type GasEstimationOverride = {
-  callGasLimit: bigint;
-  preVerificationGas: bigint;
-  verificationGasLimit: bigint;
+  callGasLimit?: bigint;
+  preVerificationGas?: bigint;
+  verificationGasLimit?: bigint;
 };
 
 export type FeeDataOverride = {
-  maxFeePerGas: bigint;
-  maxPriorityFeePerGas: bigint;
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
 };
 
 export type PackTxMiddlewareOverride = {

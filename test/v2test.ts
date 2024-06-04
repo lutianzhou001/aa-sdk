@@ -44,7 +44,7 @@ async function smokeTest() {
       .usePaymaster({
         paymasterAddress: "0x505BBF2e6F7FC45c2D42C54a2578e541bab676A7",
       })
-      .proposeTx("EIP191");
+      .proposeTx("EIP712");
 
     const signed = await encoded.signAndPack();
     const hash = await signed.send();
