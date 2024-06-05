@@ -15,15 +15,51 @@ yarn
 
 ## quick start 
 ```typescript
-  // first convert the client to the validator
-  const owner = new walletClientSigner(walletClient, "SUDO");
+  // first create a signer(ECDSA signer/JWT singer...)
+  const walletClient: WalletClient = createWalletClient({
+    account: privateKeyToAccount(configuration.walletClientPrivateKey as Hex),
+    chain: arbitrum,
+    transport: http(),
+  }).extend(publicActions);
 
-  // now convert the client to the smart account
-  const smartAccount = new ERC4337SmartContractAccount({
-    publicClient: publicClient,
-    owner: owner,
+  // 2. convert the signer to make a smartAccount
+  const smartAccount = await createOKXSmartAccount(
+    await walletClientToERC4337SmartAccountSigner(walletClient),
+    // smartAccount name
+    "SmartAccount",
+    // smartAccount version
+    "3.0.3",
+    // index, from 0,1,2...
+    0n,
+  );
+
+  // 3. make the smartAccount to a smartAccountClient
+  const smartAccountClient = new OKXSmartAccountClient(smartAccount, {
+    bundlerUrl: "bundlerUrl if you want to specify",
   });
+
+  // 4. then we use it!
+  const encoded = await smartAccountClient
+      // it is a batch transaction
+    .encodeExecute([
+        {
+            to: zeroAddress,
+            value: BigInt(1),
+            data: "0x",
+        },
+        { to: zeroAddress, value: BigInt(2), data: "0x" },
+    ])
+    .extend(paymasterActions)
+    .usePaymaster({
+        paymasterAddress: "0x505BBF2e6F7FC45c2D42C54a2578e541bab676A7",
+    })
+      // or "EIP712"
+    .proposeTx("EIP191");
+
+  const signed = await encoded.signAndPack();
+  const hash = await signed.send();
+  console.log(hash);
+  // wait for some time
+  const receipt = await smartAccountClient.getUserOperationReceipt(hash);
 ```
 
-## Usage
-feel free to use this smartAccount class
