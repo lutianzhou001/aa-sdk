@@ -7,7 +7,6 @@ import {
   type Hex,
   hexToBigInt,
   http,
-  PublicClient,
   type Transport,
   zeroHash,
 } from "viem";
@@ -21,7 +20,6 @@ import {
   SigType,
 } from "./types.js";
 import { ERC4337SmartAccountSigner } from "../plugins/types";
-import { configuration, networkConfigurations } from "../../configuration";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
 import { UserOperation } from "permissionless/types/userOperation";
 import {
@@ -69,33 +67,50 @@ export class OKXSmartAccountClient<
     this.paymasterUrl =
       clientsUrls?.paymasterUrl ??
       (process.env.DEFAULT_PAYMASTER_URL as string);
-    this.runtime = {
+    this.runtime = this.initializeRuntime(okxSmartAccount);
+  }
+
+  private initializeRuntime(
+    okxSmartAccount: OKXSmartAccount<TSigner>,
+  ): Runtime<TTransport, TChain, TSigner> {
+    return {
       okxSmartAccount: okxSmartAccount,
       userOperationHash: zeroHash,
-      userOperation: {
-        sender: okxSmartAccount.accountAddress,
-        nonce: 0n,
-        callData: "0x",
-        callGasLimit: 0n,
-        verificationGasLimit: 0n,
-        preVerificationGas: 0n,
-        maxFeePerGas: 0n,
-        maxPriorityFeePerGas: 0n,
-        signature:
-          // a mock signature
-          "0x010000000000000000000000000000000000000000000000000000000065f80f5137565d2eb25e3508f7d322d9cf2265ec95ac218945a4eb64fc3d9efe216850dc7e26066839e71d048d3667fd367f5f0532b21075e060a9e4cb0c159c00bf6c121b",
-      },
-      packedUserOperation: {
-        sender: okxSmartAccount.accountAddress,
-        nonce: 0n,
-        callData: "0x",
-        initCode: okxSmartAccount.isDeployed ? "0x" : okxSmartAccount.initCode,
-        accountGasLimits: zeroHash as `0x${string & { length: 64 }}`,
-        preVerificationGas: 0n,
-        gasFees: zeroHash as `0x${string & { length: 64 }}`,
-        paymasterAndData: "0x",
-        signature: zeroHash,
-      },
+      userOperation: this.createUserOperation(okxSmartAccount),
+      packedUserOperation: this.createPackedUserOperation(okxSmartAccount),
+    };
+  }
+
+  private createUserOperation(
+    okxSmartAccount: OKXSmartAccount<TSigner>,
+  ): UserOperation<"v0.7"> {
+    return {
+      sender: okxSmartAccount.accountAddress,
+      nonce: 0n,
+      callData: "0x",
+      callGasLimit: 0n,
+      verificationGasLimit: 0n,
+      preVerificationGas: 0n,
+      maxFeePerGas: 0n,
+      maxPriorityFeePerGas: 0n,
+      signature:
+        "0x010000000000000000000000000000000000000000000000000000000065f80f5137565d2eb25e3508f7d322d9cf2265ec95ac218945a4eb64fc3d9efe216850dc7e26066839e71d048d3667fd367f5f0532b21075e060a9e4cb0c159c00bf6c121b",
+    };
+  }
+
+  private createPackedUserOperation(
+    okxSmartAccount: OKXSmartAccount<TSigner>,
+  ): PackedUserOperation {
+    return {
+      sender: okxSmartAccount.accountAddress,
+      nonce: 0n,
+      callData: "0x",
+      initCode: okxSmartAccount.isDeployed ? "0x" : okxSmartAccount.initCode,
+      accountGasLimits: zeroHash as `0x${string & { length: 64 }}`,
+      preVerificationGas: 0n,
+      gasFees: zeroHash as `0x${string & { length: 64 }}`,
+      paymasterAndData: "0x",
+      signature: zeroHash,
     };
   }
 
@@ -112,61 +127,56 @@ export class OKXSmartAccountClient<
     });
   }
 
-  /**
-   * send: send the current runtime uop to the bundler
-   */
   async send() {
-    const simulateUserOperationReq = JSON.stringify({
-      id: 1,
-      jsonrpc: "2.0",
-      method: "eth_simulateUserOperation",
-      params: [
-        convertToHex(this.runtime.userOperation),
-        ENTRYPOINT_ADDRESS_V07,
-      ],
-    });
-    const simulateUserOperationRes = await callClient(
-      this.bundlerUrl +
-        "priapi/v5/wallet/smart-account/mp/" +
-        this.chainId +
-        "/eth_simulateUserOperation",
-      simulateUserOperationReq,
-    );
+    const simulateUserOperationRes = await this.simulateUserOperation();
     if (simulateUserOperationRes.data.error) {
       throw new SendUserOperationSimulationError(
         "SEND_USER_OPERATION_SIMULATION_ERROR",
         simulateUserOperationRes.data.error.message,
       );
-    } else {
-      const sendUserOperationReq = JSON.stringify({
-        id: 1,
-        jsonrpc: "2.0",
-        method: "eth_sendUserOperation",
-        params: [
-          convertToHex(this.runtime.userOperation),
-          ENTRYPOINT_ADDRESS_V07,
-        ],
-      });
-      const sendUserOperationRes = await callClient(
-        this.bundlerUrl +
-          "priapi/v5/wallet/smart-account/mp/" +
-          this.chainId +
-          "/eth_sendUserOperation",
-        sendUserOperationReq,
-      );
-      if (sendUserOperationRes.data.error) {
-        throw new SendUserOperationError(
-          "SEND_USER_OPERATION_ERROR",
-          sendUserOperationRes.data.error.message,
-        );
-      }
-      return sendUserOperationRes.data.result;
     }
+    const sendUserOperationRes = await this.sendUserOperation();
+    if (sendUserOperationRes.data.error) {
+      throw new SendUserOperationError(
+        "SEND_USER_OPERATION_ERROR",
+        sendUserOperationRes.data.error.message,
+      );
+    }
+    return sendUserOperationRes.data.result;
   }
 
-  /**
-   * encodeExecute: encode execute calldata
-   */
+  private async simulateUserOperation() {
+    const simulateUserOperationReq = this.createUserOperationRequest(
+      "eth_simulateUserOperation",
+    );
+    return await callClient(
+      `${this.bundlerUrl}/priapi/v5/wallet/smart-account/mp/${this.chainId}/eth_simulateUserOperation`,
+      simulateUserOperationReq,
+    );
+  }
+
+  private async sendUserOperation() {
+    const sendUserOperationReq = this.createUserOperationRequest(
+      "eth_sendUserOperation",
+    );
+    return await callClient(
+      `${this.bundlerUrl}/priapi/v5/wallet/smart-account/mp/${this.chainId}/eth_sendUserOperation`,
+      sendUserOperationReq,
+    );
+  }
+
+  private createUserOperationRequest(method: string): string {
+    return JSON.stringify({
+      id: 1,
+      jsonrpc: "2.0",
+      method: method,
+      params: [
+        convertToHex(this.runtime.userOperation),
+        ENTRYPOINT_ADDRESS_V07,
+      ],
+    });
+  }
+
   encodeExecute(args: ExecuteCallDataArgs, execMode?: ExecutionMode): this {
     let callDataToEntryPoint: Hex;
     const mode = compileMode(
@@ -213,38 +223,46 @@ export class OKXSmartAccountClient<
     signType: SigType,
     userOperation: PackedUserOperation,
   ): Promise<Hex> {
-    // @ts-ignore
-    return await this.runtime.okxSmartAccount.signer.publicClient.readContract({
-      address: this.runtime.okxSmartAccount.isDeployed
-        ? this.runtime.okxSmartAccount.authenticationManagerAddress
-        : (process.env.AUTHENTICATION_MANAGER_TEMPLATE as Hex),
-      abi: authenticationManagerABI,
-      functionName: "getUOPHash",
-      args: [
-        signType == "EIP712" ? 0 : 1,
-        ENTRYPOINT_ADDRESS_V07,
-        userOperation,
-      ],
-    });
+    return (await this.runtime.okxSmartAccount.signer.publicClient.readContract(
+      {
+        address: this.getAuthenticationManagerAddress(),
+        abi: authenticationManagerABI,
+        functionName: "getUOPHash",
+        args: [
+          this.getSignTypeIndex(signType),
+          ENTRYPOINT_ADDRESS_V07,
+          userOperation,
+        ],
+      },
+    )) as Hex;
   }
 
   async getUOPSignedHash(
     signType: SigType,
     userOperation: UserOperation<"v0.6"> | UserOperation<"v0.7">,
   ): Promise<Hex> {
-    // @ts-ignore
-    return await this.runtime.okxSmartAccount.signer.publicClient.readContract({
-      address: this.runtime.okxSmartAccount.isDeployed
-        ? this.runtime.okxSmartAccount.authenticationManagerAddress
-        : (process.env.AUTHENTICATION_MANAGER_TEMPLATE as Hex),
-      abi: authenticationManagerABI,
-      functionName: "getUOPSignedHash",
-      args: [
-        signType == "EIP712" ? 0 : 1,
-        ENTRYPOINT_ADDRESS_V07,
-        userOperation,
-      ],
-    });
+    return (await this.runtime.okxSmartAccount.signer.publicClient.readContract(
+      {
+        address: this.getAuthenticationManagerAddress(),
+        abi: authenticationManagerABI,
+        functionName: "getUOPSignedHash",
+        args: [
+          this.getSignTypeIndex(signType),
+          ENTRYPOINT_ADDRESS_V07,
+          userOperation,
+        ],
+      },
+    )) as Hex;
+  }
+
+  private getAuthenticationManagerAddress(): Address {
+    return this.runtime.okxSmartAccount.isDeployed
+      ? this.runtime.okxSmartAccount.authenticationManagerAddress
+      : (process.env.AUTHENTICATION_MANAGER_TEMPLATE as Address);
+  }
+
+  private getSignTypeIndex(signType: SigType): number {
+    return signType === "EIP712" ? 0 : 1;
   }
 
   async signAndPack(): Promise<this> {
@@ -254,153 +272,118 @@ export class OKXSmartAccountClient<
     if (!this.runtime.sigTime) {
       throw new LocalError("SIGN_PACK_ERROR", "sigTime not provided");
     }
-    if (this.runtime.sigType == "EIP712") {
-      const domain = {
-        name: this.runtime.okxSmartAccount.name,
-        version: this.runtime.okxSmartAccount.version,
-        chainId: await getChainId(
-          this.runtime.okxSmartAccount.signer.publicClient,
-        ),
-        verifyingContract: process.env
-          .AUTHENTICATION_MANAGER_TEMPLATE as Address,
-      };
-      // keccak256("SignMessage(address sender,uint256 nonce,bytes initCode,bytes callData,bytes32 accountGasLimits,uint256 preVerificationGas,bytes32 gasFees,bytes paymasterAndData,address EntryPoint,uint256 sigTime)")
-      let types = {
-        SignMessage: [
-          { name: "sender", type: "address" },
-          { name: "nonce", type: "uint256" },
-          { name: "initCode", type: "bytes" },
-          { name: "callData", type: "bytes" },
-          { name: "accountGasLimits", type: "bytes32" },
-          { name: "preVerificationGas", type: "uint256" },
-          { name: "gasFees", type: "bytes32" },
-          { name: "paymasterAndData", type: "bytes" },
-          { name: "EntryPoint", type: "address" },
-          { name: "sigTime", type: "uint256" },
-        ],
-      };
-      let value = {
-        sender: this.runtime?.packedUserOperation?.sender as Address,
-        nonce: this.runtime?.packedUserOperation?.nonce as bigint,
-        initCode: this.runtime?.packedUserOperation?.initCode,
-        callData: this.runtime?.packedUserOperation?.callData,
-        accountGasLimits: this.runtime?.packedUserOperation?.accountGasLimits,
-        preVerificationGas:
-          this.runtime?.packedUserOperation?.preVerificationGas,
-        gasFees: this.runtime?.packedUserOperation?.gasFees,
-        paymasterAndData: this.runtime?.packedUserOperation?.paymasterAndData,
-        EntryPoint: ENTRYPOINT_ADDRESS_V07,
-        sigTime: this.runtime.sigTime,
-      };
-      const signature = await this.runtime.okxSmartAccount.signer.signTypedData(
-        {
-          account: this.runtime.okxSmartAccount.accountAddress,
-          domain: domain,
-          types: types,
-          message: value,
-          primaryType: "SignMessage",
-        },
-      );
-      this.runtime.userOperation.signature = encodePacked(
-        ["uint8", "uint256", "bytes"],
-        [0, this.runtime.sigTime, signature],
-      );
-    } else {
-      this.runtime.userOperation.signature = encodePacked(
-        ["uint8", "uint256", "bytes"],
-        [
-          1,
-          this.runtime.sigTime,
-          await this.runtime.okxSmartAccount.signer.signMessage(
-            this.runtime.userOperationHash,
-          ),
-        ],
-      );
-    }
+    const signature =
+      this.runtime.sigType === "EIP712"
+        ? await this.getEIP712Signature()
+        : await this.getEIP191Signature();
+    this.runtime.userOperation.signature = encodePacked(
+      ["uint8", "uint256", "bytes"],
+      [
+        this.runtime.sigType === "EIP712" ? 0 : 1,
+        this.runtime.sigTime,
+        signature,
+      ],
+    );
     return this;
   }
 
-  // overrides some gaslimits and gas estimation
+  private async getEIP712Signature(): Promise<Hex> {
+    const domain = {
+      name: this.runtime.okxSmartAccount.name,
+      version: this.runtime.okxSmartAccount.version,
+      chainId: await getChainId(
+        this.runtime.okxSmartAccount.signer.publicClient,
+      ),
+      verifyingContract: process.env.AUTHENTICATION_MANAGER_TEMPLATE as Address,
+    };
+    const types = {
+      SignMessage: [
+        { name: "sender", type: "address" },
+        { name: "nonce", type: "uint256" },
+        { name: "initCode", type: "bytes" },
+        { name: "callData", type: "bytes" },
+        { name: "accountGasLimits", type: "bytes32" },
+        { name: "preVerificationGas", type: "uint256" },
+        { name: "gasFees", type: "bytes32" },
+        { name: "paymasterAndData", type: "bytes" },
+        { name: "EntryPoint", type: "address" },
+        { name: "sigTime", type: "uint256" },
+      ],
+    };
+    const value = {
+      sender: this.runtime.packedUserOperation.sender as Address,
+      nonce: this.runtime.packedUserOperation.nonce as bigint,
+      initCode: this.runtime.packedUserOperation.initCode,
+      callData: this.runtime.packedUserOperation.callData,
+      accountGasLimits: this.runtime.packedUserOperation.accountGasLimits,
+      preVerificationGas: this.runtime.packedUserOperation.preVerificationGas,
+      gasFees: this.runtime.packedUserOperation.gasFees,
+      paymasterAndData: this.runtime.packedUserOperation.paymasterAndData,
+      EntryPoint: ENTRYPOINT_ADDRESS_V07,
+      sigTime: this.runtime.sigTime,
+    };
+    return await this.runtime.okxSmartAccount.signer.signTypedData({
+      account: this.runtime.okxSmartAccount.accountAddress,
+      domain: domain,
+      types: types,
+      message: value,
+      primaryType: "SignMessage",
+    });
+  }
+
+  private async getEIP191Signature(): Promise<Hex> {
+    return await this.runtime.okxSmartAccount.signer.signMessage(
+      this.runtime.userOperationHash,
+    );
+  }
+
   async proposeTx(
     sigType: SigType,
     packTxMiddlewareOverride?: PackTxMiddlewareOverride,
   ): Promise<this> {
     this.chainId = String(
-      await getChainId(this.runtime.okxSmartAccount.signer.publicClient),
+        await getChainId(this.runtime.okxSmartAccount.signer.publicClient),
     );
     this.runtime.sigType = sigType;
-    this.runtime.userOperation.factory = (
-      (await isSmartAccountDeployed(
-        this.runtime.okxSmartAccount.signer.publicClient,
-        this.runtime.okxSmartAccount.accountAddress,
-      ))
-        ? "0x"
-        : this.runtime.okxSmartAccount.initCode.slice(0, 42)
-    ) as Hex;
-    this.runtime.userOperation.factoryData = (
-      (await isSmartAccountDeployed(
-        this.runtime.okxSmartAccount.signer.publicClient,
-        this.runtime.okxSmartAccount.accountAddress,
-      ))
-        ? "0x"
-        : "0x" + this.runtime.okxSmartAccount.initCode.slice(42)
-    ) as Hex;
-    this.runtime.userOperation.nonce = await this.getNonce();
-    await this.gasEstimation(
-      this.runtime.userOperation,
-      packTxMiddlewareOverride,
-    );
-    this.runtime.packedUserOperation.sender = this.runtime.userOperation.sender;
-    this.runtime.packedUserOperation.nonce = this.runtime.userOperation.nonce;
-    this.runtime.packedUserOperation.preVerificationGas =
-      this.runtime.userOperation.preVerificationGas;
-    this.runtime.packedUserOperation.callData =
-      this.runtime.userOperation.callData;
-    // verificationGasLimit high 128, callGasLimit low 128
-    this.runtime.packedUserOperation.accountGasLimits = compileBigInt(
-      packTxMiddlewareOverride?.gasEstimationOverride?.verificationGasLimit ??
-        this.runtime.userOperation.verificationGasLimit,
-      packTxMiddlewareOverride?.gasEstimationOverride?.callGasLimit ??
-        this.runtime.userOperation.callGasLimit,
-    );
-    // maxPriorityFee high 128, maxFeePerGas low 128
-    this.runtime.packedUserOperation.gasFees = compileBigInt(
-      this.runtime.userOperation.maxPriorityFeePerGas,
-      this.runtime.userOperation.maxFeePerGas,
-    );
+    await this.prepareUserOperation();
+    await this.gasEstimation(packTxMiddlewareOverride);
+    await this.preparePackedUserOperation(packTxMiddlewareOverride);
     if (this.runtime.rawPaymaster) {
       await getPaymasterAndData(this);
     }
-    const sigTime =
-      packTxMiddlewareOverride?.sigTimeOverride ??
-      (await getSigTime(this.runtime.okxSmartAccount.signer.publicClient));
-    this.runtime.packedUserOperation.signature = encodePacked(
-      ["uint8", "uint256"],
-      [sigType == "EIP712" ? 0 : 1, sigTime],
-    );
-    this.runtime.userOperationHash = await this.getUOPHash(
-      sigType,
-      this.runtime.packedUserOperation,
-    );
-    this.runtime.sigTime = sigTime;
+    await this.setSigTime(packTxMiddlewareOverride);
+    await this.setUserOperationHash(sigType);
     return this;
   }
 
+  private async prepareUserOperation() {
+    const isDeployed = await isSmartAccountDeployed(
+      this.runtime.okxSmartAccount.signer.publicClient,
+      this.runtime.okxSmartAccount.accountAddress,
+    );
+    this.runtime.userOperation.factory = isDeployed
+      ? "0x"
+      : (this.runtime.okxSmartAccount.initCode.slice(0, 42) as Hex);
+    this.runtime.userOperation.factoryData = isDeployed
+      ? "0x"
+      : (("0x" + this.runtime.okxSmartAccount.initCode.slice(42)) as Hex);
+    this.runtime.userOperation.nonce = await this.getNonce();
+  }
+
   private async gasEstimation(
-    userOperation: UserOperation<"v0.7">,
     packTxMiddlewareOverride?: PackTxMiddlewareOverride,
   ): Promise<void> {
     const baseFeePerPrice =
       await this.runtime.okxSmartAccount.signer.publicClient.getGasPrice();
     const maxPriorityFeePerGas =
       await this.runtime.okxSmartAccount.signer.publicClient.estimateMaxPriorityFeePerGas();
-    const defaultGasFeeCap = baseFeePerPrice + maxPriorityFeePerGas;
     this.runtime.userOperation.maxPriorityFeePerGas =
       packTxMiddlewareOverride?.feeDataOverride?.maxPriorityFeePerGas ??
-      defaultGasFeeCap;
+      baseFeePerPrice;
     this.runtime.userOperation.maxFeePerGas =
       packTxMiddlewareOverride?.feeDataOverride?.maxFeePerGas ??
-      defaultGasFeeCap;
+      maxPriorityFeePerGas;
+
     if (this.runtime.rawPaymaster?.paymasterAddress) {
       this.runtime.userOperation.paymaster =
         this.runtime.rawPaymaster.paymasterAddress;
@@ -408,9 +391,50 @@ export class OKXSmartAccountClient<
         this.runtime.rawPaymaster.paymasterVerificationGasLimit ?? 0n;
       this.runtime.userOperation.paymasterPostOpGasLimit =
         this.runtime.rawPaymaster.paymasterPostOpGasLimit ?? 0n;
-      // mod(uint8) + bizId(uint64)
       this.runtime.userOperation.paymasterData = "0x000000000000000000";
     }
+
+    const gasEstimationRes = await this.getGasEstimationResponse();
+    const { result, error } = gasEstimationRes.data;
+    if (error) {
+      throw new GasEstimationError("GAS_ESTIMATION_ERROR", error.message);
+    }
+    this.runtime.userOperation.verificationGasLimit =
+      packTxMiddlewareOverride?.gasEstimationOverride?.verificationGasLimit ??
+      BigInt(result.verificationGasLimit);
+    this.runtime.userOperation.callGasLimit =
+      packTxMiddlewareOverride?.gasEstimationOverride?.callGasLimit ??
+      BigInt(result.callGasLimit);
+    if (this.runtime.rawPaymaster?.paymasterAddress) {
+      this.runtime.userOperation.paymasterVerificationGasLimit =
+        this.runtime.rawPaymaster?.paymasterVerificationGasLimit ??
+        BigInt(result.paymasterVerificationGasLimit);
+      this.runtime.userOperation.paymasterPostOpGasLimit =
+        this.runtime.rawPaymaster?.paymasterPostOpGasLimit ??
+        BigInt(result.paymasterPostOpGasLimit);
+    }
+
+    let preVerificationGas: bigint;
+    if (result.l1GasLimit) {
+      const l1publicClient = createPublicClient({
+        chain: mainnet,
+        transport: http("https://eth.llamarpc.com"),
+      });
+      const l1Fee = await l1publicClient.getGasPrice();
+      preVerificationGas =
+        hexToBigInt(result.preVerificationGas) +
+        (hexToBigInt(result.l1GasLimit) * l1Fee) /
+          (baseFeePerPrice + maxPriorityFeePerGas);
+    } else {
+      preVerificationGas = BigInt(result.preVerificationGas);
+    }
+
+    this.runtime.userOperation.preVerificationGas =
+      packTxMiddlewareOverride?.gasEstimationOverride?.preVerificationGas ??
+      preVerificationGas;
+  }
+
+  private async getGasEstimationResponse() {
     const payload = [
       convertToHex(this.runtime.userOperation),
       ENTRYPOINT_ADDRESS_V07,
@@ -421,57 +445,50 @@ export class OKXSmartAccountClient<
       method: "eth_estimateUserOperationGas",
       params: payload,
     });
-    const gasEstimationRes = await callClient(
-      this.bundlerUrl +
-        "priapi/v5/wallet/smart-account/mp/" +
-        this.chainId +
-        "/eth_estimateUserOperationGas",
+    return await callClient(
+      `${this.bundlerUrl}/priapi/v5/wallet/smart-account/mp/${this.chainId}/eth_estimateUserOperationGas`,
       data,
     );
-    if (gasEstimationRes.data.error) {
-      throw new GasEstimationError(
-        "GAS_ESTIMATION_ERROR",
-        gasEstimationRes.data.error.message,
-      );
-    }
-    userOperation.verificationGasLimit =
+  }
+
+  private async preparePackedUserOperation(
+    packTxMiddlewareOverride?: PackTxMiddlewareOverride,
+  ) {
+    this.runtime.packedUserOperation.sender = this.runtime.userOperation.sender;
+    this.runtime.packedUserOperation.nonce = this.runtime.userOperation.nonce;
+    this.runtime.packedUserOperation.preVerificationGas =
+      this.runtime.userOperation.preVerificationGas;
+    this.runtime.packedUserOperation.callData =
+      this.runtime.userOperation.callData;
+    this.runtime.packedUserOperation.accountGasLimits = compileBigInt(
       packTxMiddlewareOverride?.gasEstimationOverride?.verificationGasLimit ??
-      BigInt(gasEstimationRes.data.result.verificationGasLimit);
-    userOperation.callGasLimit =
+        this.runtime.userOperation.verificationGasLimit,
       packTxMiddlewareOverride?.gasEstimationOverride?.callGasLimit ??
-      BigInt(gasEstimationRes.data.result.callGasLimit);
-    if (this.runtime.rawPaymaster?.paymasterAddress) {
-      userOperation.paymasterVerificationGasLimit =
-        this.runtime.rawPaymaster?.paymasterVerificationGasLimit ??
-        BigInt(gasEstimationRes.data.result.paymasterVerificationGasLimit);
-      userOperation.paymasterPostOpGasLimit =
-        this.runtime.rawPaymaster?.paymasterPostOpGasLimit ??
-        BigInt(gasEstimationRes.data.result.paymasterPostOpGasLimit);
-    }
-    let preVerificationGas: bigint;
-    if (
-      gasEstimationRes.data.result &&
-      gasEstimationRes.data.result.l1GasLimit
-    ) {
-      const l1publicClient = createPublicClient({
-        chain: mainnet,
-        transport: http("https://eth.llamarpc.com"),
-      });
-      const l1Fee = await l1publicClient.getGasPrice();
-      preVerificationGas =
-        this.runtime.userOperation.preVerificationGas == 0n
-          ? hexToBigInt(gasEstimationRes.data.result.preVerificationGas) +
-            (hexToBigInt(gasEstimationRes.data.result.l1GasLimit) * l1Fee) /
-              defaultGasFeeCap
-          : this.runtime.userOperation.preVerificationGas;
-    } else {
-      preVerificationGas = BigInt(
-        gasEstimationRes.data.result.preVerificationGas,
-      );
-    }
-    userOperation.preVerificationGas =
-      packTxMiddlewareOverride?.gasEstimationOverride?.preVerificationGas ??
-      preVerificationGas;
+        this.runtime.userOperation.callGasLimit,
+    );
+    this.runtime.packedUserOperation.gasFees = compileBigInt(
+      this.runtime.userOperation.maxPriorityFeePerGas,
+      this.runtime.userOperation.maxFeePerGas,
+    );
+  }
+
+  private async setSigTime(
+    packTxMiddlewareOverride?: PackTxMiddlewareOverride,
+  ) {
+    this.runtime.sigTime =
+      packTxMiddlewareOverride?.sigTimeOverride ??
+      (await getSigTime(this.runtime.okxSmartAccount.signer.publicClient));
+    this.runtime.packedUserOperation.signature = encodePacked(
+      ["uint8", "uint256"],
+      [this.runtime.sigType === "EIP712" ? 0 : 1, this.runtime.sigTime],
+    );
+  }
+
+  private async setUserOperationHash(sigType: SigType) {
+    this.runtime.userOperationHash = await this.getUOPHash(
+      sigType,
+      this.runtime.packedUserOperation,
+    );
   }
 
   async getUserOperationReceipt(hash: Hex) {
@@ -482,10 +499,7 @@ export class OKXSmartAccountClient<
       params: [hash],
     });
     const getUserOperationReceiptRes = await callClient(
-      this.bundlerUrl +
-        "priapi/v5/wallet/smart-account/mp/" +
-        this.chainId +
-        "/eth_getUserOperationReceipt",
+      `${this.bundlerUrl}/priapi/v5/wallet/smart-account/mp/${this.chainId}/eth_getUserOperationReceipt`,
       data,
     );
     if (getUserOperationReceiptRes.data.error) {
@@ -498,7 +512,6 @@ export class OKXSmartAccountClient<
 
   extend = <R>(extendFn: (self: this) => R): this & R => {
     const extended = extendFn(this) as any;
-    // this should make it so extensions can't overwrite the base methods
     for (const key in this) {
       delete extended[key];
     }
