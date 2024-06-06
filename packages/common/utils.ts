@@ -25,8 +25,8 @@ export function getConfiguration(version: string): {
 } {
   return {
     entryPointAddress: ENTRYPOINT_ADDRESS_V07,
-    factoryAddress: configuration.v3.FACTORY_ADDRESS as Address,
-    name: configuration.v3.NAME,
+    factoryAddress: process.env.FACTORY_ADDRESS as Address,
+    name: process.env.NAME as string,
   };
 }
 

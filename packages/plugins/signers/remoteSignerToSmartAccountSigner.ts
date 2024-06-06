@@ -1,4 +1,5 @@
 import {
+  Address,
   Chain,
   createPublicClient,
   type Hex,
@@ -14,7 +15,7 @@ export async function remoteSignerToSmartAccountSigner(
 ): Promise<ERC4337SmartAccountSigner> {
   return {
     signerType: "remoteSigner",
-    signerTemplate: configuration.v3.JWT_VALIDATOR_TEMPLATE_ADDRESS,
+    signerTemplate: process.env.JWT_VALIDATOR_TEMPLATE_ADDRESS as Address,
     publicClient: createPublicClient({
       chain: chain,
       transport: http(),

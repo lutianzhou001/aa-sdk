@@ -1,4 +1,5 @@
 import {
+  Address,
   getAddress,
   type Hex,
   isHex,
@@ -15,7 +16,7 @@ export async function walletClientToERC4337SmartAccountSigner(
 ): Promise<ERC4337SmartAccountSigner> {
   return {
     signerType: "walletClientSigner",
-    signerTemplate: configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
+    signerTemplate: process.env.ECDSA_VALIDATOR_TEMPLATE_ADDRESS as Address,
     publicClient: walletClient.extend(publicActions) as PublicClient,
     async getSubject() {
       const addresses = await walletClient.getAddresses();

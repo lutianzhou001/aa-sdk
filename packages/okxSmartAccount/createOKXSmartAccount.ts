@@ -17,7 +17,6 @@ import { initializeAccountABI } from "../../abis/initializeAccount.abi";
 import { accountFactoryV3ABI } from "../../abis/accountFactoryV3.abi";
 import { getConfiguration, predictDeterministicAddress } from "../common/utils";
 import { isSmartAccountDeployed } from "permissionless";
-import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
 
 /**
  * create a okxSmartAccount
@@ -39,7 +38,7 @@ export async function createOKXSmartAccount<
 ): Promise<OKXSmartAccount<TSigner>> {
   const initializeData = encodeAbiParameters(initializeAccountABI[0].inputs, [
     await signer.getSubject(),
-    configuration.v3.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
+    process.env.ECDSA_VALIDATOR_TEMPLATE_ADDRESS,
     executions,
   ]);
 
@@ -57,7 +56,7 @@ export async function createOKXSmartAccount<
         abi: accountFactoryV3ABI,
         functionName: "createAccount",
         args: [
-          configuration.v3.SMART_ACCOUNT_TEMPLATE_ADDRESS,
+          process.env.SMART_ACCOUNT_TEMPLATE_ADDRESS,
           initializeAccountData,
           index,
         ],
@@ -65,20 +64,16 @@ export async function createOKXSmartAccount<
     ],
   );
 
-  const salt: Hash = keccak256(
-    encodePacked(["bytes", "uint256"], [initializeAccountData, index]),
-  );
-
   const accountAddress: Address = (await signer.publicClient.readContract({
-    address: configuration.v3.FACTORY_ADDRESS,
+    address: process.env.FACTORY_ADDRESS as Address,
     abi: accountFactoryV3ABI,
     functionName: "computeAddress",
     args: [zeroAddress, initializeAccountData, index],
   })) as Address;
 
   const authenticationManagerAddress: Address = predictDeterministicAddress(
-    configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
-    configuration.v3.VERSION_HASH,
+    process.env.AUTHENTICATION_MANAGER_TEMPLATE as Address,
+    keccak256(toHex(version)) as Hex,
     accountAddress,
   );
 
@@ -87,29 +82,6 @@ export async function createOKXSmartAccount<
     keccak256(encodePacked(["bytes"], [await signer.getSubject()])),
     authenticationManagerAddress,
   );
-
-  const nameHash = await signer.publicClient.readContract({
-    address: configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
-    abi: authenticationManagerABI,
-    functionName: "HASH_NAME",
-    args: [],
-  });
-
-  const versionHash = await signer.publicClient.readContract({
-    address: configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
-    abi: authenticationManagerABI,
-    functionName: "HASH_VERSION",
-    args: [],
-  });
-
-  if (
-    keccak256(toHex(name)) != nameHash ||
-    keccak256(toHex(version)) != versionHash
-  ) {
-    throw new Error(
-      "name or version hash not match onchain version, pls check",
-    );
-  }
 
   return {
     signer: signer,

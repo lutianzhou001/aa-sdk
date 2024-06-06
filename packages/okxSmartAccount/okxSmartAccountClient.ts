@@ -7,6 +7,7 @@ import {
   type Hex,
   hexToBigInt,
   http,
+  PublicClient,
   type Transport,
   zeroHash,
 } from "viem";
@@ -45,8 +46,6 @@ import { ENTRYPOINT_ADDRESS_V07, isSmartAccountDeployed } from "permissionless";
 import { mainnet } from "viem/chains";
 import { getPaymasterAndData } from "./usePaymaster";
 import { EntryPointV0_7ABI } from "../../abis/EntryPointV0_7.abi";
-import { smartAccountV2WithInscriptionSupportedABI } from "../../abis/smartAccountV2WithInscriptionSupported.abi";
-import { getChain } from "@alchemy/aa-core";
 
 export class OKXSmartAccountClient<
   TTransport extends Transport = Transport,
@@ -65,9 +64,11 @@ export class OKXSmartAccountClient<
     okxSmartAccount: OKXSmartAccount<TSigner>,
     clientsUrls?: ClientsUrls,
   ) {
-    this.bundlerUrl = clientsUrls?.bundlerUrl ?? configuration.bundlerUrl.okx;
+    this.bundlerUrl =
+      clientsUrls?.bundlerUrl ?? (process.env.DEFAULT_BUNDLER_URL as string);
     this.paymasterUrl =
-      clientsUrls?.paymasterUrl ?? configuration.paymasterUrl.okx;
+      clientsUrls?.paymasterUrl ??
+      (process.env.DEFAULT_PAYMASTER_URL as string);
     this.runtime = {
       okxSmartAccount: okxSmartAccount,
       userOperationHash: zeroHash,
@@ -216,7 +217,7 @@ export class OKXSmartAccountClient<
     return await this.runtime.okxSmartAccount.signer.publicClient.readContract({
       address: this.runtime.okxSmartAccount.isDeployed
         ? this.runtime.okxSmartAccount.authenticationManagerAddress
-        : configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
+        : (process.env.AUTHENTICATION_MANAGER_TEMPLATE as Hex),
       abi: authenticationManagerABI,
       functionName: "getUOPHash",
       args: [
@@ -235,7 +236,7 @@ export class OKXSmartAccountClient<
     return await this.runtime.okxSmartAccount.signer.publicClient.readContract({
       address: this.runtime.okxSmartAccount.isDeployed
         ? this.runtime.okxSmartAccount.authenticationManagerAddress
-        : configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
+        : (process.env.AUTHENTICATION_MANAGER_TEMPLATE as Hex),
       abi: authenticationManagerABI,
       functionName: "getUOPSignedHash",
       args: [
@@ -260,7 +261,8 @@ export class OKXSmartAccountClient<
         chainId: await getChainId(
           this.runtime.okxSmartAccount.signer.publicClient,
         ),
-        verifyingContract: configuration.v3.AUTHENTICATION_MANAGER_TEMPLATE,
+        verifyingContract: process.env
+          .AUTHENTICATION_MANAGER_TEMPLATE as Address,
       };
       // keccak256("SignMessage(address sender,uint256 nonce,bytes initCode,bytes callData,bytes32 accountGasLimits,uint256 preVerificationGas,bytes32 gasFees,bytes paymasterAndData,address EntryPoint,uint256 sigTime)")
       let types = {
@@ -432,9 +434,6 @@ export class OKXSmartAccountClient<
         gasEstimationRes.data.error.message,
       );
     }
-    userOperation.preVerificationGas =
-      packTxMiddlewareOverride?.gasEstimationOverride?.preVerificationGas ??
-      BigInt(gasEstimationRes.data.result.preVerificationGas);
     userOperation.verificationGasLimit =
       packTxMiddlewareOverride?.gasEstimationOverride?.verificationGasLimit ??
       BigInt(gasEstimationRes.data.result.verificationGasLimit);
@@ -449,8 +448,6 @@ export class OKXSmartAccountClient<
         this.runtime.rawPaymaster?.paymasterPostOpGasLimit ??
         BigInt(gasEstimationRes.data.result.paymasterPostOpGasLimit);
     }
-    // if the layer2
-    // TODO: layer scenario
     let preVerificationGas: bigint;
     if (
       gasEstimationRes.data.result &&
@@ -462,10 +459,11 @@ export class OKXSmartAccountClient<
       });
       const l1Fee = await l1publicClient.getGasPrice();
       preVerificationGas =
-        this.runtime.userOperation.preVerificationGas ??
-        hexToBigInt(gasEstimationRes.data.result.preVerificationGas) +
-          (hexToBigInt(gasEstimationRes.data.result.l1GasLimit) * l1Fee) /
-            defaultGasFeeCap;
+        this.runtime.userOperation.preVerificationGas == 0n
+          ? hexToBigInt(gasEstimationRes.data.result.preVerificationGas) +
+            (hexToBigInt(gasEstimationRes.data.result.l1GasLimit) * l1Fee) /
+              defaultGasFeeCap
+          : this.runtime.userOperation.preVerificationGas;
     } else {
       preVerificationGas = BigInt(
         gasEstimationRes.data.result.preVerificationGas,
@@ -473,7 +471,7 @@ export class OKXSmartAccountClient<
     }
     userOperation.preVerificationGas =
       packTxMiddlewareOverride?.gasEstimationOverride?.preVerificationGas ??
-      configuration.defaultGasConfig.PREVERIFICATION_GAS;
+      preVerificationGas;
   }
 
   async getUserOperationReceipt(hash: Hex) {

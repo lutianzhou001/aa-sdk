@@ -16,7 +16,7 @@ import { configuration } from "../configuration";
 
 async function smokeTest() {
   const walletClient: WalletClient = createWalletClient({
-    account: privateKeyToAccount(configuration.walletClientPrivateKey as Hex),
+    account: privateKeyToAccount(process.env.WALLET_CLIENT_PRIVATE_KEY as Hex),
     chain: arbitrum,
     transport: http(),
   }).extend(publicActions);
