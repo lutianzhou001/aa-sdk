@@ -31,11 +31,6 @@ export type PackTxMiddlewareOverride = {
   sigTimeOverride?: bigint;
 };
 
-export type ClientsUrls = {
-  bundlerUrl?: string;
-  paymasterUrl?: string;
-};
-
 interface BaseExecuteCallData {
   to: Address;
   value: bigint;
@@ -90,9 +85,4 @@ export type OKXSmartAccount<
   initCode: Hex;
   version: string;
   name: string;
-};
-
-export type UserOperationSimulationResponse = {
-  success: boolean;
-  message: any;
 };

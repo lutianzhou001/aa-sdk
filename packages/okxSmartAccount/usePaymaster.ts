@@ -1,4 +1,4 @@
-import { Address, Chain, Hex, Transport } from "viem";
+import { Address, Chain, Hex, pad, toHex, Transport } from "viem";
 import { ERC4337SmartAccountSigner } from "../plugins/types";
 import { SupportedPayMaster } from "./types";
 import axios from "axios";
@@ -8,6 +8,7 @@ import { callClient, convertToHex } from "../common/utils";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
 import { GetPaymasterSignatureError } from "../common/error";
 import { getChainId } from "viem/actions";
+import { userInfo } from "node:os";
 
 export function paymasterActions<
   TTransport extends Transport = Transport,
@@ -23,6 +24,8 @@ export function paymasterActions<
 
 export type UsePaymasterParams = {
   paymasterAddress: Address;
+  mode: number;
+  bizId: number;
   tokenAddress?: Address;
   paymasterVerificationGasLimit?: bigint;
   paymasterPostOpGasLimit?: bigint;
@@ -44,6 +47,16 @@ export function usePaymaster<
       usePaymasterParams.paymasterVerificationGasLimit,
     paymasterPostOpGasLimit: usePaymasterParams.paymasterPostOpGasLimit,
   };
+  if (usePaymasterParams.mode < 0 || usePaymasterParams.mode > 16 ** 2) {
+    throw new Error("mode must be between 0 and 16 ** 2");
+  }
+  if (usePaymasterParams.bizId < 0 || usePaymasterParams.bizId > 16 ** 16) {
+    throw new Error("bizId must be between 0 and 16 ** 16");
+  }
+  okxSmartAccountClient.runtime.userOperation.paymasterData = (pad(
+    toHex(usePaymasterParams.mode),
+    { size: 1 },
+  ) + pad(toHex(usePaymasterParams.bizId), { size: 8 }).slice(2)) as Hex;
   return okxSmartAccountClient;
 }
 
@@ -54,16 +67,7 @@ export async function getSupportedPaymasters<
 >(
   okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
 ): Promise<SupportedPayMaster[]> {
-  const config = {
-    method: "get",
-    maxBodyLength: Infinity,
-    url: okxSmartAccountClient.paymasterUrl,
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: "locale=en-US",
-    },
-  };
-  return (await axios.request(config)).data.result;
+  return okxSmartAccountClient.paymasterClient?.getSupportedPaymasters();
 }
 
 export async function getPaymasterAndData<
@@ -73,28 +77,10 @@ export async function getPaymasterAndData<
 >(
   okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
 ): Promise<void> {
-  // TODO: TO MAKE IT BETTER
-  const payload = JSON.stringify({
-    entryPoint: ENTRYPOINT_ADDRESS_V07,
-    paymaster: okxSmartAccountClient.runtime.userOperation.paymaster,
-    uop: convertToHex(okxSmartAccountClient.runtime.userOperation),
-  });
-  const chainId = await getChainId(
-    okxSmartAccountClient.runtime.okxSmartAccount.signer.publicClient,
-  );
-  const getPaymasterSignatureRes = await callClient(
-    networkConfigurations.defaultBundlerUrl +
-      "priapi/v5/wallet/smart-account/pm/" +
-      chainId +
-      "/getPaymasterSignature",
-    payload,
-  );
-  if (getPaymasterSignatureRes.data.error) {
-    throw new GetPaymasterSignatureError(
-      "GET_PAYMASTER_SIGNATURE_ERROR",
-      getPaymasterSignatureRes.data.error.message,
+  const getPaymasterSignatureRes =
+    await okxSmartAccountClient.paymasterClient?.getPaymasterData(
+      okxSmartAccountClient.runtime.userOperation,
     );
-  }
   okxSmartAccountClient.runtime.packedUserOperation.paymasterAndData =
     getPaymasterSignatureRes.data.result as Hex;
   okxSmartAccountClient.runtime.userOperation.paymasterData = ("0x" +

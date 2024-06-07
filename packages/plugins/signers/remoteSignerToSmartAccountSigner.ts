@@ -4,10 +4,13 @@ import {
   createPublicClient,
   type Hex,
   http,
+  padHex,
   SignTypedDataParameters,
+  toHex,
 } from "viem";
 import { ERC4337SmartAccountSigner } from "../types";
 import { configuration } from "../../../configuration";
+import { randomBytes } from "node:crypto";
 
 export async function remoteSignerToSmartAccountSigner(
   subject: Hex,
@@ -22,6 +25,11 @@ export async function remoteSignerToSmartAccountSigner(
     }),
     async getSubject(): Promise<Hex> {
       return subject;
+    },
+    async getDummySignature(): Promise<Hex> {
+      return ("0x01" +
+        padHex("0xffffffff").slice(2) +
+        toHex(randomBytes(65)).slice(2)) as Hex;
     },
     async signMessage(message: Uint8Array | string | Hex): Promise<Hex> {
       return message as Hex;

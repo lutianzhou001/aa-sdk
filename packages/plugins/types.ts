@@ -7,4 +7,5 @@ export type ERC4337SmartAccountSigner = {
   getSubject: () => Promise<Address>;
   signMessage: (msg: Uint8Array | Hex | string) => Promise<Hex>;
   signTypedData: (args: SignTypedDataParameters) => Promise<Hex>;
+  getDummySignature: () => Promise<Hex>;
 };

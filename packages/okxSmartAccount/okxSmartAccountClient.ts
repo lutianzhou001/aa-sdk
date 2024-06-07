@@ -11,7 +11,6 @@ import {
   zeroHash,
 } from "viem";
 import {
-  ClientsUrls,
   ExecuteCallDataArgs,
   ExecutionMode,
   OKXSmartAccount,
@@ -22,20 +21,8 @@ import {
 import { ERC4337SmartAccountSigner } from "../plugins/types";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
 import { UserOperation } from "permissionless/types/userOperation";
-import {
-  GasEstimationError,
-  GetUserOperationReceiptError,
-  LocalError,
-  SendUserOperationError,
-  SendUserOperationSimulationError,
-} from "../common/error";
-import {
-  callClient,
-  compileBigInt,
-  compileMode,
-  convertToHex,
-  getSigTime,
-} from "../common/utils";
+import { LocalError } from "../common/error";
+import { compileBigInt, compileMode, getSigTime } from "../common/utils";
 import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
 import { getChainId } from "viem/actions";
 import type { Address } from "abitype";
@@ -44,6 +31,8 @@ import { ENTRYPOINT_ADDRESS_V07, isSmartAccountDeployed } from "permissionless";
 import { mainnet } from "viem/chains";
 import { getPaymasterAndData } from "./usePaymaster";
 import { EntryPointV0_7ABI } from "../../abis/EntryPointV0_7.abi";
+import { BundlerClient } from "../okxBundler/bundler";
+import { PaymasterClient } from "../okxPaymaster/paymaster";
 
 export class OKXSmartAccountClient<
   TTransport extends Transport = Transport,
@@ -55,18 +44,27 @@ export class OKXSmartAccountClient<
   protected chainId: string;
 
   public runtime: Runtime<TTransport, TChain, TSigner>;
-  public bundlerUrl: string;
-  public paymasterUrl: string;
+
+  public bundlerClient: BundlerClient;
+  public paymasterClient: PaymasterClient;
 
   constructor(
     okxSmartAccount: OKXSmartAccount<TSigner>,
-    clientsUrls?: ClientsUrls,
+    bundlerClient?: BundlerClient,
+    paymasterClient?: PaymasterClient,
   ) {
-    this.bundlerUrl =
-      clientsUrls?.bundlerUrl ?? (process.env.DEFAULT_BUNDLER_URL as string);
-    this.paymasterUrl =
-      clientsUrls?.paymasterUrl ??
-      (process.env.DEFAULT_PAYMASTER_URL as string);
+    this.bundlerClient =
+      bundlerClient ??
+      new BundlerClient(
+        process.env.DEFAULT_BUNDLER_URL as string,
+        okxSmartAccount.signer.publicClient.chain as Chain,
+      );
+    this.paymasterClient =
+      paymasterClient ??
+      new PaymasterClient(
+        process.env.DEFAULT_PAYMASTER_URL as string,
+        okxSmartAccount.signer.publicClient.chain as Chain,
+      );
     this.runtime = this.initializeRuntime(okxSmartAccount);
   }
 
@@ -93,8 +91,7 @@ export class OKXSmartAccountClient<
       preVerificationGas: 0n,
       maxFeePerGas: 0n,
       maxPriorityFeePerGas: 0n,
-      signature:
-        "0x010000000000000000000000000000000000000000000000000000000065f80f5137565d2eb25e3508f7d322d9cf2265ec95ac218945a4eb64fc3d9efe216850dc7e26066839e71d048d3667fd367f5f0532b21075e060a9e4cb0c159c00bf6c121b",
+      signature: zeroHash,
     };
   }
 
@@ -128,53 +125,11 @@ export class OKXSmartAccountClient<
   }
 
   async send() {
-    const simulateUserOperationRes = await this.simulateUserOperation();
-    if (simulateUserOperationRes.data.error) {
-      throw new SendUserOperationSimulationError(
-        "SEND_USER_OPERATION_SIMULATION_ERROR",
-        simulateUserOperationRes.data.error.message,
-      );
-    }
-    const sendUserOperationRes = await this.sendUserOperation();
-    if (sendUserOperationRes.data.error) {
-      throw new SendUserOperationError(
-        "SEND_USER_OPERATION_ERROR",
-        sendUserOperationRes.data.error.message,
-      );
-    }
-    return sendUserOperationRes.data.result;
-  }
-
-  private async simulateUserOperation() {
-    const simulateUserOperationReq = this.createUserOperationRequest(
-      "eth_simulateUserOperation",
+    await this.bundlerClient.simulateUserOperation(this.runtime.userOperation);
+    const res = await this.bundlerClient.sendUserOperation(
+      this.runtime.userOperation,
     );
-    return await callClient(
-      `${this.bundlerUrl}/priapi/v5/wallet/smart-account/mp/${this.chainId}/eth_simulateUserOperation`,
-      simulateUserOperationReq,
-    );
-  }
-
-  private async sendUserOperation() {
-    const sendUserOperationReq = this.createUserOperationRequest(
-      "eth_sendUserOperation",
-    );
-    return await callClient(
-      `${this.bundlerUrl}/priapi/v5/wallet/smart-account/mp/${this.chainId}/eth_sendUserOperation`,
-      sendUserOperationReq,
-    );
-  }
-
-  private createUserOperationRequest(method: string): string {
-    return JSON.stringify({
-      id: 1,
-      jsonrpc: "2.0",
-      method: method,
-      params: [
-        convertToHex(this.runtime.userOperation),
-        ENTRYPOINT_ADDRESS_V07,
-      ],
-    });
+    return res.data.result;
   }
 
   encodeExecute(args: ExecuteCallDataArgs, execMode?: ExecutionMode): this {
@@ -342,7 +297,7 @@ export class OKXSmartAccountClient<
     packTxMiddlewareOverride?: PackTxMiddlewareOverride,
   ): Promise<this> {
     this.chainId = String(
-        await getChainId(this.runtime.okxSmartAccount.signer.publicClient),
+      await getChainId(this.runtime.okxSmartAccount.signer.publicClient),
     );
     this.runtime.sigType = sigType;
     await this.prepareUserOperation();
@@ -351,8 +306,17 @@ export class OKXSmartAccountClient<
     if (this.runtime.rawPaymaster) {
       await getPaymasterAndData(this);
     }
-    await this.setSigTime(packTxMiddlewareOverride);
-    await this.setUserOperationHash(sigType);
+    this.runtime.sigTime =
+      packTxMiddlewareOverride?.sigTimeOverride ??
+      (await getSigTime(this.runtime.okxSmartAccount.signer.publicClient));
+    this.runtime.packedUserOperation.signature = encodePacked(
+      ["uint8", "uint256"],
+      [this.runtime.sigType === "EIP712" ? 0 : 1, this.runtime.sigTime],
+    );
+    this.runtime.userOperationHash = await this.getUOPHash(
+      sigType,
+      this.runtime.packedUserOperation,
+    );
     return this;
   }
 
@@ -379,11 +343,12 @@ export class OKXSmartAccountClient<
       await this.runtime.okxSmartAccount.signer.publicClient.estimateMaxPriorityFeePerGas();
     this.runtime.userOperation.maxPriorityFeePerGas =
       packTxMiddlewareOverride?.feeDataOverride?.maxPriorityFeePerGas ??
-      baseFeePerPrice;
+      baseFeePerPrice + maxPriorityFeePerGas;
     this.runtime.userOperation.maxFeePerGas =
       packTxMiddlewareOverride?.feeDataOverride?.maxFeePerGas ??
-      maxPriorityFeePerGas;
-
+      baseFeePerPrice;
+    this.runtime.userOperation.signature =
+      await this.runtime.okxSmartAccount.signer.getDummySignature();
     if (this.runtime.rawPaymaster?.paymasterAddress) {
       this.runtime.userOperation.paymaster =
         this.runtime.rawPaymaster.paymasterAddress;
@@ -393,12 +358,9 @@ export class OKXSmartAccountClient<
         this.runtime.rawPaymaster.paymasterPostOpGasLimit ?? 0n;
       this.runtime.userOperation.paymasterData = "0x000000000000000000";
     }
-
-    const gasEstimationRes = await this.getGasEstimationResponse();
-    const { result, error } = gasEstimationRes.data;
-    if (error) {
-      throw new GasEstimationError("GAS_ESTIMATION_ERROR", error.message);
-    }
+    const result = await this.bundlerClient.estimateUserOperationGas(
+      this.runtime.userOperation,
+    );
     this.runtime.userOperation.verificationGasLimit =
       packTxMiddlewareOverride?.gasEstimationOverride?.verificationGasLimit ??
       BigInt(result.verificationGasLimit);
@@ -418,7 +380,9 @@ export class OKXSmartAccountClient<
     if (result.l1GasLimit) {
       const l1publicClient = createPublicClient({
         chain: mainnet,
-        transport: http("https://eth.llamarpc.com"),
+        transport: http(
+          "https://eth-mainnet.g.alchemy.com/v2/ioOONhdjE5oo2RlTAyVxkyu8lypwdlsY",
+        ),
       });
       const l1Fee = await l1publicClient.getGasPrice();
       preVerificationGas =
@@ -432,23 +396,6 @@ export class OKXSmartAccountClient<
     this.runtime.userOperation.preVerificationGas =
       packTxMiddlewareOverride?.gasEstimationOverride?.preVerificationGas ??
       preVerificationGas;
-  }
-
-  private async getGasEstimationResponse() {
-    const payload = [
-      convertToHex(this.runtime.userOperation),
-      ENTRYPOINT_ADDRESS_V07,
-    ];
-    const data = JSON.stringify({
-      id: 1,
-      jsonrpc: "2.0",
-      method: "eth_estimateUserOperationGas",
-      params: payload,
-    });
-    return await callClient(
-      `${this.bundlerUrl}/priapi/v5/wallet/smart-account/mp/${this.chainId}/eth_estimateUserOperationGas`,
-      data,
-    );
   }
 
   private async preparePackedUserOperation(
@@ -472,42 +419,8 @@ export class OKXSmartAccountClient<
     );
   }
 
-  private async setSigTime(
-    packTxMiddlewareOverride?: PackTxMiddlewareOverride,
-  ) {
-    this.runtime.sigTime =
-      packTxMiddlewareOverride?.sigTimeOverride ??
-      (await getSigTime(this.runtime.okxSmartAccount.signer.publicClient));
-    this.runtime.packedUserOperation.signature = encodePacked(
-      ["uint8", "uint256"],
-      [this.runtime.sigType === "EIP712" ? 0 : 1, this.runtime.sigTime],
-    );
-  }
-
-  private async setUserOperationHash(sigType: SigType) {
-    this.runtime.userOperationHash = await this.getUOPHash(
-      sigType,
-      this.runtime.packedUserOperation,
-    );
-  }
-
-  async getUserOperationReceipt(hash: Hex) {
-    const data = JSON.stringify({
-      id: 1,
-      jsonrpc: "2.0",
-      method: "eth_getUserOperationReceipt",
-      params: [hash],
-    });
-    const getUserOperationReceiptRes = await callClient(
-      `${this.bundlerUrl}/priapi/v5/wallet/smart-account/mp/${this.chainId}/eth_getUserOperationReceipt`,
-      data,
-    );
-    if (getUserOperationReceiptRes.data.error) {
-      throw new GetUserOperationReceiptError(
-        "GET_USER_OPERATION_RECEIPT_ERROR",
-        getUserOperationReceiptRes.data.error.message,
-      );
-    }
+  public async getUserOperationReceipt(hash: Hex) {
+    return this.bundlerClient.getUserOperationByHash(hash);
   }
 
   extend = <R>(extendFn: (self: this) => R): this & R => {
