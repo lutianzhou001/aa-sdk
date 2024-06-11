@@ -8,14 +8,13 @@ import {
   SignTypedDataParameters,
   toHex,
 } from "viem";
-import { ERC4337SmartAccountSigner } from "../types";
-import { configuration } from "../../../configuration";
+import { OKXSmartAccountSigner } from "../types";
 import { randomBytes } from "node:crypto";
 
 export async function remoteSignerToSmartAccountSigner(
   subject: Hex,
   chain: Chain,
-): Promise<ERC4337SmartAccountSigner> {
+): Promise<OKXSmartAccountSigner> {
   return {
     signerType: "remoteSigner",
     signerTemplate: process.env.JWT_VALIDATOR_TEMPLATE_ADDRESS as Address,

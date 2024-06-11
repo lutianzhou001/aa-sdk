@@ -10,12 +10,12 @@ import {
   toHex,
   type WalletClient,
 } from "viem";
-import type { ERC4337SmartAccountSigner } from "../types";
+import type { OKXSmartAccountSigner } from "../types";
 import { randomBytes } from "node:crypto";
 
-export async function walletClientToERC4337SmartAccountSigner(
+export async function walletClientToOKXSmartAccountSigner(
   walletClient: WalletClient,
-): Promise<ERC4337SmartAccountSigner> {
+): Promise<OKXSmartAccountSigner> {
   return {
     signerType: "walletClientSigner",
     signerTemplate: process.env.ECDSA_VALIDATOR_TEMPLATE_ADDRESS as Address,

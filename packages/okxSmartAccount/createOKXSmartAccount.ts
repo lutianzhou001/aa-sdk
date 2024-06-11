@@ -11,7 +11,7 @@ import {
 } from "viem";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
 import { configuration } from "../../configuration";
-import { ERC4337SmartAccountSigner } from "../plugins/types";
+import { OKXSmartAccountSigner } from "../plugins/types";
 import { OKXSmartAccount } from "./types";
 import { initializeAccountABI } from "../../abis/initializeAccount.abi";
 import { accountFactoryV3ABI } from "../../abis/accountFactoryV3.abi";
@@ -28,7 +28,7 @@ import { isSmartAccountDeployed } from "permissionless";
  * @param executions the executions of the account, in default, it will be []
  */
 export async function createOKXSmartAccount<
-  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
 >(
   signer: TSigner,
   name: string,

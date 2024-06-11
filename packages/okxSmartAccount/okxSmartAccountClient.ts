@@ -18,7 +18,7 @@ import {
   Runtime,
   SigType,
 } from "./types.js";
-import { ERC4337SmartAccountSigner } from "../plugins/types";
+import { OKXSmartAccountSigner } from "../plugins/types";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
 import { UserOperation } from "permissionless/types/userOperation";
 import { LocalError } from "../common/error";
@@ -37,7 +37,7 @@ import { PaymasterClient } from "../okxPaymaster/paymaster";
 export class OKXSmartAccountClient<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
 > {
   protected name: string;
   protected version: string;

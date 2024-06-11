@@ -1,5 +1,5 @@
 import { Address, Chain, Hex, pad, toHex, Transport } from "viem";
-import { ERC4337SmartAccountSigner } from "../plugins/types";
+import { OKXSmartAccountSigner } from "../plugins/types";
 import { SupportedPayMaster } from "./types";
 import axios from "axios";
 import { networkConfigurations } from "../../configuration";
@@ -13,7 +13,7 @@ import { userInfo } from "node:os";
 export function paymasterActions<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
 >(okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>) {
   return {
     usePaymaster: (usePaymasterParams: UsePaymasterParams) =>
@@ -34,7 +34,7 @@ export type UsePaymasterParams = {
 export function usePaymaster<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
 >(
   okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
   usePaymasterParams: UsePaymasterParams,
@@ -63,7 +63,7 @@ export function usePaymaster<
 export async function getSupportedPaymasters<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
 >(
   okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
 ): Promise<SupportedPayMaster[]> {
@@ -73,7 +73,7 @@ export async function getSupportedPaymasters<
 export async function getPaymasterAndData<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends ERC4337SmartAccountSigner = ERC4337SmartAccountSigner,
+  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
 >(
   okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
 ): Promise<void> {
