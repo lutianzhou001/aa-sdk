@@ -1,14 +1,7 @@
 import { Address, Chain, Hex, pad, toHex, Transport } from "viem";
 import { OKXSmartAccountSigner } from "../plugins/types";
 import { SupportedPayMaster } from "./types";
-import axios from "axios";
-import { networkConfigurations } from "../../configuration";
 import { OKXSmartAccountClient } from "./okxSmartAccountClient";
-import { callClient, convertToHex } from "../common/utils";
-import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
-import { GetPaymasterSignatureError } from "../common/error";
-import { getChainId } from "viem/actions";
-import { userInfo } from "node:os";
 
 export function paymasterActions<
   TTransport extends Transport = Transport,

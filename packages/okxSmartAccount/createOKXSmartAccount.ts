@@ -3,14 +3,12 @@ import {
   encodeAbiParameters,
   encodeFunctionData,
   encodePacked,
-  type Hash,
   Hex,
   keccak256,
   toHex,
   zeroAddress,
 } from "viem";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
-import { configuration } from "../../configuration";
 import { OKXSmartAccountSigner } from "../plugins/types";
 import { OKXSmartAccount } from "./types";
 import { initializeAccountABI } from "../../abis/initializeAccount.abi";

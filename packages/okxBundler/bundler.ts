@@ -3,11 +3,7 @@ import { UserOperation } from "permissionless/types/userOperation";
 import { callClient, convertToHex } from "../common/utils";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
 import { getChainId } from "viem/actions";
-import {
-  GasEstimationError,
-  GetUserOperationReceiptError,
-  SendUserOperationError,
-} from "../common/error";
+import { BundlerError } from "../common/error";
 import { IBundlerClient } from "./interfaces/IBundler";
 
 /**
@@ -51,7 +47,7 @@ export class BundlerClient implements IBundlerClient {
     );
     const { result, error } = gasEstimationRes.data;
     if (error) {
-      throw new GasEstimationError("GAS_ESTIMATION_ERROR", error.message);
+      throw new BundlerError("GAS_ESTIMATION_ERROR", error.message);
     }
     return result;
   }
@@ -75,19 +71,17 @@ export class BundlerClient implements IBundlerClient {
       `${this.bundlerUrl}/priapi/v5/wallet/smart-account/mp/${String(chainId)}/eth_sendUserOperation`,
       data,
     );
-    if (sendUserOperationRes.data.error) {
-      throw new SendUserOperationError(
-        "SEND_USER_OPERATION_ERROR",
-        sendUserOperationRes.data.error.message,
-      );
+    const { result, error } = sendUserOperationRes.data;
+    if (error) {
+      throw new BundlerError("SEND_USER_OPERATION_ERROR", error.message);
     }
-    return sendUserOperationRes;
+    return result;
   }
 
   /**
    *
    * @param userOp
-   * @description This function will send signed userOp to bundler to get mined on chain
+   * @description This function will simulate a transaction using uop given.
    * @returns Promise<UserOpResponse>
    */
   async simulateUserOperation(userOp: UserOperation<"v0.7">): Promise<any> {
@@ -103,13 +97,11 @@ export class BundlerClient implements IBundlerClient {
       `${this.bundlerUrl}/priapi/v5/wallet/smart-account/mp/${String(chainId)}/eth_simulateUserOperation`,
       data,
     );
-    if (sendUserOperationRes.data.error) {
-      throw new SendUserOperationError(
-        "SEND_USER_OPERATION_ERROR",
-        sendUserOperationRes.data.error.message,
-      );
+    const { result, error } = sendUserOperationRes.data;
+    if (error) {
+      throw new BundlerError("SEND_USER_OPERATION_ERROR", error.message);
     }
-    return sendUserOperationRes;
+    return result;
   }
 
   /**
@@ -130,13 +122,11 @@ export class BundlerClient implements IBundlerClient {
       `${this.bundlerUrl}/priapi/v5/wallet/smart-account/mp/${String(chainId)}/eth_getUserOperationReceipt`,
       data,
     );
-    if (getUserOperationReceiptRes.data.error) {
-      throw new GetUserOperationReceiptError(
-        "GET_USER_OPERATION_RECEIPT_ERROR",
-        getUserOperationReceiptRes.data.error.message,
-      );
+    const { result, error } = getUserOperationReceiptRes.data;
+    if (error) {
+      throw new BundlerError("GET_USER_OPERATION_RECEIPT_ERROR", error.message);
     }
-    return getUserOperationReceiptRes;
+    return result;
   }
 
   /**
@@ -157,12 +147,10 @@ export class BundlerClient implements IBundlerClient {
       `${this.bundlerUrl}/priapi/v5/wallet/smart-account/mp/${String(chainId)}/eth_getUserOperationByHash`,
       data,
     );
-    if (getUserOperationByHash.data.error) {
-      throw new GetUserOperationReceiptError(
-        "GET_USER_OPERATION_BY_HASH_ERROR",
-        getUserOperationByHash.data.error.message,
-      );
+    const { result, error } = getUserOperationByHash.data;
+    if (error) {
+      throw new BundlerError("GET_USER_OPERATION_BY_HASH_ERROR", error.message);
     }
-    return getUserOperationByHash;
+    return result;
   }
 }
