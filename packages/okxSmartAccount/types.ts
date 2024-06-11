@@ -1,6 +1,6 @@
 import type { Address } from "abitype";
 import type { Chain, Hash, Hex, Transport } from "viem";
-import { OKXSmartAccountSigner } from "../plugins/types";
+import { OKXAASigner } from "../plugins/types";
 import { UserOperation } from "permissionless/types/userOperation";
 import { PackedUserOperation } from "permissionless/types";
 
@@ -56,7 +56,7 @@ export type SupportedPayMaster = {
 export type Runtime<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
+  TSigner extends OKXAASigner = OKXAASigner,
 > = {
   okxSmartAccount: OKXSmartAccount<TSigner>;
   userOperation: UserOperation<"v0.7">;
@@ -75,7 +75,7 @@ export type RawPaymaster = {
 };
 
 export type OKXSmartAccount<
-  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
+  TSigner extends OKXAASigner = OKXAASigner,
 > = {
   signer: TSigner;
   accountAddress: Address;

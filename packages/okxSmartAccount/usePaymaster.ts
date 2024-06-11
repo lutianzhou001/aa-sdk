@@ -1,12 +1,12 @@
 import { Address, Chain, Hex, pad, toHex, Transport } from "viem";
-import { OKXSmartAccountSigner } from "../plugins/types";
+import { OKXAASigner } from "../plugins/types";
 import { SupportedPayMaster } from "./types";
 import { OKXSmartAccountClient } from "./okxSmartAccountClient";
 
 export function paymasterActions<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
+  TSigner extends OKXAASigner = OKXAASigner,
 >(okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>) {
   return {
     usePaymaster: (usePaymasterParams: UsePaymasterParams) =>
@@ -27,7 +27,7 @@ export type UsePaymasterParams = {
 export function usePaymaster<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
+  TSigner extends OKXAASigner = OKXAASigner,
 >(
   okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
   usePaymasterParams: UsePaymasterParams,
@@ -56,7 +56,7 @@ export function usePaymaster<
 export async function getSupportedPaymasters<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
+  TSigner extends OKXAASigner = OKXAASigner,
 >(
   okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
 ): Promise<SupportedPayMaster[]> {
@@ -66,7 +66,7 @@ export async function getSupportedPaymasters<
 export async function getPaymasterAndData<
   TTransport extends Transport = Transport,
   TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
+  TSigner extends OKXAASigner = OKXAASigner,
 >(
   okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
 ): Promise<void> {

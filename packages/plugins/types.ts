@@ -1,6 +1,6 @@
 import { Address, Hex, PublicClient, SignTypedDataParameters } from "viem";
 
-export type OKXSmartAccountSigner = {
+export type OKXAASigner = {
   signerType: string;
   signerTemplate: Address;
   publicClient: PublicClient;

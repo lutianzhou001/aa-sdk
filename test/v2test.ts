@@ -9,7 +9,7 @@ import {
 } from "viem";
 import { arbitrum } from "viem/chains";
 import { OKXSmartAccountClient } from "../packages/okxSmartAccount/okxSmartAccountClient";
-import { walletClientToOKXSmartAccountSigner } from "../packages/plugins/signers/walletClientToSmartAccountSigner";
+import { walletClientToOKXAASigner } from "../packages/plugins/signers/walletClientToOKXAASigner";
 import { paymasterActions } from "../packages/okxSmartAccount/usePaymaster";
 import { createOKXSmartAccount } from "../packages/okxSmartAccount/createOKXSmartAccount";
 import { configuration } from "../configuration";
@@ -25,7 +25,7 @@ async function smokeTest() {
 
   // STEP2: create an ERC4337SmartContractAccount with the publicClient and owner
   const smartAccount = await createOKXSmartAccount(
-    await walletClientToOKXSmartAccountSigner(walletClient),
+    await walletClientToOKXAASigner(walletClient),
     "SmartAccount",
     "3.0.3",
     21n,

@@ -10,12 +10,12 @@ import {
   toHex,
   type WalletClient,
 } from "viem";
-import type { OKXSmartAccountSigner } from "../types";
+import type { OKXAASigner } from "../types";
 import { randomBytes } from "node:crypto";
 
-export async function walletClientToOKXSmartAccountSigner(
+export async function walletClientToOKXAASigner(
   walletClient: WalletClient,
-): Promise<OKXSmartAccountSigner> {
+): Promise<OKXAASigner> {
   return {
     signerType: "walletClientSigner",
     signerTemplate: process.env.ECDSA_VALIDATOR_TEMPLATE_ADDRESS as Address,

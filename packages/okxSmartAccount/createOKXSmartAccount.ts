@@ -9,7 +9,7 @@ import {
   zeroAddress,
 } from "viem";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
-import { OKXSmartAccountSigner } from "../plugins/types";
+import { OKXAASigner } from "../plugins/types";
 import { OKXSmartAccount } from "./types";
 import { initializeAccountABI } from "../../abis/initializeAccount.abi";
 import { accountFactoryV3ABI } from "../../abis/accountFactoryV3.abi";
@@ -26,7 +26,7 @@ import { isSmartAccountDeployed } from "permissionless";
  * @param executions the executions of the account, in default, it will be []
  */
 export async function createOKXSmartAccount<
-  TSigner extends OKXSmartAccountSigner = OKXSmartAccountSigner,
+  TSigner extends OKXAASigner = OKXAASigner,
 >(
   signer: TSigner,
   name: string,
