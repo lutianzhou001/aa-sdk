@@ -1,18 +1,18 @@
 import { privateKeyToAccount } from "viem/accounts";
 import {
   createWalletClient,
-  http,
-  WalletClient,
-  publicActions,
-  zeroAddress,
   Hex,
+  http,
+  publicActions,
+  WalletClient,
+  zeroAddress,
 } from "viem";
 import { arbitrum } from "viem/chains";
 import { OKXSmartAccountClient } from "../packages/okxSmartAccount/okxSmartAccountClient";
 import { walletClientToOKXAASigner } from "../packages/plugins/signers/walletClientToOKXAASigner";
 import { paymasterActions } from "../packages/okxSmartAccount/usePaymaster";
 import { createOKXSmartAccount } from "../packages/okxSmartAccount/createOKXSmartAccount";
-import { configuration } from "../configuration";
+import { SigType } from "../packages/okxSmartAccount/types";
 
 async function smokeTest() {
   const walletClient: WalletClient = createWalletClient({
@@ -49,13 +49,14 @@ async function smokeTest() {
         mode: 0,
         bizId: 9007199254740991,
       })
-      .proposeTx("EIP712");
+      .proposeTx(SigType.EIP712);
 
     const signed = await encoded.signAndPack();
     const hash = await signed.send();
     console.log(hash);
     // wait for some time
-    const receipt = await smartAccountClient.bundlerClient.getUserOperationReceipt(hash);
+    const receipt =
+      await smartAccountClient.bundlerClient.getUserOperationReceipt(hash);
   } catch (error) {
     console.error("An error occurred:", error);
   }

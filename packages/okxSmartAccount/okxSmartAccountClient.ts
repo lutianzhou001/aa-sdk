@@ -7,7 +7,6 @@ import {
   type Hex,
   hexToBigInt,
   http,
-  type Transport,
   zeroHash,
 } from "viem";
 import {
@@ -34,16 +33,12 @@ import { EntryPointV0_7ABI } from "../../abis/EntryPointV0_7.abi";
 import { BundlerClient } from "../okxBundler/bundler";
 import { PaymasterClient } from "../okxPaymaster/paymaster";
 
-export class OKXSmartAccountClient<
-  TTransport extends Transport = Transport,
-  TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends OKXAASigner = OKXAASigner,
-> {
+export class OKXSmartAccountClient<TSigner extends OKXAASigner = OKXAASigner> {
   protected name: string;
   protected version: string;
   protected chainId: string;
 
-  public runtime: Runtime<TTransport, TChain, TSigner>;
+  public runtime: Runtime<TSigner>;
 
   public bundlerClient: BundlerClient;
   public paymasterClient: PaymasterClient;
@@ -441,7 +436,7 @@ export class OKXSmartAccountClient<
 
   private initializeRuntime(
     okxSmartAccount: OKXSmartAccount<TSigner>,
-  ): Runtime<TTransport, TChain, TSigner> {
+  ): Runtime<TSigner> {
     return {
       okxSmartAccount: okxSmartAccount,
       userOperationHash: zeroHash,

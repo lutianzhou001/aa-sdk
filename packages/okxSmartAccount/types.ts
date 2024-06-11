@@ -4,9 +4,10 @@ import { OKXAASigner } from "../plugins/types";
 import { UserOperation } from "permissionless/types/userOperation";
 import { PackedUserOperation } from "permissionless/types";
 
-export type CallType = "single" | "delegatecall" | "batch" | undefined;
-
-export type SigType = "EIP712" | "EIP191";
+export enum SigType {
+  EIP712 = "EIP712",
+  EIP191 = "EIP191",
+}
 
 export type ExecutionMode = {
   try?: boolean;
@@ -53,11 +54,7 @@ export type SupportedPayMaster = {
   type: number;
 };
 
-export type Runtime<
-  TTransport extends Transport = Transport,
-  TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends OKXAASigner = OKXAASigner,
-> = {
+export type Runtime<TSigner extends OKXAASigner = OKXAASigner> = {
   okxSmartAccount: OKXSmartAccount<TSigner>;
   userOperation: UserOperation<"v0.7">;
   packedUserOperation: PackedUserOperation;
@@ -74,9 +71,7 @@ export type RawPaymaster = {
   paymasterPostOpGasLimit?: bigint;
 };
 
-export type OKXSmartAccount<
-  TSigner extends OKXAASigner = OKXAASigner,
-> = {
+export type OKXSmartAccount<TSigner extends OKXAASigner = OKXAASigner> = {
   signer: TSigner;
   accountAddress: Address;
   nonceKey: Hex;

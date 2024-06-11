@@ -3,11 +3,9 @@ import { OKXAASigner } from "../plugins/types";
 import { SupportedPayMaster } from "./types";
 import { OKXSmartAccountClient } from "./okxSmartAccountClient";
 
-export function paymasterActions<
-  TTransport extends Transport = Transport,
-  TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends OKXAASigner = OKXAASigner,
->(okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>) {
+export function paymasterActions<TSigner extends OKXAASigner = OKXAASigner>(
+  okxSmartAccountClient: OKXSmartAccountClient<TSigner>,
+) {
   return {
     usePaymaster: (usePaymasterParams: UsePaymasterParams) =>
       usePaymaster(okxSmartAccountClient, usePaymasterParams),
@@ -24,14 +22,10 @@ export type UsePaymasterParams = {
   paymasterPostOpGasLimit?: bigint;
 };
 
-export function usePaymaster<
-  TTransport extends Transport = Transport,
-  TChain extends Chain | undefined = Chain | undefined,
-  TSigner extends OKXAASigner = OKXAASigner,
->(
-  okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
+export function usePaymaster<TSigner extends OKXAASigner = OKXAASigner>(
+  okxSmartAccountClient: OKXSmartAccountClient<TSigner>,
   usePaymasterParams: UsePaymasterParams,
-): OKXSmartAccountClient<TTransport, TChain, TSigner> {
+): OKXSmartAccountClient<TSigner> {
   // some logic here
   okxSmartAccountClient.runtime.rawPaymaster = {
     paymasterAddress: usePaymasterParams.paymasterAddress,
@@ -58,18 +52,14 @@ export async function getSupportedPaymasters<
   TChain extends Chain | undefined = Chain | undefined,
   TSigner extends OKXAASigner = OKXAASigner,
 >(
-  okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
+  okxSmartAccountClient: OKXSmartAccountClient<TSigner>,
 ): Promise<SupportedPayMaster[]> {
   return okxSmartAccountClient.paymasterClient?.getSupportedPaymasters();
 }
 
 export async function getPaymasterAndData<
-  TTransport extends Transport = Transport,
-  TChain extends Chain | undefined = Chain | undefined,
   TSigner extends OKXAASigner = OKXAASigner,
->(
-  okxSmartAccountClient: OKXSmartAccountClient<TTransport, TChain, TSigner>,
-): Promise<void> {
+>(okxSmartAccountClient: OKXSmartAccountClient<TSigner>): Promise<void> {
   const getPaymasterSignatureRes =
     await okxSmartAccountClient.paymasterClient?.getPaymasterData(
       okxSmartAccountClient.runtime.userOperation,
