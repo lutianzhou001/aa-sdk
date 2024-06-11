@@ -1,5 +1,4 @@
 import { UserOperation } from "permissionless/types/userOperation";
-import { Address, Hex } from "viem";
 
 export interface IBundlerClient {
   sendUserOperation(userOp: UserOperation<"v0.7">): Promise<any>;

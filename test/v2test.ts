@@ -55,7 +55,7 @@ async function smokeTest() {
     const hash = await signed.send();
     console.log(hash);
     // wait for some time
-    const receipt = await smartAccountClient.getUserOperationReceipt(hash);
+    const receipt = await smartAccountClient.bundlerClient.getUserOperationReceipt(hash);
   } catch (error) {
     console.error("An error occurred:", error);
   }

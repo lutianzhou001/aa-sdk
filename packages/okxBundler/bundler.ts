@@ -123,7 +123,7 @@ export class BundlerClient implements IBundlerClient {
     const data = JSON.stringify({
       id: 1,
       jsonrpc: "2.0",
-      method: "eth_simulateUserOperation",
+      method: "eth_getUserOperationReceipt",
       params: [userOpHash],
     });
     const getUserOperationReceiptRes = await callClient(
