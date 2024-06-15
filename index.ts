@@ -1,3 +1,3 @@
 // utils
 export * from "./packages/common/utils";
-export * from "./packages/okxSmartAccount/okxSmartAccountClient";
+export * from "./packages/okxSmartAccount/OKXSmartContractAccount";

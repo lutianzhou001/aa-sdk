@@ -9,10 +9,10 @@ import {
 } from "viem";
 import { arbitrum } from "viem/chains";
 import { OKXSmartAccountClient } from "../packages/okxSmartAccount/okxSmartAccountClient";
-import { walletClientToOKXAASigner } from "../packages/plugins/signers/walletClientToOKXAASigner";
+import { walletClientToOKXAASigner } from "../packages/plugins/signers/walletClientAASigner";
 import { paymasterActions } from "../packages/okxSmartAccount/usePaymaster";
 import { createOKXSmartAccount } from "../packages/okxSmartAccount/createOKXSmartAccount";
-import { SigType } from "../packages/okxSmartAccount/types";
+import { SigType } from "../packages/okxSmartAccount/utils/types";
 
 async function smokeTest() {
   const walletClient: WalletClient = createWalletClient({

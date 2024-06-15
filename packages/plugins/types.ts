@@ -1,11 +1,14 @@
-import { Address, Hex, PublicClient, SignTypedDataParameters } from "viem";
+import { Address, Hex, SignTypedDataParameters } from "viem";
 
-export type OKXAASigner = {
+export interface OKXAASigner<Inner = any> {
   signerType: string;
   signerTemplate: Address;
-  publicClient: PublicClient;
-  getSubject: () => Promise<Address>;
+
+  inner: Inner;
+
+  getSubject: () => Promise<Hex>;
+
   signMessage: (msg: Uint8Array | Hex | string) => Promise<Hex>;
+
   signTypedData: (args: SignTypedDataParameters) => Promise<Hex>;
-  getDummySignature: () => Promise<Hex>;
-};
+}
