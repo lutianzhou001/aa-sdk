@@ -54,6 +54,7 @@ async function smokeTest() {
       data: "0x",
     },
     sigType: SigType.EIP191,
+    sigTime: 1807465398n,
     packTxMiddlewareOverrider: {
       gasEstimationOverride: {
         callGasLimit: 75000n,

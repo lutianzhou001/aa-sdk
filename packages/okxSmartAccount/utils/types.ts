@@ -151,6 +151,7 @@ export type BuildUserOpParams = {
   args: ExecuteCallDataArgs;
   execMode?: ExecutionMode;
   sigType?: SigType;
+  sigTime?: bigint;
   paymasterRawData?: PaymasterRawData;
   packTxMiddlewareOverrider?: PackTxMiddlewareOverride;
 };
