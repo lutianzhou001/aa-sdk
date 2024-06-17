@@ -223,6 +223,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     signType: SigType,
     userOperation: UserOperation<"v0.7">,
   ): Promise<Hex> {
+    console.log("packedUop", getPackedUserOperation(userOperation));
     const deploymentState: DeploymentState = await this.getDeploymentState();
     return (await this.rpcProvider.readContract({
       address:
@@ -398,12 +399,19 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       })) as Hex;
     } else {
       signatureFromSigner = await this.signUserOperationHash(
-        await this.getUOPHash(sigType, cleanup(userOperation)),
+        await this.getUOPHash(sigType, {
+          ...cleanup(userOperation),
+          signature: encodePacked(
+            ["uint8", "uint256"],
+              // @ts-ignore
+              [sigType === SigType.EIP712 ? 0 : 1, _sigTime],
+          ),
+        }),
       );
     }
     return encodePacked(
       ["uint8", "uint256", "bytes"],
-      [sigType === "EIP712" ? 0 : 1, _sigTime, signatureFromSigner],
+      [sigType === SigType.EIP712 ? 0 : 1, _sigTime, signatureFromSigner],
     );
   }
 
