@@ -6,6 +6,7 @@ import { PackedUserOperation } from "permissionless/types";
 import { PaymasterClient } from "../../okxPaymaster/paymaster";
 import { IPaymasterClient } from "../../okxPaymaster/interfaces/IPaymaster";
 import { IBundlerClient } from "../../okxBundler/interfaces/IBundler";
+import { DeploymentState } from "../BaseSmartContractAccount";
 
 export enum SigType {
   EIP712 = "EIP712",

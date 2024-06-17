@@ -33,6 +33,7 @@ import {
   zeroHash,
 } from "viem";
 import {
+  cleanup,
   compileMode,
   getSigTime,
   predictDeterministicAddress,
@@ -326,13 +327,15 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       callGasLimit:
         packTxMiddlewareOverride?.gasEstimationOverride?.callGasLimit ??
         BigInt(result.callGasLimit),
-      paymasterVerificationGasLimit:
-        packTxMiddlewareOverride?.gasEstimationOverride
-          ?.paymasterVerificationGasLimit ??
-        BigInt(result.paymasterVerificationGasLimit),
-      paymasterPostOpGasLimit:
-        packTxMiddlewareOverride?.gasEstimationOverride
-          ?.postVerificationGasLimit ?? BigInt(result.paymasterPostOpGasLimit),
+      paymasterVerificationGasLimit: userOperation.paymaster
+        ? packTxMiddlewareOverride?.gasEstimationOverride
+            ?.paymasterVerificationGasLimit ??
+          BigInt(result.paymasterVerificationGasLimit)
+        : undefined,
+      paymasterPostOpGasLimit: userOperation.paymaster
+        ? packTxMiddlewareOverride?.gasEstimationOverride
+            ?.postVerificationGasLimit ?? BigInt(result.paymasterPostOpGasLimit)
+        : undefined,
     };
   }
 
@@ -350,7 +353,9 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     const _sigTime = sigTime ?? (await getSigTime(this.rpcProvider));
     let signatureFromSigner: Hex;
     if (sigType === SigType.EIP712) {
-      const packedUserOperation = getPackedUserOperation(userOperation);
+      const packedUserOperation = getPackedUserOperation(
+        cleanup(userOperation),
+      );
       const domain = {
         name: this.name,
         version: this.version,
@@ -393,7 +398,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       })) as Hex;
     } else {
       signatureFromSigner = await this.signUserOperationHash(
-        await this.getUOPHash(sigType, userOperation),
+        await this.getUOPHash(sigType, cleanup(userOperation)),
       );
     }
     return encodePacked(
@@ -404,6 +409,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
 
   async buildUserOp(params: BuildUserOpParams): Promise<UserOperation<"v0.7">> {
     this.checkBuildUserOpParams(params);
+    await this.getDeploymentState();
     if (!this.accountAddress) {
       throw new BaseError("BUILD_USER_OP_ERROR", "ACCOUNT_ADDRESS_NOT_FOUND");
     }
@@ -412,11 +418,11 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     const userOp: UserOperation<"v0.7"> = {
       factory:
         this.deploymentState === DeploymentState.DEPLOYED
-          ? undefined
+          ? "0x"
           : factoryAndFactoryData[0],
       factoryData:
         this.deploymentState === DeploymentState.DEPLOYED
-          ? undefined
+          ? "0x"
           : factoryAndFactoryData[1],
       sender: this.accountAddress,
       nonce: await this.getNonce(BigInt(this.validatorAddress)),
@@ -441,7 +447,10 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         : undefined,
     };
     let uopToSign: UserOperation<"v0.7">;
-    const gasEstimationRes = await this.gasEstimation(userOp);
+    const gasEstimationRes = await this.gasEstimation(
+      userOp,
+      params.packTxMiddlewareOverrider,
+    );
     if (params.paymasterRawData?.paymasterAddress) {
       const paymasterAddressAndData =
         await this.parsePaymasterAddressFromPaymasterAndData(gasEstimationRes);
@@ -463,8 +472,10 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
   }
 
   async sendUserOp(userOperation: UserOperation<"v0.7">): Promise<any> {
-    await this.bundlerClient.simulateUserOperation(userOperation);
-    return await this.bundlerClient.sendUserOperation(userOperation);
+    const cleanedUop = cleanup(userOperation);
+    console.log(cleanedUop);
+    await this.bundlerClient.simulateUserOperation(cleanedUop);
+    return await this.bundlerClient.sendUserOperation(cleanedUop);
   }
 
   override getAccountInitCode(): Promise<Hex> {

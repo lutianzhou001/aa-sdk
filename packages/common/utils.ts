@@ -111,6 +111,21 @@ export function predictDeterministicAddress(
   return ("0x" + address) as Address;
 }
 
+export function cleanup(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map((item) => cleanup(item));
+  } else if (typeof obj === "object" && obj !== null) {
+    return Object.keys(obj).reduce((acc, key) => {
+      const value = obj[key];
+      if (value !== undefined) {
+        acc[key] = cleanup(value);
+      }
+      return acc;
+    }, {} as any);
+  }
+  return obj;
+}
+
 export async function callClient(url: string, data: string) {
   const config = {
     method: "post",
@@ -120,7 +135,7 @@ export async function callClient(url: string, data: string) {
       "Content-Type": "application/json",
       Cookie: "locale=en-US",
     },
-    data: data,
+    data: JSON.stringify(JSON.parse(data)),
   };
   return await axios.request(config);
 }

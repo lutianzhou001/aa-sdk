@@ -1,4 +1,4 @@
-import {privateKeyToAccount} from "viem/accounts";
+import { privateKeyToAccount } from "viem/accounts";
 import {
   createPublicClient,
   createWalletClient,
@@ -9,10 +9,10 @@ import {
   WalletClient,
   zeroAddress,
 } from "viem";
-import {arbitrum} from "viem/chains";
-import {walletClientAASigner} from "../packages/plugins/signers/walletClientAASigner";
-import {OKXSmartContractAccount} from "../packages/okxSmartAccount/OKXSmartContractAccount";
-import {PaymasterMode} from "../packages/okxSmartAccount/utils/types";
+import { arbitrum } from "viem/chains";
+import { walletClientAASigner } from "../packages/plugins/signers/walletClientAASigner";
+import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartContractAccount";
+import { SigType } from "../packages/okxSmartAccount/utils/types";
 
 async function smokeTest() {
   const publicClient: PublicClient = createPublicClient({
@@ -37,7 +37,7 @@ async function smokeTest() {
     signer: new walletClientAASigner(walletClient),
     name: "SmartAccount",
     version: "3.0.3",
-    index: 22n,
+    index: 21n,
 
     bundlerClientConfig: {
       bundlerUrl: "https://beta.okex.org",
@@ -48,19 +48,23 @@ async function smokeTest() {
   });
 
   const signedUop = await okxSmartContractAccount.buildUserOp({
-    args: [
-      {
-        to: zeroAddress,
-        value: BigInt(0),
-        data: "0x",
-      },
-      { to: zeroAddress, value: BigInt(0), data: "0x" },
-      { to: zeroAddress, value: BigInt(0), data: "0x" },
-    ],
-    paymasterRawData: {
-      paymasterAddress: "0x505BBF2e6F7FC45c2D42C54a2578e541bab676A7",
-      paymasterMode: PaymasterMode.FREE_GAS_MODE,
+    args: {
+      to: zeroAddress,
+      value: BigInt(1),
+      data: "0x",
     },
+    sigType: SigType.EIP191,
+    packTxMiddlewareOverrider: {
+      gasEstimationOverride: {
+        callGasLimit: 75000n,
+        verificationGasLimit: 120000n,
+        preVerificationGas: 3300000n,
+      }
+    }
+    // paymasterRawData: {
+    //   paymasterAddress: "0x505BBF2e6F7FC45c2D42C54a2578e541bab676A7",
+    //   paymasterMode: PaymasterMode.FREE_GAS_MODE,
+    // },
   });
 
   const res = await okxSmartContractAccount.sendUserOp(signedUop);
