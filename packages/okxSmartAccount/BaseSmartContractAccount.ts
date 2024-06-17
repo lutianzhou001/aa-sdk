@@ -1,12 +1,10 @@
 import {
-  http,
   type Address,
+  getContract,
   type GetContractReturnType,
   type Hash,
   type Hex,
   type PublicClient,
-  createPublicClient,
-  getContract,
   SignTypedDataParameters,
 } from "viem";
 import { ENTRYPOINT_ADDRESS_V07, isSmartAccountDeployed } from "permissionless";
@@ -153,7 +151,7 @@ export abstract class BaseSmartContractAccount<
   // Extra implementations
   async getNonce(nonceKey: bigint): Promise<bigint> {
     if (!(await this.isAccountDeployed())) {
-      return 0n;
+      return nonceKey;
     }
     const address = await this.getAddress();
     // @ts-ignore

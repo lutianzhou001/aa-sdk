@@ -53,9 +53,12 @@ interface ExecuteCallDataWithAllowFailed extends BaseExecuteCallData {
   allowFailed?: boolean;
 }
 
+export type DeployCallData = "0x";
+
 export type ExecuteCallDataArgs =
   | ExecuteCallDataWithAllowFailed
-  | ExecuteCallDataWithAllowFailed[];
+  | ExecuteCallDataWithAllowFailed[]
+  | DeployCallData;
 
 export type SupportedPayMaster = {
   entryPoint: string;
@@ -105,6 +108,8 @@ export type OKXSmartContractAccountConstructorParams<
 
   name: string;
   version: string;
+
+  authenticationManagerTemplate: Address;
 };
 
 export type OKXSmartContractAccountCreationParams<
@@ -120,6 +125,7 @@ export type OKXSmartContractAccountCreationParams<
 
   factoryAddress?: Address;
   smartAccountTemplate?: Address;
+  authenticationManagerTemplate?: Address;
   index?: bigint;
 };
 

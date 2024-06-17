@@ -8,6 +8,10 @@ import {
   type WalletClient,
 } from "viem";
 import type { OKXAASigner } from "../types";
+import {
+  DEFAULT_SMART_ACCOUNT_TEMPLATE,
+  ECDSA_VALIDATOR_TEMPLATE,
+} from "../../okxSmartAccount/utils/constants";
 
 export class walletClientAASigner<Inner> implements OKXAASigner<Inner> {
   signerType: string;
@@ -15,10 +19,9 @@ export class walletClientAASigner<Inner> implements OKXAASigner<Inner> {
 
   walletClient: WalletClient;
   inner: Inner;
-  constructor(walletClient: WalletClient) {
+  constructor(walletClient: WalletClient, template?: Address) {
     this.signerType = "walletClientSigner";
-    this.signerTemplate = process.env
-      .ECDSA_VALIDATOR_TEMPLATE_ADDRESS as Address;
+    this.signerTemplate = template ?? (ECDSA_VALIDATOR_TEMPLATE as Address);
     this.walletClient = walletClient;
   }
 

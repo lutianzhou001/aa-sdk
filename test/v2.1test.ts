@@ -9,25 +9,23 @@ import {
   WalletClient,
   zeroAddress,
 } from "viem";
-import { arbitrum } from "viem/chains";
+import { arbitrum, polygon } from "viem/chains";
 import { walletClientAASigner } from "../packages/plugins/signers/walletClientAASigner";
 import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartContractAccount";
 import { SigType } from "../packages/okxSmartAccount/utils/types";
 
 async function smokeTest() {
   const publicClient: PublicClient = createPublicClient({
-    chain: arbitrum,
-    transport: http(
-      "https://arb-mainnet.g.alchemy.com/v2/47SxM1HQgXWeKVL9rYVS6A4LZ8B_Ktk0",
-    ),
+    chain: polygon,
+    transport: http(),
+    // "https://arb-mainnet.g.alchemy.com/v2/47SxM1HQgXWeKVL9rYVS6A4LZ8B_Ktk0",
   });
 
   const walletClient: WalletClient = createWalletClient({
     account: privateKeyToAccount(process.env.WALLET_CLIENT_PRIVATE_KEY as Hex),
-    chain: arbitrum,
-    transport: http(
-      "https://arb-mainnet.g.alchemy.com/v2/47SxM1HQgXWeKVL9rYVS6A4LZ8B_Ktk0",
-    ),
+    chain: polygon,
+    transport: http(),
+    // "https://arb-mainnet.g.alchemy.com/v2/47SxM1HQgXWeKVL9rYVS6A4LZ8B_Ktk0",
   }).extend(publicActions);
 
   const signer = new walletClientAASigner(walletClient);
@@ -36,8 +34,8 @@ async function smokeTest() {
     rpcProvider: publicClient,
     signer: new walletClientAASigner(walletClient),
     name: "SmartAccount",
-    version: "3.0.3",
-    index: 21n,
+    version: "3.0.2",
+    index: 1n,
 
     bundlerClientConfig: {
       bundlerUrl: "https://beta.okex.org",
@@ -48,20 +46,15 @@ async function smokeTest() {
   });
 
   const signedUop = await okxSmartContractAccount.buildUserOp({
-    args: {
-      to: zeroAddress,
-      value: BigInt(1),
-      data: "0x",
-    },
+    args: "0x",
     sigType: SigType.EIP191,
     sigTime: 1807465398n,
     packTxMiddlewareOverrider: {
-      gasEstimationOverride: {
-        callGasLimit: 75000n,
-        verificationGasLimit: 120000n,
-        preVerificationGas: 3300000n,
-      }
-    }
+      feeDataOverride: {
+        maxFeePerGas: 50000000000n,
+        maxPriorityFeePerGas: 50000000000n,
+      },
+    },
     // paymasterRawData: {
     //   paymasterAddress: "0x505BBF2e6F7FC45c2D42C54a2578e541bab676A7",
     //   paymasterMode: PaymasterMode.FREE_GAS_MODE,

@@ -61,6 +61,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
   bundlerClient: IBundlerClient;
   paymasterClient?: IPaymasterClient;
   authenticationManagerAddress: Address;
+  authenticationManagerTemplateAddress: Address;
   validatorAddress: Address;
 
   constructor(params: OKXSmartContractAccountConstructorParams) {
@@ -70,6 +71,9 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     this.validatorAddress = params.validatorAddress;
     this.bundlerClient = params.bundlerClient;
     this.paymasterClient = params.paymasterClient;
+
+    this.authenticationManagerTemplateAddress =
+      params.authenticationManagerTemplate;
 
     this.name = params.name;
     this.version = params.version;
@@ -113,15 +117,28 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       ],
     );
 
+    // const initCode = await bundlerClient.getInitCode(
+    //   137,
+    //   params.factoryAddress ?? FACTORY_ADDRESS,
+    //   Number(params.index) ?? 0,
+    //   params.smartAccountTemplate ?? DEFAULT_SMART_ACCOUNT_TEMPLATE,
+    //   await params.signer.getSubject(),
+    //   params.signer.signerTemplate ?? ECDSA_VALIDATOR_TEMPLATE,
+    // );
+
     const accountAddress: Address = (await params.rpcProvider.readContract({
-      address: process.env.FACTORY_ADDRESS as Address,
+      address: params.factoryAddress ?? (FACTORY_ADDRESS as Address),
       abi: accountFactoryV3ABI,
       functionName: "computeAddress",
       args: [zeroAddress, initializeAccountData, params.index ?? 0n],
     })) as Address;
 
+    const authenticationManagerTemplate =
+      params.authenticationManagerTemplate ??
+      (AUTHENTICATION_MANAGER_TEMPLATE as Address);
+
     const authenticationManagerAddress: Address = predictDeterministicAddress(
-      process.env.AUTHENTICATION_MANAGER_TEMPLATE as Address,
+      authenticationManagerTemplate,
       keccak256(toHex(params.version)) as Hex,
       accountAddress,
     );
@@ -149,6 +166,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         validatorAddress,
         initCode: accountInitCode,
         factoryAddress: params.factoryAddress ?? FACTORY_ADDRESS,
+        authenticationManagerTemplate,
 
         name: params.name,
         version: params.version,
@@ -162,6 +180,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         validatorAddress,
         initCode: accountInitCode,
         factoryAddress: params.factoryAddress ?? FACTORY_ADDRESS,
+        authenticationManagerTemplate,
 
         name: params.name,
         version: params.version,
@@ -199,6 +218,8 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         functionName: "execute",
         args: [mode, calldata],
       });
+    } else if (args == "0x") {
+      callDataToEntryPoint = "0x";
     } else {
       const callData = encodePacked(
         ["address", "uint256", "bytes"],
@@ -223,13 +244,12 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     signType: SigType,
     userOperation: UserOperation<"v0.7">,
   ): Promise<Hex> {
-    console.log("packedUop", getPackedUserOperation(userOperation));
     const deploymentState: DeploymentState = await this.getDeploymentState();
     return (await this.rpcProvider.readContract({
       address:
         deploymentState == DeploymentState.DEPLOYED
           ? this.authenticationManagerAddress
-          : AUTHENTICATION_MANAGER_TEMPLATE,
+          : this.authenticationManagerTemplateAddress,
       abi: authenticationManagerABI,
       functionName: "getUOPHash",
       args: [
@@ -255,7 +275,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       address:
         deploymentState == DeploymentState.DEPLOYED
           ? this.authenticationManagerAddress
-          : AUTHENTICATION_MANAGER_TEMPLATE,
+          : this.authenticationManagerTemplateAddress,
       abi: authenticationManagerABI,
       functionName: "getUOPSignedHash",
       args: [
@@ -361,8 +381,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         name: this.name,
         version: this.version,
         chainId: await getChainId(this.rpcProvider),
-        verifyingContract: process.env
-          .AUTHENTICATION_MANAGER_TEMPLATE as Address,
+        verifyingContract: this.authenticationManagerTemplateAddress as Address,
       };
       const types = {
         SignMessage: [
@@ -403,8 +422,8 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
           ...cleanup(userOperation),
           signature: encodePacked(
             ["uint8", "uint256"],
-              // @ts-ignore
-              [sigType === SigType.EIP712 ? 0 : 1, _sigTime],
+            // @ts-ignore
+            [sigType === SigType.EIP712 ? 0 : 1, _sigTime],
           ),
         }),
       );
@@ -433,7 +452,9 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
           ? "0x"
           : factoryAndFactoryData[1],
       sender: this.accountAddress,
-      nonce: await this.getNonce(BigInt(this.validatorAddress)),
+      nonce: await this.getNonce(
+        BigInt(String(this.validatorAddress) + "0000000000000000"),
+      ),
       callData: await this.encodeExecute(params.args, params.execMode),
       callGasLimit: 0n,
       verificationGasLimit: 0n,
@@ -482,7 +503,6 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
 
   async sendUserOp(userOperation: UserOperation<"v0.7">): Promise<any> {
     const cleanedUop = cleanup(userOperation);
-    console.log(cleanedUop);
     await this.bundlerClient.simulateUserOperation(cleanedUop);
     return await this.bundlerClient.sendUserOperation(cleanedUop);
   }

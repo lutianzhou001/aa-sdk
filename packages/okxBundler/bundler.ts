@@ -1,4 +1,12 @@
-import { Chain, createPublicClient, http, PublicClient } from "viem";
+import {
+  Address,
+  Chain,
+  createPublicClient,
+  Hex,
+  http,
+  PublicClient,
+  toHex,
+} from "viem";
 import { UserOperation } from "permissionless/types/userOperation";
 import { callClient, convertToHex } from "../common/utils";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
@@ -21,6 +29,61 @@ export class BundlerClient implements IBundlerClient {
       transport: http(),
     });
     this.bundlerUrl = bundlerUrl;
+  }
+
+  async getNonce(
+    chainId: number,
+    sender: Address,
+    owner: Address,
+    singleton: Address,
+    key?: bigint,
+  ): Promise<bigint> {
+    const data = JSON.stringify({
+      chainBizId: chainId,
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      sender: sender,
+      owner: owner,
+      singleton: singleton,
+      key: key ?? 0,
+    });
+    const getNonceRes = await callClient(
+      `${this.bundlerUrl}/priapi/v5/wallet/smart-account/ac/${String(chainId)}/getNonce`,
+      data,
+    );
+    const { result, error } = getNonceRes.data;
+    if (error) {
+      throw new BundlerError("GET_NONCE_ERROR", error.message);
+    }
+    console.log(toHex(BigInt(result)));
+    return BigInt(result);
+  }
+
+  async getInitCode(
+    chainId: number,
+    factory: Address,
+    salt: number,
+    safeSingleton: Address,
+    initializer: Address,
+    validatorTemplate: Address,
+  ): Promise<Hex> {
+    const data = JSON.stringify({
+      chainBizId: chainId,
+      entryPoint: ENTRYPOINT_ADDRESS_V07,
+      factory: factory,
+      salt: salt,
+      safeSingleton: safeSingleton,
+      initializer: initializer,
+      validatorTemplate: validatorTemplate,
+    });
+    const getInitCodeRes = await callClient(
+      `${this.bundlerUrl}/priapi/v5/wallet/smart-account/ac/${String(chainId)}/getInitCode`,
+      data,
+    );
+    const { result, error } = getInitCodeRes.data;
+    if (error) {
+      throw new BundlerError("GAS_ESTIMATION_ERROR", error.message);
+    }
+    return result;
   }
 
   public getBundlerUrl(): string {
