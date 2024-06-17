@@ -149,6 +149,19 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       authenticationManagerAddress,
     );
 
+    const commonParams = {
+      ...params,
+      accountAddress,
+      bundlerClient,
+      authenticationManagerAddress,
+      validatorAddress,
+      initCode: accountInitCode,
+      factoryAddress: params.factoryAddress ?? FACTORY_ADDRESS,
+      authenticationManagerTemplate,
+      name: params.name,
+      version: params.version,
+    };
+
     if (params.paymasterClientConfig) {
       const paymasterClient =
         params.paymasterClientConfig.paymasterClient ??
@@ -158,33 +171,11 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         );
 
       return new OKXSmartContractAccount({
-        ...params,
-        accountAddress,
-        bundlerClient,
+        ...commonParams,
         paymasterClient,
-        authenticationManagerAddress,
-        validatorAddress,
-        initCode: accountInitCode,
-        factoryAddress: params.factoryAddress ?? FACTORY_ADDRESS,
-        authenticationManagerTemplate,
-
-        name: params.name,
-        version: params.version,
       });
     } else {
-      return new OKXSmartContractAccount({
-        ...params,
-        accountAddress,
-        bundlerClient,
-        authenticationManagerAddress,
-        validatorAddress,
-        initCode: accountInitCode,
-        factoryAddress: params.factoryAddress ?? FACTORY_ADDRESS,
-        authenticationManagerTemplate,
-
-        name: params.name,
-        version: params.version,
-      });
+      return new OKXSmartContractAccount(commonParams);
     }
   }
 
