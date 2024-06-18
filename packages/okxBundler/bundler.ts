@@ -32,14 +32,14 @@ export class BundlerClient implements IBundlerClient {
   }
 
   async getNonce(
-    chainId: number,
     sender: Address,
     owner: Address,
     singleton: Address,
     key?: bigint,
   ): Promise<bigint> {
+    const chainBizId= await getChainId(this.provider);
     const data = JSON.stringify({
-      chainBizId: chainId,
+      chainBizId: chainBizId,
       entryPoint: ENTRYPOINT_ADDRESS_V07,
       sender: sender,
       owner: owner,
@@ -47,14 +47,13 @@ export class BundlerClient implements IBundlerClient {
       key: key ?? 0,
     });
     const getNonceRes = await callClient(
-      `${this.bundlerUrl}/priapi/v5/wallet/smart-account/ac/${String(chainId)}/getNonce`,
+      `${this.bundlerUrl}/priapi/v5/wallet/smart-account/ac/${String(chainBizId)}/getNonce`,
       data,
     );
     const { result, error } = getNonceRes.data;
     if (error) {
       throw new BundlerError("GET_NONCE_ERROR", error.message);
     }
-    console.log(toHex(BigInt(result)));
     return BigInt(result);
   }
 
@@ -81,7 +80,7 @@ export class BundlerClient implements IBundlerClient {
     );
     const { result, error } = getInitCodeRes.data;
     if (error) {
-      throw new BundlerError("GAS_ESTIMATION_ERROR", error.message);
+      throw new BundlerError("GET_INIT_CODE_ERROR", error.message);
     }
     return result;
   }
@@ -162,7 +161,7 @@ export class BundlerClient implements IBundlerClient {
     );
     const { result, error } = sendUserOperationRes.data;
     if (error) {
-      throw new BundlerError("SEND_USER_OPERATION_ERROR", error.message);
+      throw new BundlerError("SIMULATE_USER_OPERATION_ERROR", error.message);
     }
     return result;
   }

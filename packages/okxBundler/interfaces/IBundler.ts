@@ -21,7 +21,6 @@ export interface IBundlerClient {
   // getSingleton(sender:Address): Promise<Address>;
   // getSenderAddress(chainId: number, factory: Address, salt: number, safeSingleton: Address, initializer: Address, validatorTemplate: Address, createExtensionCreator?: Hex): Promise<Address>;
   getNonce(
-    chainId: number,
     sender: Address,
     owner: Address,
     singleton: Address,
