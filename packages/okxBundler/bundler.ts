@@ -37,7 +37,7 @@ export class BundlerClient implements IBundlerClient {
     singleton: Address,
     key?: bigint,
   ): Promise<bigint> {
-    const chainBizId= await getChainId(this.provider);
+    const chainBizId = await getChainId(this.provider);
     const data = JSON.stringify({
       chainBizId: chainBizId,
       entryPoint: ENTRYPOINT_ADDRESS_V07,

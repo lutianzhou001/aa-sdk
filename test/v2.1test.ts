@@ -6,13 +6,14 @@ import {
   http,
   publicActions,
   PublicClient,
+  RpcTransactionRequest,
+  toHex,
   WalletClient,
   zeroAddress,
 } from "viem";
-import { arbitrum, polygon } from "viem/chains";
+import { polygon } from "viem/chains";
 import { walletClientAASigner } from "../packages/plugins/signers/walletClientAASigner";
 import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartContractAccount";
-import { SigType } from "../packages/okxSmartAccount/types";
 
 async function smokeTest() {
   const publicClient: PublicClient = createPublicClient({
@@ -35,7 +36,7 @@ async function smokeTest() {
     signer: new walletClientAASigner(walletClient),
     name: "SmartAccount",
     version: "3.0.2",
-    index: 1n,
+    index: 4n,
 
     bundlerClientConfig: {
       bundlerUrl: "https://beta.okex.org",
@@ -45,24 +46,17 @@ async function smokeTest() {
     },
   });
 
-  const signedUop = await okxSmartContractAccount.buildUserOp({
-    args: "0x",
-    sigType: SigType.EIP191,
-    sigTime: 1807465398n,
-    packTxMiddlewareOverrider: {
-      feeDataOverride: {
-        maxFeePerGas: 50000000000n,
-        maxPriorityFeePerGas: 50000000000n,
-      },
-    },
-    // paymasterRawData: {
-    //   paymasterAddress: "0x505BBF2e6F7FC45c2D42C54a2578e541bab676A7",
-    //   paymasterMode: PaymasterMode.FREE_GAS_MODE,
-    // },
+  const v = await okxSmartContractAccount.sendTransaction({
+    to: zeroAddress,
+    data: "0x",
+    value: toHex(1),
+    from: await okxSmartContractAccount.getAddress(),
   });
 
-  const res = await okxSmartContractAccount.sendUserOp(signedUop);
-  console.log(res);
+  console.log(v);
+
+  // const res = await okxSmartContractAccount.sendUserOp(signedUop);
+  // console.log(res);
 
   // const smartAccountClient = new OKXSmartAccountClient(smartAccount);
   //
@@ -95,4 +89,7 @@ async function smokeTest() {
   // }
 }
 
+export function consoleTransaction(t: RpcTransactionRequest) {
+  console.log(t);
+}
 smokeTest();

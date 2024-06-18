@@ -1,6 +1,9 @@
-import {BaseSmartContractAccount, DeploymentState,} from "./BaseSmartContractAccount";
-import {IPaymasterClient} from "../okxPaymaster/interfaces/IPaymaster";
-import {IBundlerClient} from "../okxBundler/interfaces/IBundler";
+import {
+  BaseSmartContractAccount,
+  DeploymentState,
+} from "./BaseSmartContractAccount";
+import { IPaymasterClient } from "../okxPaymaster/interfaces/IPaymaster";
+import { IBundlerClient } from "../okxBundler/interfaces/IBundler";
 import {
   BuildUserOpParams,
   ExecuteCallDataArgs,
@@ -12,8 +15,8 @@ import {
   UopAndPaymasterOverrides,
   UserOperationOverrides,
 } from "./types";
-import {BundlerClient} from "../okxBundler/bundler";
-import {PaymasterClient} from "../okxPaymaster/paymaster";
+import { BundlerClient } from "../okxBundler/bundler";
+import { PaymasterClient } from "../okxPaymaster/paymaster";
 import {
   Address,
   createPublicClient,
@@ -33,18 +36,28 @@ import {
   zeroAddress,
   zeroHash,
 } from "viem";
-import {bigIntMax, cleanup, compileMode, getSigTime, predictDeterministicAddress,} from "../common/utils";
-import {smartAccountV3ABI} from "../../abis/smartAccountV3.abi";
-import {authenticationManagerABI} from "../../abis/authenticationManager.abi";
-import {ENTRYPOINT_ADDRESS_V07, getPackedUserOperation} from "permissionless";
-import {initializeAccountABI} from "../../abis/initializeAccount.abi";
-import {accountFactoryV3ABI} from "../../abis/accountFactoryV3.abi";
-import {UserOperation} from "permissionless/types/userOperation";
-import {getChainId} from "viem/actions";
-import {AUTHENTICATION_MANAGER_TEMPLATE, DEFAULT_SMART_ACCOUNT_TEMPLATE, FACTORY_ADDRESS,} from "../common/constants";
-import {Chain, mainnet} from "viem/chains";
-import {randomBytes} from "node:crypto";
-import {BaseError} from "../common/error";
+import {
+  bigIntMax,
+  cleanup,
+  compileMode,
+  getSigTime,
+  predictDeterministicAddress,
+} from "../common/utils";
+import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
+import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
+import { ENTRYPOINT_ADDRESS_V07, getPackedUserOperation } from "permissionless";
+import { initializeAccountABI } from "../../abis/initializeAccount.abi";
+import { accountFactoryV3ABI } from "../../abis/accountFactoryV3.abi";
+import { UserOperation } from "permissionless/types/userOperation";
+import { getChainId } from "viem/actions";
+import {
+  AUTHENTICATION_MANAGER_TEMPLATE,
+  DEFAULT_SMART_ACCOUNT_TEMPLATE,
+  FACTORY_ADDRESS,
+} from "../common/constants";
+import { Chain, mainnet } from "viem/chains";
+import { randomBytes } from "node:crypto";
+import { BaseError } from "../common/error";
 
 export class OKXSmartContractAccount extends BaseSmartContractAccount {
   name: string;
@@ -509,8 +522,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     if (!this.accountAddress) {
       throw new BaseError("BUILD_USER_OP_ERROR", "ACCOUNT_ADDRESS_NOT_FOUND");
     }
-    const factoryAndFactoryData =
-      await this.parseFactoryAddressAndData();
+    const factoryAndFactoryData = await this.parseFactoryAddressAndData();
     const userOp: UserOperation<"v0.7"> = {
       factory:
         this.deploymentState === DeploymentState.DEPLOYED

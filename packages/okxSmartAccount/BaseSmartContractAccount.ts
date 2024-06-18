@@ -239,9 +239,7 @@ export abstract class BaseSmartContractAccount<
    * followed by calldata to pass to this address.
    * The factory address is the first 40 char after the 0x, and the callData is the rest.
    */
-  protected async parseFactoryAddressAndData(): Promise<
-    [Address, Hex]
-  > {
+  protected async parseFactoryAddressAndData(): Promise<[Address, Hex]> {
     const initCode = await this._getAccountInitCode();
     const factoryAddress = `0x${initCode.substring(2, 42)}` as Address;
     const factoryCalldata = `0x${initCode.substring(42)}` as Hex;
