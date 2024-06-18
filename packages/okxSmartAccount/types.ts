@@ -1,12 +1,9 @@
 import type { Address } from "abitype";
-import type { Chain, Hash, Hex, PublicClient, Transport } from "viem";
+import type { Hex, PublicClient } from "viem";
 import { OKXAASigner } from "../plugins/types";
 import { UserOperation } from "permissionless/types/userOperation";
-import { PackedUserOperation } from "permissionless/types";
-import { PaymasterClient } from "../okxPaymaster/paymaster";
 import { IPaymasterClient } from "../okxPaymaster/interfaces/IPaymaster";
 import { IBundlerClient } from "../okxBundler/interfaces/IBundler";
-import { DeploymentState } from "./BaseSmartContractAccount";
 
 export enum SigType {
   EIP712 = "EIP712",
@@ -18,47 +15,26 @@ export enum PaymasterMode {
   TOKEN_MODE = "0x01",
 }
 
-export type ExecutionMode = {
+export type ExecutionModeOverrides = Partial<{
   try?: boolean;
   allowFailedExecution?: boolean;
   modeParams?: string;
-};
+}>;
 
-export type GasEstimationOverride = {
-  callGasLimit?: bigint;
-  preVerificationGas?: bigint;
-  verificationGasLimit?: bigint;
-  paymasterVerificationGasLimit?: bigint;
-  postVerificationGasLimit?: bigint;
-};
-
-export type FeeDataOverride = {
-  maxFeePerGas?: bigint;
-  maxPriorityFeePerGas?: bigint;
-};
-
-export type PackTxMiddlewareOverride = {
-  gasEstimationOverride?: GasEstimationOverride;
-  feeDataOverride?: FeeDataOverride;
-  sigTimeOverride?: bigint;
-};
-
-interface BaseExecuteCallData {
+export type BaseExecuteCallData = {
   to: Address;
   value: bigint;
   data: Hex;
-}
+};
 
-interface ExecuteCallDataWithAllowFailed extends BaseExecuteCallData {
+export type ExecuteCallDataWithAllowFailed = BaseExecuteCallData & {
   allowFailed?: boolean;
-}
-
-export type DeployCallData = "0x";
+};
 
 export type ExecuteCallDataArgs =
   | ExecuteCallDataWithAllowFailed
   | ExecuteCallDataWithAllowFailed[]
-  | DeployCallData;
+  | Hex;
 
 export type SupportedPayMaster = {
   entryPoint: string;
@@ -66,23 +42,6 @@ export type SupportedPayMaster = {
   status: number;
   tokens: Address[];
   type: number;
-};
-
-export type PaymasterRawData = {
-  paymasterMode: PaymasterMode;
-  paymasterAddress: Address;
-  paymasterToken?: Address;
-};
-
-export type OKXSmartAccount<TSigner extends OKXAASigner = OKXAASigner> = {
-  signer: TSigner;
-  accountAddress: Address;
-  nonceKey: Hex;
-  isDeployed: boolean;
-  authenticationManagerAddress: Address;
-  initCode: Hex;
-  version: string;
-  name: string;
 };
 
 export type BaseSmartContractAccountConstructParams<
@@ -110,6 +69,7 @@ export type OKXSmartContractAccountConstructorParams<
   version: string;
 
   authenticationManagerTemplate: Address;
+  smartAccountTemplate: Address;
 };
 
 export type OKXSmartContractAccountCreationParams<
@@ -153,11 +113,30 @@ export type PaymasterClientConfig = RequireAtLeastOne<
   "paymasterClient" | "paymasterUrl"
 >;
 
+export type UserOperationOverrides = Partial<{
+  callGasLimit: UserOperation<"v0.7">["callGasLimit"];
+  maxFeePerGas: UserOperation<"v0.7">["maxFeePerGas"];
+  maxPriorityFeePerGas: UserOperation<"v0.7">["maxPriorityFeePerGas"];
+
+  preVerificationGas: UserOperation<"v0.7">["preVerificationGas"];
+  verificationGasLimit: UserOperation<"v0.7">["verificationGasLimit"];
+}>;
+
+export type PaymasterOverrides = Partial<{
+  paymasterMode: PaymasterMode;
+  paymasterAddress: Address;
+  paymasterToken?: Address;
+  paymasterVerificationGasLimit?: bigint;
+  paymasterPostOpGasLimit?: bigint;
+}>;
+
+export type UopAndPaymasterOverrides = UserOperationOverrides &
+  PaymasterOverrides;
+
 export type BuildUserOpParams = {
   args: ExecuteCallDataArgs;
-  execMode?: ExecutionMode;
+  execModeOverrides?: ExecutionModeOverrides;
+  uopAndPaymasterOverrides: UopAndPaymasterOverrides;
   sigType?: SigType;
   sigTime?: bigint;
-  paymasterRawData?: PaymasterRawData;
-  packTxMiddlewareOverrider?: PackTxMiddlewareOverride;
 };

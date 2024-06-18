@@ -14,7 +14,7 @@ import { OKXAASigner } from "../plugins/types";
 import {
   BaseSmartContractAccountConstructParams,
   ExecuteCallDataArgs,
-  ExecutionMode,
+  ExecutionModeOverrides,
   SigType,
 } from "./types";
 import { UserOperation } from "permissionless/types/userOperation";
@@ -82,7 +82,7 @@ export abstract class BaseSmartContractAccount<
    */
   abstract encodeExecute(
     args: ExecuteCallDataArgs,
-    execMode?: ExecutionMode,
+    execMode?: ExecutionModeOverrides,
   ): Promise<Hex>;
 
   /**
@@ -150,9 +150,6 @@ export abstract class BaseSmartContractAccount<
 
   // Extra implementations
   async getNonce(nonceKey: bigint): Promise<bigint> {
-    if (!(await this.isAccountDeployed())) {
-      return nonceKey;
-    }
     const address = await this.getAddress();
     // @ts-ignore
     return await this.entryPoint.read.getNonce([address, nonceKey]);
@@ -242,7 +239,7 @@ export abstract class BaseSmartContractAccount<
    * followed by calldata to pass to this address.
    * The factory address is the first 40 char after the 0x, and the callData is the rest.
    */
-  protected async parseFactoryAddressFromAccountInitCode(): Promise<
+  protected async parseFactoryAddressAndData(): Promise<
     [Address, Hex]
   > {
     const initCode = await this._getAccountInitCode();
@@ -257,7 +254,7 @@ export abstract class BaseSmartContractAccount<
    * followed by calldata to pass to this address.
    * The factory address is the first 40 char after the 0x, and the callData is the rest.
    */
-  protected async parsePaymasterAddressFromPaymasterAndData(
+  protected async parsePaymasterAddressAndData(
     uop: UserOperation<"v0.7">,
   ): Promise<[Address, Hex]> {
     const initCode = await this._getPaymasterAndData(uop);

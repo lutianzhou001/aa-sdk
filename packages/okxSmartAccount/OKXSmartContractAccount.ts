@@ -1,58 +1,50 @@
-import {
-  BaseSmartContractAccount,
-  DeploymentState,
-} from "./BaseSmartContractAccount";
-import { IPaymasterClient } from "../okxPaymaster/interfaces/IPaymaster";
-import { IBundlerClient } from "../okxBundler/interfaces/IBundler";
+import {BaseSmartContractAccount, DeploymentState,} from "./BaseSmartContractAccount";
+import {IPaymasterClient} from "../okxPaymaster/interfaces/IPaymaster";
+import {IBundlerClient} from "../okxBundler/interfaces/IBundler";
 import {
   BuildUserOpParams,
   ExecuteCallDataArgs,
-  ExecutionMode,
+  ExecutionModeOverrides,
   OKXSmartContractAccountConstructorParams,
   OKXSmartContractAccountCreationParams,
-  PackTxMiddlewareOverride,
   PaymasterMode,
   SigType,
+  UopAndPaymasterOverrides,
+  UserOperationOverrides,
 } from "./types";
-import { BundlerClient } from "../okxBundler/bundler";
-import { PaymasterClient } from "../okxPaymaster/paymaster";
+import {BundlerClient} from "../okxBundler/bundler";
+import {PaymasterClient} from "../okxPaymaster/paymaster";
 import {
   Address,
   createPublicClient,
   encodeAbiParameters,
   encodeFunctionData,
   encodePacked,
+  fromHex,
   Hash,
   Hex,
   hexToBigInt,
   http,
+  isHex,
   keccak256,
   padHex,
+  RpcTransactionRequest,
   toHex,
   zeroAddress,
   zeroHash,
 } from "viem";
-import {
-  cleanup,
-  compileMode,
-  getSigTime,
-  predictDeterministicAddress,
-} from "../common/utils";
-import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
-import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
-import { ENTRYPOINT_ADDRESS_V07, getPackedUserOperation } from "permissionless";
-import { initializeAccountABI } from "../../abis/initializeAccount.abi";
-import { accountFactoryV3ABI } from "../../abis/accountFactoryV3.abi";
-import { UserOperation } from "permissionless/types/userOperation";
-import { getChainId } from "viem/actions";
-import {
-  AUTHENTICATION_MANAGER_TEMPLATE,
-  DEFAULT_SMART_ACCOUNT_TEMPLATE,
-  FACTORY_ADDRESS,
-} from "../common/constants";
-import { Chain, mainnet } from "viem/chains";
-import { randomBytes } from "node:crypto";
-import { BaseError } from "../common/error";
+import {bigIntMax, cleanup, compileMode, getSigTime, predictDeterministicAddress,} from "../common/utils";
+import {smartAccountV3ABI} from "../../abis/smartAccountV3.abi";
+import {authenticationManagerABI} from "../../abis/authenticationManager.abi";
+import {ENTRYPOINT_ADDRESS_V07, getPackedUserOperation} from "permissionless";
+import {initializeAccountABI} from "../../abis/initializeAccount.abi";
+import {accountFactoryV3ABI} from "../../abis/accountFactoryV3.abi";
+import {UserOperation} from "permissionless/types/userOperation";
+import {getChainId} from "viem/actions";
+import {AUTHENTICATION_MANAGER_TEMPLATE, DEFAULT_SMART_ACCOUNT_TEMPLATE, FACTORY_ADDRESS,} from "../common/constants";
+import {Chain, mainnet} from "viem/chains";
+import {randomBytes} from "node:crypto";
+import {BaseError} from "../common/error";
 
 export class OKXSmartContractAccount extends BaseSmartContractAccount {
   name: string;
@@ -62,6 +54,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
   paymasterClient?: IPaymasterClient;
   authenticationManagerAddress: Address;
   authenticationManagerTemplateAddress: Address;
+  smartAccountTemplate: Address;
   validatorAddress: Address;
 
   constructor(params: OKXSmartContractAccountConstructorParams) {
@@ -74,6 +67,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
 
     this.authenticationManagerTemplateAddress =
       params.authenticationManagerTemplate;
+    this.smartAccountTemplate = params.smartAccountTemplate;
 
     this.name = params.name;
     this.version = params.version;
@@ -137,6 +131,10 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       params.authenticationManagerTemplate ??
       (AUTHENTICATION_MANAGER_TEMPLATE as Address);
 
+    const smartAccountTemplate =
+      params.smartAccountTemplate ??
+      (DEFAULT_SMART_ACCOUNT_TEMPLATE as Address);
+
     const authenticationManagerAddress: Address = predictDeterministicAddress(
       authenticationManagerTemplate,
       keccak256(toHex(params.version)) as Hex,
@@ -154,6 +152,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       accountAddress,
       bundlerClient,
       authenticationManagerAddress,
+      smartAccountTemplate,
       validatorAddress,
       initCode: accountInitCode,
       factoryAddress: params.factoryAddress ?? FACTORY_ADDRESS,
@@ -181,13 +180,13 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
 
   override async encodeExecute(
     args: ExecuteCallDataArgs,
-    execMode?: ExecutionMode,
+    executionModeOverrides?: ExecutionModeOverrides,
   ): Promise<Hex> {
     // execute call
     let callDataToEntryPoint: Hex;
     const mode = compileMode(
       Array.isArray(args),
-      execMode ?? { allowFailedExecution: false, try: false },
+      executionModeOverrides ?? { allowFailedExecution: false, try: false },
     );
     if (Array.isArray(args)) {
       const calldata = encodeAbiParameters(
@@ -209,8 +208,8 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         functionName: "execute",
         args: [mode, calldata],
       });
-    } else if (args == "0x") {
-      callDataToEntryPoint = "0x";
+    } else if (isHex(args)) {
+      callDataToEntryPoint = args;
     } else {
       const callData = encodePacked(
         ["address", "uint256", "bytes"],
@@ -228,11 +227,11 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
   /**
    * get the uopHash onchain
    *
-   * @param signType the type of the signature
+   * @param sigType the type of the signature
    * @param userOperation the userOperation
    */
   async getUOPHash(
-    signType: SigType,
+    sigType: SigType,
     userOperation: UserOperation<"v0.7">,
   ): Promise<Hex> {
     const deploymentState: DeploymentState = await this.getDeploymentState();
@@ -244,7 +243,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       abi: authenticationManagerABI,
       functionName: "getUOPHash",
       args: [
-        signType === "EIP712" ? 0 : 1,
+        sigType === SigType.EIP712 ? 0 : 1,
         ENTRYPOINT_ADDRESS_V07,
         getPackedUserOperation(userOperation),
       ],
@@ -254,11 +253,11 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
   /**
    * get the uopSigned hash(not used currently)
    *
-   * @param signType the type of the signature
+   * @param sigType the type of the signature
    * @param userOperation the userOperation
    */
   async getUOPSignedHash(
-    signType: SigType,
+    sigType: SigType,
     userOperation: UserOperation<"v0.7">,
   ): Promise<Hex> {
     const deploymentState: DeploymentState = await this.getDeploymentState();
@@ -270,7 +269,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       abi: authenticationManagerABI,
       functionName: "getUOPSignedHash",
       args: [
-        signType === "EIP712" ? 0 : 1,
+        sigType === SigType.EIP712 ? 0 : 1,
         ENTRYPOINT_ADDRESS_V07,
         userOperation,
       ],
@@ -290,7 +289,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
 
   public async gasEstimation(
     userOperation: UserOperation<"v0.7">,
-    packTxMiddlewareOverride?: PackTxMiddlewareOverride,
+    uopAndPaymasterOverrides?: UopAndPaymasterOverrides,
   ): Promise<UserOperation<"v0.7">> {
     const baseFeePerPrice = await this.rpcProvider.getGasPrice();
     const maxPriorityFeePerGas =
@@ -299,11 +298,8 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     const preEstimation = {
       ...userOperation,
       maxPriorityFeePerGas:
-        packTxMiddlewareOverride?.feeDataOverride?.maxPriorityFeePerGas ??
-        baseFeePerPrice + maxPriorityFeePerGas,
-      maxFeePerGas:
-        packTxMiddlewareOverride?.feeDataOverride?.maxFeePerGas ??
-        baseFeePerPrice,
+        uopAndPaymasterOverrides?.maxPriorityFeePerGas ?? maxPriorityFeePerGas,
+      maxFeePerGas: uopAndPaymasterOverrides?.maxFeePerGas ?? baseFeePerPrice,
       signature: this.getDummySignature(),
     };
 
@@ -331,22 +327,19 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     return {
       ...preEstimation,
       preVerificationGas:
-        packTxMiddlewareOverride?.gasEstimationOverride?.preVerificationGas ??
-        preVerificationGas,
+        uopAndPaymasterOverrides?.preVerificationGas ?? preVerificationGas,
       verificationGasLimit:
-        packTxMiddlewareOverride?.gasEstimationOverride?.verificationGasLimit ??
+        uopAndPaymasterOverrides?.verificationGasLimit ??
         BigInt(result.verificationGasLimit),
       callGasLimit:
-        packTxMiddlewareOverride?.gasEstimationOverride?.callGasLimit ??
-        BigInt(result.callGasLimit),
+        uopAndPaymasterOverrides?.callGasLimit ?? BigInt(result.callGasLimit),
       paymasterVerificationGasLimit: userOperation.paymaster
-        ? packTxMiddlewareOverride?.gasEstimationOverride
-            ?.paymasterVerificationGasLimit ??
+        ? uopAndPaymasterOverrides?.paymasterVerificationGasLimit ??
           BigInt(result.paymasterVerificationGasLimit)
         : undefined,
       paymasterPostOpGasLimit: userOperation.paymaster
-        ? packTxMiddlewareOverride?.gasEstimationOverride
-            ?.postVerificationGasLimit ?? BigInt(result.paymasterPostOpGasLimit)
+        ? uopAndPaymasterOverrides?.paymasterPostOpGasLimit ??
+          BigInt(result.paymasterPostOpGasLimit)
         : undefined,
     };
   }
@@ -425,6 +418,91 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     );
   }
 
+  async buildUserOpFromTxs(
+    requests: RpcTransactionRequest[],
+    overrides?: UopAndPaymasterOverrides,
+  ) {
+    const batch = requests.map((request) => {
+      if (!request.to) {
+        throw new Error(
+          "one transaction in the batch is missing a target address",
+        );
+      }
+
+      return {
+        to: request.to,
+        data: request.data ?? "0x",
+        value: request.value ? fromHex(request.value, "bigint") : 0n,
+      };
+    });
+
+    const maxFeePerGasOverridesInTx = () =>
+      requests
+        .filter((x) => x.maxFeePerGas != null)
+        .map((x) => fromHex(x.maxFeePerGas!, "bigint"));
+    const maxFeePerGas =
+      overrides?.maxFeePerGas != null
+        ? overrides?.maxFeePerGas
+        : maxFeePerGasOverridesInTx().length > 0
+          ? bigIntMax(...maxFeePerGasOverridesInTx())
+          : undefined;
+
+    const maxPriorityFeePerGasOverridesInTx = () =>
+      requests
+        .filter((x) => x.maxPriorityFeePerGas != null)
+        .map((x) => fromHex(x.maxPriorityFeePerGas!, "bigint"));
+    const maxPriorityFeePerGas =
+      overrides?.maxPriorityFeePerGas != null
+        ? overrides?.maxPriorityFeePerGas
+        : maxPriorityFeePerGasOverridesInTx().length > 0
+          ? bigIntMax(...maxPriorityFeePerGasOverridesInTx())
+          : undefined;
+
+    const _overrides: UserOperationOverrides = {
+      ...overrides,
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+    };
+
+    return this.buildUserOp({
+      args: batch,
+      uopAndPaymasterOverrides: cleanup(_overrides),
+    });
+  }
+
+  async buildUserOpFromTx(
+    request: RpcTransactionRequest,
+    overriders?: UopAndPaymasterOverrides,
+  ) {
+    if (!request.to) {
+      throw new BaseError("BUILD_USER_OP_ERROR", "missing to address");
+    }
+    const _overrides: UopAndPaymasterOverrides = {
+      ...overriders,
+      maxFeePerGas:
+        overriders?.maxFeePerGas != null
+          ? overriders?.maxFeePerGas
+          : request.maxFeePerGas
+            ? fromHex(request.maxFeePerGas, "bigint")
+            : undefined,
+      maxPriorityFeePerGas:
+        overriders?.maxPriorityFeePerGas != null
+          ? overriders?.maxPriorityFeePerGas
+          : request.maxPriorityFeePerGas
+            ? fromHex(request.maxPriorityFeePerGas, "bigint")
+            : undefined,
+    };
+    cleanup(_overrides);
+    return this.buildUserOp({
+      args: {
+        to: request.to as Address,
+        value: request.value ? fromHex(request.value, "bigint") : 0n,
+        data: request.data ?? "0x",
+      },
+      uopAndPaymasterOverrides: cleanup(_overrides),
+    });
+  }
+
   async buildUserOp(params: BuildUserOpParams): Promise<UserOperation<"v0.7">> {
     this.checkBuildUserOpParams(params);
     await this.getDeploymentState();
@@ -432,7 +510,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       throw new BaseError("BUILD_USER_OP_ERROR", "ACCOUNT_ADDRESS_NOT_FOUND");
     }
     const factoryAndFactoryData =
-      await this.parseFactoryAddressFromAccountInitCode();
+      await this.parseFactoryAddressAndData();
     const userOp: UserOperation<"v0.7"> = {
       factory:
         this.deploymentState === DeploymentState.DEPLOYED
@@ -443,25 +521,25 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
           ? "0x"
           : factoryAndFactoryData[1],
       sender: this.accountAddress,
-      nonce: await this.getNonce(
-        BigInt(String(this.validatorAddress) + "0000000000000000"),
-      ),
-      callData: await this.encodeExecute(params.args, params.execMode),
+      nonce: await this.getNonce(BigInt(this.validatorAddress)),
+      callData: await this.encodeExecute(params.args, params.execModeOverrides),
       callGasLimit: 0n,
       verificationGasLimit: 0n,
       preVerificationGas: 0n,
       maxFeePerGas: 0n,
       maxPriorityFeePerGas: 0n,
       signature: zeroHash,
-      paymaster: params.paymasterRawData?.paymasterAddress ?? undefined,
-      paymasterVerificationGasLimit: params.paymasterRawData?.paymasterAddress
+      paymaster: params.uopAndPaymasterOverrides?.paymasterAddress ?? undefined,
+      paymasterVerificationGasLimit: params.uopAndPaymasterOverrides
+        ?.paymasterAddress
         ? 0n
         : undefined,
-      paymasterPostOpGasLimit: params.paymasterRawData?.paymasterAddress
+      paymasterPostOpGasLimit: params.uopAndPaymasterOverrides?.paymasterAddress
         ? 0n
         : undefined,
-      paymasterData: params.paymasterRawData?.paymasterAddress
-        ? ((params.paymasterRawData?.paymasterToken
+      // TODO: "0000000000000000" is the bizId, may move the the paymaster url in the next version
+      paymasterData: params.uopAndPaymasterOverrides?.paymasterAddress
+        ? ((params.uopAndPaymasterOverrides?.paymasterToken
             ? "0x01"
             : "0x00" + "0000000000000000") as Hex)
         : undefined,
@@ -469,11 +547,11 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     let uopToSign: UserOperation<"v0.7">;
     const gasEstimationRes = await this.gasEstimation(
       userOp,
-      params.packTxMiddlewareOverrider,
+      params.uopAndPaymasterOverrides,
     );
-    if (params.paymasterRawData?.paymasterAddress) {
+    if (params.uopAndPaymasterOverrides?.paymasterAddress) {
       const paymasterAddressAndData =
-        await this.parsePaymasterAddressFromPaymasterAndData(gasEstimationRes);
+        await this.parsePaymasterAddressAndData(gasEstimationRes);
       uopToSign = {
         ...gasEstimationRes,
         paymaster: paymasterAddressAndData[0],
@@ -498,6 +576,22 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     return await this.bundlerClient.sendUserOperation(cleanedUop);
   }
 
+  async sendTransaction(
+    request: RpcTransactionRequest,
+    overrides?: UopAndPaymasterOverrides,
+  ) {
+    const builtUop = await this.buildUserOpFromTx(request, overrides);
+    return await this.sendUserOp(builtUop);
+  }
+
+  async sendTransactions(
+    requests: RpcTransactionRequest[],
+    overrides?: UopAndPaymasterOverrides,
+  ) {
+    const builtUop = await this.buildUserOpFromTxs(requests, overrides);
+    return await this.sendUserOp(builtUop);
+  }
+
   override getAccountInitCode(): Promise<Hex> {
     if (!this.accountInitCode) {
       throw new BaseError("GET_ACCOUNT_INIT_CODE_ERROR", "NOT_FOUND");
@@ -513,12 +607,13 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
 
   private checkBuildUserOpParams(params: BuildUserOpParams) {
     if (
-      params.paymasterRawData?.paymasterMode == PaymasterMode.TOKEN_MODE &&
-      !params.paymasterRawData?.paymasterToken
+      params.uopAndPaymasterOverrides?.paymasterMode ==
+        PaymasterMode.TOKEN_MODE &&
+      !params.uopAndPaymasterOverrides?.paymasterToken
     ) {
       throw new BaseError("CHECK_PARAMS_ERROR", "Token address is required");
     }
-    if (params.paymasterRawData && !this.paymasterClient) {
+    if (params.uopAndPaymasterOverrides && !this.paymasterClient) {
       throw new BaseError("CHECK_PARAMS_ERROR", "Paymaster client is not set");
     }
   }

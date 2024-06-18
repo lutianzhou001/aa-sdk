@@ -1,50 +1,7 @@
-import {
-  createWalletClient,
-  encodePacked,
-  Hex,
-  http,
-  keccak256,
-  PublicClient,
-  toHex,
-  type WalletClient,
-} from "viem";
-import { type Account, privateKeyToAccount } from "viem/accounts";
-import * as allChains from "viem/chains";
-import { type Chain, goerli } from "viem/chains";
+import { encodePacked, Hex, keccak256, PublicClient, toHex } from "viem";
 import { Address } from "abitype";
-import { BaseError } from "./error";
-import { ExecutionMode } from "../okxSmartAccount/types";
-import { configuration } from "../../configuration";
 import axios from "axios";
-import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
-
-export function getConfiguration(version: string): {
-  entryPointAddress: Address;
-  factoryAddress: Address;
-  name: string;
-} {
-  return {
-    entryPointAddress: ENTRYPOINT_ADDRESS_V07,
-    factoryAddress: process.env.FACTORY_ADDRESS as Address,
-    name: process.env.NAME as string,
-  };
-}
-
-export function compileBigInt(
-  a: bigint,
-  b: bigint,
-): `0x${string & { length: 64 }}` {
-  const res =
-    "0x" +
-    toHex(bigIntToBytes16(a)).slice(2, 34) +
-    toHex(bigIntToBytes16(b)).slice(2, 34);
-  if (res.slice(2).length != 64) {
-    throw new Error(
-      `Resulting string length must be 64, but got ${res.length - 2}`,
-    );
-  }
-  return res as `0x${string & { length: 64 }}`;
-}
+import { ExecutionModeOverrides } from "../okxSmartAccount/types";
 
 export function bigIntToBytes16(bigInt: bigint): Uint8Array {
   const bytes = new Uint8Array(16);
@@ -66,7 +23,7 @@ export function convertToHex(value: object): any {
   return result;
 }
 
-export function compileMode(isBatch: boolean, mode: ExecutionMode) {
+export function compileMode(isBatch: boolean, mode: ExecutionModeOverrides) {
   const callType = isBatch ? "0x01" : "0x00";
   const execType = mode.try ? "01" : "00";
   const modeSelector = mode.allowFailedExecution
@@ -139,3 +96,17 @@ export async function callClient(url: string, data: string) {
   };
   return await axios.request(config);
 }
+
+/**
+ * Returns the max bigint in a list of bigints
+ *
+ * @param args a list of bigints to get the max of
+ * @returns the max bigint in the list
+ */
+export const bigIntMax = (...args: bigint[]): bigint => {
+  if (!args.length) {
+    throw new Error("bigIntMax requires at least one argument");
+  }
+
+  return args.reduce((m, c) => (m > c ? m : c));
+};

@@ -6,7 +6,7 @@ import {
   SignTypedDataParameters,
 } from "viem";
 import { OKXAASigner } from "../../plugins/types";
-import { ExecuteCallDataArgs, ExecutionMode } from "../types";
+import { ExecuteCallDataArgs, ExecutionModeOverrides } from "../types";
 
 export interface ISmartContractAccount<
   TSigner extends OKXAASigner = OKXAASigner,
@@ -35,7 +35,7 @@ export interface ISmartContractAccount<
    */
   encodeExecute(
     args: ExecuteCallDataArgs,
-    execMode?: ExecutionMode,
+    execMode?: ExecutionModeOverrides,
   ): Promise<Hex>;
 
   /**

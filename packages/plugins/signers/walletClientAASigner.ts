@@ -4,14 +4,10 @@ import {
   type Hex,
   isHex,
   SignTypedDataParameters,
-  toHex,
   type WalletClient,
 } from "viem";
 import type { OKXAASigner } from "../types";
-import {
-  DEFAULT_SMART_ACCOUNT_TEMPLATE,
-  ECDSA_VALIDATOR_TEMPLATE,
-} from "../../common/constants";
+import { ECDSA_VALIDATOR_TEMPLATE } from "../../common/constants";
 
 export class walletClientAASigner<Inner> implements OKXAASigner<Inner> {
   signerType: string;
