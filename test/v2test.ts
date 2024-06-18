@@ -12,7 +12,7 @@ import { OKXSmartAccountClient } from "../packages/okxSmartAccount/okxSmartAccou
 import { walletClientToOKXAASigner } from "../packages/plugins/signers/walletClientAASigner";
 import { paymasterActions } from "../packages/okxSmartAccount/usePaymaster";
 import { createOKXSmartAccount } from "../packages/okxSmartAccount/createOKXSmartAccount";
-import { SigType } from "../packages/okxSmartAccount/utils/types";
+import { SigType } from "../packages/okxSmartAccount/types";
 
 async function smokeTest() {
   const walletClient: WalletClient = createWalletClient({

@@ -13,7 +13,7 @@ import * as allChains from "viem/chains";
 import { type Chain, goerli } from "viem/chains";
 import { Address } from "abitype";
 import { BaseError } from "./error";
-import { ExecutionMode } from "../okxSmartAccount/utils/types";
+import { ExecutionMode } from "../okxSmartAccount/types";
 import { configuration } from "../../configuration";
 import axios from "axios";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";

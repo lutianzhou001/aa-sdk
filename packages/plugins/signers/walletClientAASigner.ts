@@ -11,7 +11,7 @@ import type { OKXAASigner } from "../types";
 import {
   DEFAULT_SMART_ACCOUNT_TEMPLATE,
   ECDSA_VALIDATOR_TEMPLATE,
-} from "../../okxSmartAccount/utils/constants";
+} from "../../common/constants";
 
 export class walletClientAASigner<Inner> implements OKXAASigner<Inner> {
   signerType: string;

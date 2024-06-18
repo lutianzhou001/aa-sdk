@@ -12,7 +12,7 @@ import {
 import { arbitrum, polygon } from "viem/chains";
 import { walletClientAASigner } from "../packages/plugins/signers/walletClientAASigner";
 import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartContractAccount";
-import { SigType } from "../packages/okxSmartAccount/utils/types";
+import { SigType } from "../packages/okxSmartAccount/types";
 
 async function smokeTest() {
   const publicClient: PublicClient = createPublicClient({

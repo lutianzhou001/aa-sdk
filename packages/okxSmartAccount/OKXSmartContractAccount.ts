@@ -13,7 +13,7 @@ import {
   PackTxMiddlewareOverride,
   PaymasterMode,
   SigType,
-} from "./utils/types";
+} from "./types";
 import { BundlerClient } from "../okxBundler/bundler";
 import { PaymasterClient } from "../okxPaymaster/paymaster";
 import {
@@ -49,7 +49,7 @@ import {
   AUTHENTICATION_MANAGER_TEMPLATE,
   DEFAULT_SMART_ACCOUNT_TEMPLATE,
   FACTORY_ADDRESS,
-} from "./utils/constants";
+} from "../common/constants";
 import { Chain, mainnet } from "viem/chains";
 import { randomBytes } from "node:crypto";
 import { BaseError } from "../common/error";

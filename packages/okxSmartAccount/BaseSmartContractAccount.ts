@@ -16,7 +16,7 @@ import {
   ExecuteCallDataArgs,
   ExecutionMode,
   SigType,
-} from "./utils/types";
+} from "./types";
 import { UserOperation } from "permissionless/types/userOperation";
 
 export enum DeploymentState {

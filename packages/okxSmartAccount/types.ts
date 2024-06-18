@@ -1,12 +1,12 @@
 import type { Address } from "abitype";
 import type { Chain, Hash, Hex, PublicClient, Transport } from "viem";
-import { OKXAASigner } from "../../plugins/types";
+import { OKXAASigner } from "../plugins/types";
 import { UserOperation } from "permissionless/types/userOperation";
 import { PackedUserOperation } from "permissionless/types";
-import { PaymasterClient } from "../../okxPaymaster/paymaster";
-import { IPaymasterClient } from "../../okxPaymaster/interfaces/IPaymaster";
-import { IBundlerClient } from "../../okxBundler/interfaces/IBundler";
-import { DeploymentState } from "../BaseSmartContractAccount";
+import { PaymasterClient } from "../okxPaymaster/paymaster";
+import { IPaymasterClient } from "../okxPaymaster/interfaces/IPaymaster";
+import { IBundlerClient } from "../okxBundler/interfaces/IBundler";
+import { DeploymentState } from "./BaseSmartContractAccount";
 
 export enum SigType {
   EIP712 = "EIP712",

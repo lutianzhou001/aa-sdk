@@ -6,7 +6,7 @@ import {
   SignTypedDataParameters,
 } from "viem";
 import { OKXAASigner } from "../../plugins/types";
-import { ExecuteCallDataArgs, ExecutionMode } from "../utils/types";
+import { ExecuteCallDataArgs, ExecutionMode } from "../types";
 
 export interface ISmartContractAccount<
   TSigner extends OKXAASigner = OKXAASigner,
