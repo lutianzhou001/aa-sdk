@@ -24,7 +24,7 @@ export class PaymasterClient implements IPaymasterClient {
   }
 
   public getPaymasterUrl(): string {
-    return `${this.paymasterUrl}`;
+    return this.paymasterUrl;
   }
 
   /**
