@@ -53,7 +53,7 @@ async function smokeTest() {
   });
 
   console.log("hash is", hash);
-  await delay(1000000);
+  await delay(100000);
 
   const res =
     await okxSmartContractAccount.bundlerClient.getUserOperationReceipt(hash);
