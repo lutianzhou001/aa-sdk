@@ -7,7 +7,3 @@ export class BaseError extends Error {
     this.error = error;
   }
 }
-
-export class BundlerError extends BaseError {}
-export class PaymasterError extends BaseError {}
-export class LocalError extends BaseError {}

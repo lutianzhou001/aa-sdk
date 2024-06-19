@@ -20,7 +20,7 @@ import { IBundlerClient } from "./interfaces/IBundler";
  * Checkout the proposal for more details on Bundlers.
  */
 export class BundlerClient implements IBundlerClient {
-  private provider: PublicClient;
+  private readonly provider: PublicClient;
   private readonly bundlerUrl: string;
 
   constructor(bundlerUrl: string, chain: Chain) {
@@ -92,11 +92,13 @@ export class BundlerClient implements IBundlerClient {
   /**
    * @description This function will fetch gasPrices from bundler
    * @returns Promise<UserOpGasPricesResponse>
-   * @param userOp
+   * @param userOperation
    */
-  async estimateUserOperationGas(userOp: UserOperation<"v0.7">): Promise<any> {
+  async estimateUserOperationGas(
+    userOperation: UserOperation<"v0.7">,
+  ): Promise<any> {
     const chainId = await getChainId(this.provider);
-    const payload = [convertToHex(userOp), ENTRYPOINT_ADDRESS_V07];
+    const payload = [convertToHex(userOperation), ENTRYPOINT_ADDRESS_V07];
     const data = JSON.stringify({
       id: 1,
       jsonrpc: "2.0",
@@ -116,13 +118,13 @@ export class BundlerClient implements IBundlerClient {
 
   /**
    *
-   * @param userOp
-   * @description This function will send signed userOp to bundler to get mined on chain
+   * @param userOperation
+   * @description This function will send signed userOperation to bundler to get mined on chain
    * @returns Promise<UserOpResponse>
    */
-  async sendUserOperation(userOp: UserOperation<"v0.7">): Promise<any> {
+  async sendUserOperation(userOperation: UserOperation<"v0.7">): Promise<any> {
     const chainId = await getChainId(this.provider);
-    const payload = [convertToHex(userOp), ENTRYPOINT_ADDRESS_V07];
+    const payload = [convertToHex(userOperation), ENTRYPOINT_ADDRESS_V07];
     const data = JSON.stringify({
       id: 1,
       jsonrpc: "2.0",
@@ -142,13 +144,15 @@ export class BundlerClient implements IBundlerClient {
 
   /**
    *
-   * @param userOp
+   * @param userOperation
    * @description This function will simulate a transaction using uop given.
    * @returns Promise<UserOpResponse>
    */
-  async simulateUserOperation(userOp: UserOperation<"v0.7">): Promise<any> {
+  async simulateUserOperation(
+    userOperation: UserOperation<"v0.7">,
+  ): Promise<any> {
     const chainId = await getChainId(this.provider);
-    const payload = [convertToHex(userOp), ENTRYPOINT_ADDRESS_V07];
+    const payload = [convertToHex(userOperation), ENTRYPOINT_ADDRESS_V07];
     const data = JSON.stringify({
       id: 1,
       jsonrpc: "2.0",

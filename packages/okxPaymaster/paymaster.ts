@@ -29,6 +29,7 @@ export class PaymasterClient implements IPaymasterClient {
 
   /**
    * @description This function will fetch the supported paymasters
+   * TODO: not impl by backend team
    */
   async getSupportedPaymasters(): Promise<any> {
     const chainId = await getChainId(this.provider);
@@ -36,16 +37,15 @@ export class PaymasterClient implements IPaymasterClient {
       entryPoint: ENTRYPOINT_ADDRESS_V07,
       chainBizId: chainId,
     });
-    const getSupportedPaymasters = await callClient(
+    return await callClient(
       `${this.paymasterUrl}/priapi/v5/wallet/smart-account/pm/${String(chainId)}/getSupportedPaymasters`,
       payload,
     );
-    return null;
   }
 
   /**
    * @description This function will fetch the paymasterAndData
-   * @param userOp the userOperation
+   * @param uop the userOperation
    */
   async getPaymasterData(uop: UserOperation<"v0.7">): Promise<any> {
     const chainId = await getChainId(this.provider);

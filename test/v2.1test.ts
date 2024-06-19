@@ -6,7 +6,6 @@ import {
   http,
   publicActions,
   PublicClient,
-  RpcTransactionRequest,
   toHex,
   WalletClient,
   zeroAddress,
@@ -46,50 +45,23 @@ async function smokeTest() {
     },
   });
 
-  const v = await okxSmartContractAccount.sendTransaction({
+  const hash = await okxSmartContractAccount.sendTransaction({
     to: zeroAddress,
     data: "0x",
     value: toHex(1),
     from: await okxSmartContractAccount.getAddress(),
   });
 
-  console.log(v);
+  console.log("hash is", hash);
+  await delay(1000000);
 
-  // const res = await okxSmartContractAccount.sendUserOp(signedUop);
-  // console.log(res);
-
-  // const smartAccountClient = new OKXSmartAccountClient(smartAccount);
-  //
-  // try {
-  //     const encoded = await smartAccountClient
-  //         .encodeExecute([
-  //             {
-  //                 to: zeroAddress,
-  //                 value: BigInt(1),
-  //                 data: "0x",
-  //             },
-  //             { to: zeroAddress, value: BigInt(2), data: "0x" },
-  //         ])
-  //         .extend(paymasterActions)
-  //         .usePaymaster({
-  //             paymasterAddress: "0x505BBF2e6F7FC45c2D42C54a2578e541bab676A7",
-  //             mode: 0,
-  //             bizId: 9007199254740991,
-  //         })
-  //         .proposeTx(SigType.EIP712);
-  //
-  //     const signed = await encoded.signAndPack();
-  //     const hash = await signed.send();
-  //     console.log(hash);
-  //     // wait for some time
-  //     const receipt =
-  //         await smartAccountClient.bundlerClient.getUserOperationReceipt(hash);
-  // } catch (error) {
-  //     console.error("An error occurred:", error);
-  // }
+  const res =
+    await okxSmartContractAccount.bundlerClient.getUserOperationReceipt(hash);
+  console.log(res);
 }
 
-export function consoleTransaction(t: RpcTransactionRequest) {
-  console.log(t);
-}
 smokeTest();
+
+export function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

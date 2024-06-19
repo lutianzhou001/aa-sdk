@@ -70,12 +70,18 @@ export type OKXSmartContractAccountConstructorParams<
 
   authenticationManagerTemplate: Address;
   smartAccountTemplate: Address;
+
+  // for layer2(s), need to get mainnet gasFee to make gas estimation
+  mainnetRpcProvider?: PublicClient;
 };
 
 export type OKXSmartContractAccountCreationParams<
   TSigner extends OKXAASigner = OKXAASigner,
 > = {
   rpcProvider: PublicClient;
+  // for layer2(s)
+  mainnetRpcProvider?: PublicClient;
+
   signer: TSigner;
   name: string;
   version: string;
@@ -136,7 +142,7 @@ export type UopAndPaymasterOverrides = UserOperationOverrides &
 export type BuildUserOpParams = {
   args: ExecuteCallDataArgs;
   execModeOverrides?: ExecutionModeOverrides;
-  uopAndPaymasterOverrides: UopAndPaymasterOverrides;
+  uopAndPaymasterOverrides?: UopAndPaymasterOverrides;
   sigType?: SigType;
   sigTime?: bigint;
 };
