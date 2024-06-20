@@ -28,8 +28,7 @@ export class walletClientAASigner<Inner> implements OKXAASigner<Inner> {
 
   async signMessage(message: Uint8Array | string | Hex): Promise<Hex> {
     const account =
-      this.walletClient.account ??
-      getAddress((await this.walletClient.getAddresses())[0]);
+      this.walletClient.account ?? await this.getSubject();
     if (typeof message === "string" && !isHex(message)) {
       return this.walletClient.signMessage({
         account,

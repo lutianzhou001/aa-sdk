@@ -23,7 +23,6 @@ import {
   encodeFunctionData,
   encodePacked,
   fromHex,
-  Hash,
   Hex,
   hexToBigInt,
   isHex,
@@ -54,7 +53,7 @@ import {
   DEFAULT_SMART_ACCOUNT_TEMPLATE,
   FACTORY_ADDRESS,
 } from "../common/constants";
-import { Chain, mainnet } from "viem/chains";
+import { Chain } from "viem/chains";
 import { randomBytes } from "node:crypto";
 import { BaseError } from "../common/error";
 

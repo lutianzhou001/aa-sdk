@@ -28,19 +28,10 @@ export class PaymasterClient implements IPaymasterClient {
   }
 
   /**
-   * @description This function will fetch the supported paymasters
-   * TODO: not impl by backend team
+   * @description This function will fetch the supported paymasters: Not impl yet.
    */
   async getSupportedPaymasters(): Promise<any> {
-    const chainId = await getChainId(this.provider);
-    const payload = JSON.stringify({
-      entryPoint: ENTRYPOINT_ADDRESS_V07,
-      chainBizId: chainId,
-    });
-    return await callClient(
-      `${this.paymasterUrl}/priapi/v5/wallet/smart-account/pm/${String(chainId)}/getSupportedPaymasters`,
-      payload,
-    );
+    throw new PaymasterError("GET_SUPPORTED_PAYMASTERS_ERROR", "Not implemented yet.")
   }
 
   /**

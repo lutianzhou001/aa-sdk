@@ -5,7 +5,6 @@ import {
   Hex,
   http,
   PublicClient,
-  toHex,
 } from "viem";
 import { UserOperation } from "permissionless/types/userOperation";
 import { callClient, convertToHex } from "../common/utils";
