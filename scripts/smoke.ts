@@ -16,12 +16,14 @@ import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartCon
 import {delay} from "../test/utils";
 
 async function smoke() {
+  // this is a public client, it is necessary to have a public client to interact with the blockchain
   const publicClient: PublicClient = createPublicClient({
     chain: polygon,
     transport: http(),
     // "https://arb-mainnet.g.alchemy.com/v2/47SxM1HQgXWeKVL9rYVS6A4LZ8B_Ktk0",
   });
 
+  // this is a signer, in this case, I use walletClient to act as a signer
   const walletClient: WalletClient = createWalletClient({
     account: privateKeyToAccount(process.env.WALLET_CLIENT_PRIVATE_KEY as Hex),
     chain: polygon,
@@ -29,6 +31,7 @@ async function smoke() {
     // "https://arb-mainnet.g.alchemy.com/v2/47SxM1HQgXWeKVL9rYVS6A4LZ8B_Ktk0",
   }).extend(publicActions);
 
+  // now we create a instance which contains: a rpcProvider(publicClient), a signer(in this case, it is a walletClientSigner), the name and version of the smart account, and the index of it)
   const okxSmartContractAccount = await OKXSmartContractAccount.create({
     rpcProvider: publicClient,
     signer: new walletClientAASigner(walletClient),
@@ -36,6 +39,7 @@ async function smoke() {
     version: "3.0.2",
     index: 4n,
 
+    // we need to config the bundlerClient and paymasterClient(optional unless you need a gas sponsor)
     bundlerClientConfig: {
       bundlerUrl: "https://beta.okex.org",
     },
@@ -44,6 +48,7 @@ async function smoke() {
     },
   });
 
+  // act just like what you send transaction in ethers.js
   const hash = await okxSmartContractAccount.sendTransaction({
     to: zeroAddress,
     data: "0x",
@@ -51,6 +56,7 @@ async function smoke() {
     from: await okxSmartContractAccount.getAddress(),
   });
 
+  // wait for confirmation
   const res = await okxSmartContractAccount.bundlerClient.waitForConfirm(hash);
   console.log("successfully get the hash", res);
 }
