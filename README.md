@@ -15,51 +15,69 @@ yarn
 
 ## quick start 
 ```typescript
-  // first create a signer(ECDSA signer/JWT singer...)
-  const walletClient: WalletClient = createWalletClient({
-    account: privateKeyToAccount(configuration.walletClientPrivateKey as Hex),
-    chain: arbitrum,
-    transport: http(),
-  }).extend(publicActions);
+async function smoke() {
+    // this is a public client, it is necessary to have a public client to interact with the blockchain
+    const publicClient: PublicClient = createPublicClient({
+        chain: polygon,
+        transport: http(),
+        // "https://arb-mainnet.g.alchemy.com/v2/47SxM1HQgXWeKVL9rYVS6A4LZ8B_Ktk0",
+    });
 
-  // 2. convert the signer to make a smartAccount
-  const smartAccount = await createOKXSmartAccount(
-    await walletClientToERC4337SmartAccountSigner(walletClient),
-    // smartAccount name
-    "SmartAccount",
-    // smartAccount version
-    "3.0.3",
-    // index, from 0,1,2...
-    0n,
-  );
+    // this is a signer, in this case, I use walletClient to act as a signer
+    const walletClient: WalletClient = createWalletClient({
+        account: privateKeyToAccount(process.env.WALLET_CLIENT_PRIVATE_KEY as Hex),
+        chain: polygon,
+        transport: http(),
+        // "https://arb-mainnet.g.alchemy.com/v2/47SxM1HQgXWeKVL9rYVS6A4LZ8B_Ktk0",
+    }).extend(publicActions);
 
-  // 3. make the smartAccount to a smartAccountClient
-  const smartAccountClient = new OKXSmartAccountClient(smartAccount, {
-    bundlerUrl: "bundlerUrl if you want to specify",
-  });
+    // now we create a instance which contains: a rpcProvider(publicClient), a signer(in this case, it is a walletClientSigner), the name and version of the smart account, and the index of it)
+    const okxSmartContractAccount = await OKXSmartContractAccount.create({
+        rpcProvider: publicClient,
+        signer: new walletClientAASigner(walletClient),
+        name: "SmartAccount",
+        version: "3.0.2",
+        index: 4n,
 
-  // 4. then we use it!
-  const encoded = await smartAccountClient
-      // it is a batch transaction
-    .encodeExecute([
-        {
-            to: zeroAddress,
-            value: BigInt(1),
-            data: "0x",
+        // we need to config the bundlerClient and paymasterClient(optional unless you need a gas sponsor)
+        bundlerClientConfig: {
+            bundlerUrl: "https://beta.okex.org",
         },
-        { to: zeroAddress, value: BigInt(2), data: "0x" },
-    ])
-    .extend(paymasterActions)
-    .usePaymaster({
-        paymasterAddress: "0x505BBF2e6F7FC45c2D42C54a2578e541bab676A7",
-    })
-      // or "EIP712"
-    .proposeTx("EIP191");
+        paymasterClientConfig: {
+            paymasterUrl: "https://beta.okex.org",
+        },
+    });
 
-  const signed = await encoded.signAndPack();
-  const hash = await signed.send();
-  console.log(hash);
-  // wait for some time
-  const receipt = await smartAccountClient.getUserOperationReceipt(hash);
+    // act just like what you send transaction in ethers.js
+    const hash = await okxSmartContractAccount.sendTransaction({
+        to: zeroAddress,
+        data: "0x",
+        value: toHex(1),
+        from: await okxSmartContractAccount.getAddress(),
+    });
+
+    // OR you can build a transaction and send it
+    // const builtUop = await okxSmartContractAccount.buildUserOp({
+    //   args: {
+    //     to: zeroAddress,
+    //     data: "0x",
+    //     value: BigInt(1)
+    //   },
+    //   // you can specify what you want to override
+    //   uopAndPaymasterOverrides: {
+    //     preVerificationGas: BigInt(100000000),
+    //     maxFeePerGas: BigInt(100000000000),
+    //     maxPriorityFeePerGas: BigInt(100000000000),
+    //     paymasterAddress: YOUR_PAYMASTER_ADDRESS
+    //   }
+    // })
+    //
+    // // then you can send this Uop
+    // const sent = await okxSmartContractAccount.sendUserOp(builtUop);
+
+    // wait for confirmation
+    const res = await okxSmartContractAccount.bundlerClient.waitForConfirm(hash);
+    console.log("successfully get the hash", res);
+}
 ```
 

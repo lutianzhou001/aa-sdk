@@ -56,6 +56,25 @@ async function smoke() {
     from: await okxSmartContractAccount.getAddress(),
   });
 
+  // OR you can build a transaction and send it
+  // const builtUop = await okxSmartContractAccount.buildUserOp({
+  //   args: {
+  //     to: zeroAddress,
+  //     data: "0x",
+  //     value: BigInt(1)
+  //   },
+  //   // you can specify what you want to override
+  //   uopAndPaymasterOverrides: {
+  //     preVerificationGas: BigInt(100000000),
+  //     maxFeePerGas: BigInt(100000000000),
+  //     maxPriorityFeePerGas: BigInt(100000000000),
+  //     paymasterAddress: YOUR_PAYMASTER_ADDRESS
+  //   }
+  // })
+  //
+  // // then you can send this Uop
+  // const sent = await okxSmartContractAccount.sendUserOp(builtUop);
+
   // wait for confirmation
   const res = await okxSmartContractAccount.bundlerClient.waitForConfirm(hash);
   console.log("successfully get the hash", res);
