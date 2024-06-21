@@ -5,6 +5,7 @@ import {
   type Hash,
   type Hex,
   type PublicClient,
+  SignableMessage,
   SignTypedDataParameters,
 } from "viem";
 import { ENTRYPOINT_ADDRESS_V07, isSmartAccountDeployed } from "permissionless";
@@ -121,9 +122,9 @@ export abstract class BaseSmartContractAccount<
    * If your contract supports signing message
    * you should implement this method.
    *
-   * @param params -- msg to be sign
+   * @param msg -- Singable message
    */
-  signMessage(msg: string | Uint8Array | Hex): Promise<Hex> {
+  signMessage(msg: SignableMessage): Promise<Hex> {
     return this.signer.signMessage(msg);
   }
 

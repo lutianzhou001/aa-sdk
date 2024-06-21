@@ -698,7 +698,6 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
    */
   async sendUserOp(userOperation: UserOperation<"v0.7">): Promise<any> {
     const cleanedUop = cleanup(userOperation);
-    console.log(cleanedUop);
     await this.bundlerClient.simulateUserOperation(cleanedUop);
     return await this.bundlerClient.sendUserOperation(cleanedUop);
   }
@@ -818,7 +817,10 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     ) {
       throw new BaseError("CHECK_PARAMS_ERROR", "Token address is required");
     }
-    if (params.uopAndPaymasterOverrides && !this.paymasterClient) {
+    if (
+      params.uopAndPaymasterOverrides?.paymasterAddress &&
+      !this.paymasterClient
+    ) {
       throw new BaseError("CHECK_PARAMS_ERROR", "Paymaster client is not set");
     }
   }

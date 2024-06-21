@@ -2,16 +2,22 @@ import {
   Address,
   Chain,
   createPublicClient,
+  Hash,
   Hex,
   http,
   PublicClient,
 } from "viem";
 import { UserOperation } from "permissionless/types/userOperation";
 import { callClient, convertToHex } from "../common/utils";
-import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
+import {
+  ENTRYPOINT_ADDRESS_V07,
+  getUserOperationReceipt,
+} from "permissionless";
 import { getChainId } from "viem/actions";
 import { BundlerError } from "../common/error";
 import { IBundlerClient } from "./interfaces/IBundler";
+import { formatAbiItemWithArgs } from "viem/utils";
+import { delay } from "../../test/utils";
 
 /**
  * This class implements IBundler interface.
@@ -28,6 +34,19 @@ export class BundlerClient implements IBundlerClient {
       transport: http(),
     });
     this.bundlerUrl = bundlerUrl;
+  }
+
+  async waitForConfirm(uopHash: Hash) {
+    // 30s(15times)
+    let n = 0;
+    while (n < 15) {
+      try {
+        return await this.getUserOperationReceipt(uopHash);
+      } catch (e) {}
+      await delay(2000);
+      n = n + 1;
+    }
+    throw new BundlerError("WAIT_FOR_CONFIRM_ERROR", "bundler timeout.");
   }
 
   async getNonce(
@@ -82,10 +101,6 @@ export class BundlerClient implements IBundlerClient {
       throw new BundlerError("GET_INIT_CODE_ERROR", error.message);
     }
     return result;
-  }
-
-  public getBundlerUrl(): string {
-    return `${this.bundlerUrl}`;
   }
 
   /**
@@ -175,7 +190,7 @@ export class BundlerClient implements IBundlerClient {
    * @description This function will return userOpReceipt for a given userOpHash
    * @returns Promise<UserOpReceipt>
    */
-  async getUserOperationReceipt(userOpHash: string): Promise<any> {
+  async getUserOperationReceipt(userOpHash: Hash): Promise<any> {
     const chainId = await getChainId(this.provider);
     const data = JSON.stringify({
       id: 1,
@@ -200,7 +215,7 @@ export class BundlerClient implements IBundlerClient {
    * @description This function will return the userOperation with the given userOpHash
    * @returns Promise<UserOpReceipt>
    */
-  async getUserOperationByHash(userOpHash: string): Promise<any> {
+  async getUserOperationByHash(userOpHash: Hash): Promise<any> {
     const chainId = await getChainId(this.provider);
     const data = JSON.stringify({
       id: 1,

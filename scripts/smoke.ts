@@ -13,8 +13,9 @@ import {
 import { polygon } from "viem/chains";
 import { walletClientAASigner } from "../packages/plugins/signers/walletClientAASigner";
 import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartContractAccount";
+import {delay} from "../test/utils";
 
-async function smokeTest() {
+async function smoke() {
   const publicClient: PublicClient = createPublicClient({
     chain: polygon,
     transport: http(),
@@ -27,8 +28,6 @@ async function smokeTest() {
     transport: http(),
     // "https://arb-mainnet.g.alchemy.com/v2/47SxM1HQgXWeKVL9rYVS6A4LZ8B_Ktk0",
   }).extend(publicActions);
-
-  const signer = new walletClientAASigner(walletClient);
 
   const okxSmartContractAccount = await OKXSmartContractAccount.create({
     rpcProvider: publicClient,
@@ -52,16 +51,10 @@ async function smokeTest() {
     from: await okxSmartContractAccount.getAddress(),
   });
 
-  console.log("hash is", hash);
-  await delay(100000);
-
-  const res =
-    await okxSmartContractAccount.bundlerClient.getUserOperationReceipt(hash);
-  console.log(res);
+  const res = await okxSmartContractAccount.bundlerClient.waitForConfirm(hash);
+  console.log("successfully get the hash", res);
 }
 
-smokeTest();
+smoke().then((r) => console.log("successfully make a smoke test"));
 
-export function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+

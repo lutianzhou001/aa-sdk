@@ -1,4 +1,4 @@
-import { Address, Hex, SignTypedDataParameters } from "viem";
+import { Address, Hex, SignableMessage, SignTypedDataParameters } from "viem";
 
 export interface OKXAASigner<Inner = any> {
   signerType: string;
@@ -8,7 +8,7 @@ export interface OKXAASigner<Inner = any> {
 
   getSubject: () => Promise<Hex>;
 
-  signMessage: (msg: Uint8Array | Hex | string) => Promise<Hex>;
+  signMessage: (message: SignableMessage) => Promise<Hex>;
 
   signTypedData: (args: SignTypedDataParameters) => Promise<Hex>;
 }

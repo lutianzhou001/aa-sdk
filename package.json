@@ -1,22 +1,31 @@
 {
   "scripts": {
     "build": "tsc",
+    "test": "vitest dev -c ./test/vitest.config.ts",
     "prettier": "prettier --write 'packages/**/*.ts'",
     "prettier-test": "prettier --write 'test/**/*.ts'",
     "prettier-abi": "prettier --write 'abis/**/*.ts'"
   },
   "dependencies": {
-    "@alchemy/aa-core": "^2.3.1",
     "axios": "^1.6.7",
     "dotenv": "^16.4.5",
+    "got": "^11.8.6",
     "permissionless": "^0.1.28",
-    "viem": "^2.15.1"
+    "viem": "^2.15.1",
+    "vitest": "^1.6.0"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.16",
+    "@types/jest": "^29.5.12",
+    "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.24",
-    "ts-node": "^10.9.1",
+    "chai": "^5.1.1",
+    "jest": "^29.7.0",
+    "mocha": "^10.4.0",
+    "ts-jest": "^29.1.5",
+    "ts-node": "^9.0.0",
     "tslib": "^2.6.2",
-    "typescript": "^5.2.2"
+    "typescript": "^5.4.5"
   },
   "name": "account-abstraction-wallet-sdk",
   "description": "a generic smart account SDK that can be used to interact with erc4337 smart account v3 and later. Developed with viem.sh to minimize the package",

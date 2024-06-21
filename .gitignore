@@ -23,7 +23,7 @@ deployed/local/hardhat/*
 !deployed/local/hardhat/index.ts
 # scripts/*
 # !scripts/deploy.js
-# !scripts/smokeTest.js
+# !scripts/scripts.js
 # !scripts/Utils.js
 # !scripts/createTestingEnvironment.js
 # !scripts/testInTestingEnvironment.js

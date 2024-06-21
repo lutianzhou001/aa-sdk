@@ -31,7 +31,10 @@ export class PaymasterClient implements IPaymasterClient {
    * @description This function will fetch the supported paymasters: Not impl yet.
    */
   async getSupportedPaymasters(): Promise<any> {
-    throw new PaymasterError("GET_SUPPORTED_PAYMASTERS_ERROR", "Not implemented yet.")
+    throw new PaymasterError(
+      "GET_SUPPORTED_PAYMASTERS_ERROR",
+      "Not implemented yet.",
+    );
   }
 
   /**

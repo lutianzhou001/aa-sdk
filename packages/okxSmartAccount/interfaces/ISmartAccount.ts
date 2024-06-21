@@ -3,6 +3,7 @@ import {
   Hash,
   Hex,
   PublicClient,
+  SignableMessage,
   SignTypedDataParameters,
 } from "viem";
 import { OKXAASigner } from "../../plugins/types";
@@ -58,7 +59,7 @@ export interface ISmartContractAccount<
    * @param msg - the message to sign
    * @returns the signature of the message
    */
-  signMessage(msg: string | Uint8Array | Hex): Promise<Hex>;
+  signMessage(msg: SignableMessage): Promise<Hex>;
 
   /**
    * Signs a typed data object as per ERC-712

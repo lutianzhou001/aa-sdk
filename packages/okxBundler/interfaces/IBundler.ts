@@ -1,12 +1,14 @@
 import { UserOperation } from "permissionless/types/userOperation";
-import { Address } from "viem";
+import { Address, Hash } from "viem";
 
 export interface IBundlerClient {
   sendUserOperation(userOperation: UserOperation<"v0.7">): Promise<any>;
   simulateUserOperation(userOperation: UserOperation<"v0.7">): Promise<any>;
   estimateUserOperationGas(userOperation: UserOperation<"v0.7">): Promise<any>;
-  getUserOperationByHash(userOpHash: string): Promise<any>;
-  getUserOperationReceipt(userOpHash: string): Promise<any>;
+  getUserOperationByHash(userOpHash: Hash): Promise<any>;
+  getUserOperationReceipt(userOpHash: Hash): Promise<any>;
+
+  waitForConfirm(userOpHash: Hash): Promise<any>;
 
   // TODO: to impl
   // getEntryPointBalance(sender: Address): Promise<bigint>;
