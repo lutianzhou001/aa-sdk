@@ -1,4 +1,4 @@
-import { OKXAASigner } from "../packages/plugins/types";
+import { OKXAASigner } from "../packages/plugins/interfaces/OKXAASigner";
 import { Chain, createPublicClient, http, PublicClient } from "viem";
 import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartContractAccount";
 

@@ -2,7 +2,7 @@ import { sepolia } from "viem/chains";
 import { describe, it } from "node:test";
 import { Chain, createPublicClient, http, PublicClient } from "viem";
 import { OKXSmartContractAccount } from "../../packages/okxSmartAccount/OKXSmartContractAccount";
-import { OKXAASigner } from "../../packages/plugins/types";
+import { OKXAASigner } from "../../packages/plugins/interfaces/OKXAASigner";
 import { LocalAccountAASigner } from "../../packages/plugins/signers/localAccountAASigner";
 
 describe("Account Simple Tests", async () => {

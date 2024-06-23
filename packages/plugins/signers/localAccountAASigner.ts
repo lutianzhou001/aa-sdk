@@ -9,7 +9,7 @@ import {
   SignTypedDataParameters,
 } from "viem";
 import { mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
-import { OKXAASigner } from "../types";
+import { OKXAASigner } from "../interfaces/OKXAASigner";
 import { ECDSA_VALIDATOR_TEMPLATE } from "../../common/constants";
 
 export class LocalAccountAASigner<

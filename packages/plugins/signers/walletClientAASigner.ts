@@ -7,7 +7,7 @@ import {
   SignTypedDataParameters,
   type WalletClient,
 } from "viem";
-import type { OKXAASigner } from "../types";
+import type { OKXAASigner } from "../interfaces/OKXAASigner";
 import { ECDSA_VALIDATOR_TEMPLATE } from "../../common/constants";
 
 export class walletClientAASigner<T extends WalletClient = WalletClient>

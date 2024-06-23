@@ -6,7 +6,7 @@ import {
   SignableMessage,
   SignTypedDataParameters,
 } from "viem";
-import { OKXAASigner } from "../../plugins/types";
+import { OKXAASigner } from "../../plugins/interfaces/OKXAASigner";
 import { ExecuteCallDataArgs, ExecutionModeOverrides } from "../types";
 
 export interface ISmartContractAccount<

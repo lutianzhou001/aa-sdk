@@ -2,7 +2,7 @@ import { createWalletClient, http, WalletClient } from "viem";
 import { mnemonicToAccount } from "viem/accounts";
 import { describe, it, expect } from "vitest";
 import { polygonMumbai } from "viem/chains";
-import { OKXAASigner } from "../../packages/plugins/types";
+import { OKXAASigner } from "../../packages/plugins/interfaces/OKXAASigner";
 import { walletClientAASigner } from "../../packages/plugins/signers/walletClientAASigner";
 
 describe("Wallet Client Signer Tests", () => {

@@ -11,7 +11,7 @@ import {
 import { ENTRYPOINT_ADDRESS_V07, isSmartAccountDeployed } from "permissionless";
 import { ISmartContractAccount } from "./interfaces/ISmartAccount";
 import { EntryPointV0_7ABI } from "../../abis/EntryPointV0_7.abi";
-import { OKXAASigner } from "../plugins/types";
+import { OKXAASigner } from "../plugins/interfaces/OKXAASigner";
 import {
   BaseSmartContractAccountConstructParams,
   ExecuteCallDataArgs,

@@ -1,6 +1,6 @@
 import type { Address } from "abitype";
 import type { Hex, PublicClient } from "viem";
-import { OKXAASigner } from "../plugins/types";
+import { OKXAASigner } from "../plugins/interfaces/OKXAASigner";
 import { UserOperation } from "permissionless/types/userOperation";
 import { IPaymasterClient } from "../okxPaymaster/interfaces/IPaymaster";
 import { IBundlerClient } from "../okxBundler/interfaces/IBundler";
