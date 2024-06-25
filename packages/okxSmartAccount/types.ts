@@ -89,6 +89,8 @@ export type OKXSmartContractAccountCreationParams<
   bundlerClientConfig: BundlerClientConfig;
   paymasterClientConfig?: PaymasterClientConfig;
 
+  smartAccountAddress?: Address;
+
   factoryAddress?: Address;
   smartAccountTemplate?: Address;
   authenticationManagerTemplate?: Address;

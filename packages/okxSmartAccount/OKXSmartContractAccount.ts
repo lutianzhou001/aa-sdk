@@ -157,7 +157,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       ],
     );
 
-    const accountAddress: Address = (await params.rpcProvider.readContract({
+    const accountAddress: Address = params.smartAccountAddress ?? (await params.rpcProvider.readContract({
       address: params.factoryAddress ?? (FACTORY_ADDRESS as Address),
       abi: accountFactoryV3ABI,
       functionName: "computeAddress",
