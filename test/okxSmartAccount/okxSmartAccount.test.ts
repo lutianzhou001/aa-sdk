@@ -31,7 +31,6 @@ describe("Account Simple Tests", async () => {
     await OKXSmartContractAccount.create({
       rpcProvider: publicClient,
       signer: signer,
-      name: "SmartAccount",
       version: "3.0.2",
       index: 0n,
 

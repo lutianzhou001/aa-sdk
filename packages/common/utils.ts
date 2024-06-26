@@ -2,6 +2,7 @@ import { encodePacked, Hex, keccak256, PublicClient, toHex } from "viem";
 import { Address } from "abitype";
 import axios from "axios";
 import { ExecutionModeOverrides } from "../okxSmartAccount/types";
+import { configs } from "./constants";
 
 export function bigIntToBytes16(bigInt: bigint): Uint8Array {
   const bytes = new Uint8Array(16);
@@ -96,6 +97,14 @@ export async function callClient(url: string, data: string) {
   };
   return await axios.request(config);
 }
+
+export const getConfig = (version: string) => {
+  const config = configs.find((config) => config.version === version);
+  if (!config) {
+    throw new Error(`Configuration not found for version: ${version}`);
+  }
+  return config;
+};
 
 /**
  * Returns the max bigint in a list of bigints

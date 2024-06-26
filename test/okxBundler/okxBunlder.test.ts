@@ -13,8 +13,8 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { polygon } from "viem/chains";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SMART_ACCOUNT_TEMPLATE } from "../../packages/common/constants";
 import { delay, givenConnectedProvider } from "../utils";
+import { getConfig } from "../../packages/common/utils";
 
 describe("OKX Smart Account EntryPoint v7 Tests", () => {
   const walletClient: WalletClient = createWalletClient({
@@ -36,7 +36,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
     const getOwnerRes = provider.bundlerClient.getNonce(
       "0xfc386Ff841DeB3879446808A90307Ca0511B8676",
       "0x9BB14d03BC35E60e4D848c9f18c73fA159F959d5",
-      DEFAULT_SMART_ACCOUNT_TEMPLATE,
+      getConfig("3.0.2").smartContractAccountTemplate,
     );
     await expect(getOwnerRes).resolves.not.toThrowError();
   });

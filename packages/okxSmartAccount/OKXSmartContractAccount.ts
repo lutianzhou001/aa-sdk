@@ -23,6 +23,7 @@ import {
   encodeFunctionData,
   encodePacked,
   fromHex,
+  getContract,
   Hex,
   hexToBigInt,
   isHex,
@@ -38,6 +39,7 @@ import {
   bigIntMax,
   cleanup,
   compileMode,
+  getConfig,
   getSigTime,
   predictDeterministicAddress,
 } from "../common/utils";
@@ -48,17 +50,11 @@ import { initializeAccountABI } from "../../abis/initializeAccount.abi";
 import { accountFactoryV3ABI } from "../../abis/accountFactoryV3.abi";
 import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
-import {
-  AUTHENTICATION_MANAGER_TEMPLATE,
-  DEFAULT_SMART_ACCOUNT_TEMPLATE,
-  FACTORY_ADDRESS,
-} from "../common/constants";
 import { Chain } from "viem/chains";
 import { randomBytes } from "node:crypto";
 import { BaseError } from "../common/error";
 
 export class OKXSmartContractAccount extends BaseSmartContractAccount {
-  name: string;
   version: string;
 
   bundlerClient: IBundlerClient;
@@ -82,7 +78,6 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       params.authenticationManagerTemplate;
     this.smartAccountTemplate = params.smartAccountTemplate;
 
-    this.name = params.name;
     this.version = params.version;
 
     this.mainnetRpcProvider = params.mainnetRpcProvider;
@@ -144,12 +139,12 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     const accountInitCode = encodePacked(
       ["address", "bytes"],
       [
-        params.factoryAddress ?? FACTORY_ADDRESS,
+        getConfig(params.version).factoryAddress,
         encodeFunctionData({
           abi: accountFactoryV3ABI,
           functionName: "createAccount",
           args: [
-            params.smartAccountTemplate ?? DEFAULT_SMART_ACCOUNT_TEMPLATE,
+            getConfig(params.version).smartContractAccountTemplate,
             initializeAccountData,
             params.index ?? 0n,
           ],
@@ -160,19 +155,19 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     const accountAddress: Address =
       params.smartAccountAddress ??
       ((await params.rpcProvider.readContract({
-        address: params.factoryAddress ?? (FACTORY_ADDRESS as Address),
+        address: getConfig(params.version).factoryAddress,
         abi: accountFactoryV3ABI,
         functionName: "computeAddress",
         args: [zeroAddress, initializeAccountData, params.index ?? 0n],
       })) as Address);
 
-    const authenticationManagerTemplate =
-      params.authenticationManagerTemplate ??
-      (AUTHENTICATION_MANAGER_TEMPLATE as Address);
+    const authenticationManagerTemplate = getConfig(
+      params.version,
+    ).authenticationManagerTemplate;
 
-    const smartAccountTemplate =
-      params.smartAccountTemplate ??
-      (DEFAULT_SMART_ACCOUNT_TEMPLATE as Address);
+    const smartAccountTemplate = getConfig(
+      params.version,
+    ).smartContractAccountTemplate;
 
     const authenticationManagerAddress: Address = predictDeterministicAddress(
       authenticationManagerTemplate,
@@ -194,9 +189,8 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       smartAccountTemplate,
       validatorAddress,
       initCode: accountInitCode,
-      factoryAddress: params.factoryAddress ?? FACTORY_ADDRESS,
+      factoryAddress: getConfig(params.version).factoryAddress,
       authenticationManagerTemplate,
-      name: params.name,
       version: params.version,
     };
 
@@ -397,7 +391,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         cleanup(userOperation),
       );
       const domain = {
-        name: this.name,
+        name: getConfig(this.version).name,
         version: this.version,
         chainId: await getChainId(this.rpcProvider),
         verifyingContract: this.authenticationManagerTemplateAddress as Address,

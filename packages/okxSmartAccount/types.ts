@@ -65,7 +65,6 @@ export type OKXSmartContractAccountConstructorParams<
   bundlerClient: IBundlerClient;
   paymasterClient?: IPaymasterClient;
 
-  name: string;
   version: string;
 
   authenticationManagerTemplate: Address;
@@ -83,7 +82,6 @@ export type OKXSmartContractAccountCreationParams<
   mainnetRpcProvider?: PublicClient;
 
   signer: TSigner;
-  name: string;
   version: string;
 
   bundlerClientConfig: BundlerClientConfig;
@@ -147,4 +145,12 @@ export type BuildUserOpParams = {
   uopAndPaymasterOverrides?: UopAndPaymasterOverrides;
   sigType?: SigType;
   sigTime?: bigint;
+};
+
+export type OKXSmartContractAccountConfig = {
+  version: string;
+  name: string;
+  factoryAddress: Address;
+  smartContractAccountTemplate: Address;
+  authenticationManagerTemplate: Address;
 };

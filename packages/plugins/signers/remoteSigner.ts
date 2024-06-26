@@ -2,10 +2,10 @@ import {
   type Hex,
   SignTypedDataParameters,
   Address,
-  SignableMessage,
+  SignableMessage, zeroHash,
 } from "viem";
 import { OKXAASigner } from "../interfaces/OKXAASigner";
-import { ECDSA_VALIDATOR_TEMPLATE } from "../../common/constants";
+import { JWT_VALIDATOR_TEMPLATE } from "../../common/constants";
 
 export class remoteSigner<T = any> implements OKXAASigner<T> {
   inner: T;
@@ -16,11 +16,11 @@ export class remoteSigner<T = any> implements OKXAASigner<T> {
   constructor(subject: Hex, template?: Address) {
     this.subject = subject;
     this.signerType = "remoteSigner"; //  type: "local"
-    this.signerTemplate = template ?? (ECDSA_VALIDATOR_TEMPLATE as Address);
+    this.signerTemplate = template ?? (JWT_VALIDATOR_TEMPLATE as Address);
   }
 
   async signMessage(message: SignableMessage): Promise<Hex> {
-    return message as Hex;
+    return zeroHash;
   }
 
   async signTypedData(args: SignTypedDataParameters): Promise<Hex> {

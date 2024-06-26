@@ -16,7 +16,6 @@ export const givenConnectedProvider = async ({
   return await OKXSmartContractAccount.create({
     rpcProvider: publicClient,
     signer: signer,
-    name: "SmartAccount",
     version: "3.0.2",
     index: 0n,
 
@@ -40,7 +39,6 @@ export const givenConnectedProviderWithPaymaster = async ({
   return await OKXSmartContractAccount.create({
     rpcProvider: publicClient,
     signer: signer,
-    name: "SmartAccount",
     version: "3.0.2",
     index: 0n,
 
