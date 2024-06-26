@@ -35,7 +35,6 @@ async function smoke() {
   const okxSmartContractAccount = await OKXSmartContractAccount.create({
     rpcProvider: publicClient,
     signer: new walletClientAASigner(walletClient),
-    version: "3.0.2",
     index: 4n,
 
     // we need to config the bundlerClient and paymasterClient(optional unless you need a gas sponsor)

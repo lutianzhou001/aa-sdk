@@ -2,7 +2,6 @@ import {
   Address,
   getAddress,
   type Hex,
-  isHex,
   SignableMessage,
   SignTypedDataParameters,
   type WalletClient,

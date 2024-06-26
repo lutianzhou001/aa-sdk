@@ -2,7 +2,8 @@ import {
   type Hex,
   SignTypedDataParameters,
   Address,
-  SignableMessage, zeroHash,
+  SignableMessage,
+  zeroHash,
 } from "viem";
 import { OKXAASigner } from "../interfaces/OKXAASigner";
 import { JWT_VALIDATOR_TEMPLATE } from "../../common/constants";

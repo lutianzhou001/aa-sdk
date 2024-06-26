@@ -65,7 +65,7 @@ export type OKXSmartContractAccountConstructorParams<
   bundlerClient: IBundlerClient;
   paymasterClient?: IPaymasterClient;
 
-  version: string;
+  version?: string;
 
   authenticationManagerTemplate: Address;
   smartAccountTemplate: Address;
@@ -82,7 +82,7 @@ export type OKXSmartContractAccountCreationParams<
   mainnetRpcProvider?: PublicClient;
 
   signer: TSigner;
-  version: string;
+  version?: string;
 
   bundlerClientConfig: BundlerClientConfig;
   paymasterClientConfig?: PaymasterClientConfig;

@@ -23,7 +23,6 @@ import {
   encodeFunctionData,
   encodePacked,
   fromHex,
-  getContract,
   Hex,
   hexToBigInt,
   isHex,
@@ -78,7 +77,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       params.authenticationManagerTemplate;
     this.smartAccountTemplate = params.smartAccountTemplate;
 
-    this.version = params.version;
+    this.version = params.version ?? "3.0.2";
 
     this.mainnetRpcProvider = params.mainnetRpcProvider;
   }
@@ -139,12 +138,12 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     const accountInitCode = encodePacked(
       ["address", "bytes"],
       [
-        getConfig(params.version).factoryAddress,
+        getConfig(params.version ?? "3.0.2").factoryAddress,
         encodeFunctionData({
           abi: accountFactoryV3ABI,
           functionName: "createAccount",
           args: [
-            getConfig(params.version).smartContractAccountTemplate,
+            getConfig(params.version ?? "3.0.2").smartContractAccountTemplate,
             initializeAccountData,
             params.index ?? 0n,
           ],
@@ -155,23 +154,23 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     const accountAddress: Address =
       params.smartAccountAddress ??
       ((await params.rpcProvider.readContract({
-        address: getConfig(params.version).factoryAddress,
+        address: getConfig(params.version ?? "3.0.2").factoryAddress,
         abi: accountFactoryV3ABI,
         functionName: "computeAddress",
         args: [zeroAddress, initializeAccountData, params.index ?? 0n],
       })) as Address);
 
     const authenticationManagerTemplate = getConfig(
-      params.version,
+      params.version ?? "3.0.2",
     ).authenticationManagerTemplate;
 
     const smartAccountTemplate = getConfig(
-      params.version,
+      params.version ?? "3.0.2",
     ).smartContractAccountTemplate;
 
     const authenticationManagerAddress: Address = predictDeterministicAddress(
       authenticationManagerTemplate,
-      keccak256(toHex(params.version)) as Hex,
+      keccak256(toHex(params.version ?? "3.0.2")) as Hex,
       accountAddress,
     );
 
@@ -189,9 +188,9 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       smartAccountTemplate,
       validatorAddress,
       initCode: accountInitCode,
-      factoryAddress: getConfig(params.version).factoryAddress,
+      factoryAddress: getConfig(params.version ?? "3.0.2").factoryAddress,
       authenticationManagerTemplate,
-      version: params.version,
+      version: params.version ?? "3.0.2",
     };
 
     if (params.paymasterClientConfig) {

@@ -1,7 +1,7 @@
 import { encodePacked, Hex, keccak256, PublicClient, toHex } from "viem";
 import { Address } from "abitype";
 import axios from "axios";
-import { ExecutionModeOverrides } from "../okxSmartAccount/types";
+import { ExecutionModeOverrides, SigType } from "../okxSmartAccount/types";
 import { configs } from "./constants";
 
 export function bigIntToBytes16(bigInt: bigint): Uint8Array {

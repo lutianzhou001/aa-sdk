@@ -9,14 +9,10 @@ import {
 } from "viem";
 import { UserOperation } from "permissionless/types/userOperation";
 import { callClient, convertToHex } from "../common/utils";
-import {
-  ENTRYPOINT_ADDRESS_V07,
-  getUserOperationReceipt,
-} from "permissionless";
+import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
 import { getChainId } from "viem/actions";
 import { BundlerError } from "../common/error";
 import { IBundlerClient } from "./interfaces/IBundler";
-import { formatAbiItemWithArgs } from "viem/utils";
 import { delay } from "../../test/utils";
 
 /**
