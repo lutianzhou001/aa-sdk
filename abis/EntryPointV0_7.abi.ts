@@ -1,4 +1,4 @@
-export const EntryPointV0_7ABI = [
+export const entrypointV0_7Abi = [
   {
     inputs: [
       { internalType: "bool", name: "success", type: "bool" },
@@ -330,9 +330,7 @@ export const EntryPointV0_7ABI = [
     type: "event",
   },
   {
-    inputs: [
-      { internalType: "uint32", name: "unstakeDelaySec", type: "uint32" },
-    ],
+    inputs: [{ internalType: "uint32", name: "unstakeDelaySec", type: "uint32" }],
     name: "addStake",
     outputs: [],
     stateMutability: "payable",
@@ -596,9 +594,7 @@ export const EntryPointV0_7ABI = [
       { internalType: "bytes", name: "context", type: "bytes" },
     ],
     name: "innerHandleOp",
-    outputs: [
-      { internalType: "uint256", name: "actualGasCost", type: "uint256" },
-    ],
+    outputs: [{ internalType: "uint256", name: "actualGasCost", type: "uint256" }],
     stateMutability: "nonpayable",
     type: "function",
   },

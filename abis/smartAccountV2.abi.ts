@@ -1,4 +1,4 @@
-export const smartAccountV2ABI = [
+export const smartAccountV2Abi = [
   {
     inputs: [
       {

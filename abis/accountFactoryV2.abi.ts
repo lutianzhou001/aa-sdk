@@ -1,4 +1,4 @@
-export const accountFactoryV2ABI = [
+export const accountFactoryV2Abi = [
   {
     anonymous: false,
     inputs: [

@@ -1,4 +1,4 @@
-export const accountFactoryV3ABI = [
+export const accountFactoryV3Abi = [
   {
     inputs: [],
     stateMutability: "nonpayable",

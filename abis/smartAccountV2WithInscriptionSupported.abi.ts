@@ -1,4 +1,4 @@
-export const smartAccountV2WithInscriptionSupportedABI = [
+export const smartAccountV2WithInscriptionSupportedAbi = [
   {
     inputs: [
       {
