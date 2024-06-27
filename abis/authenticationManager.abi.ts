@@ -1,4 +1,4 @@
-export const authenticationManagerABI = [
+export const authenticationManagerAbi = [
   {
     inputs: [
       {

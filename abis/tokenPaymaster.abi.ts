@@ -1,4 +1,4 @@
-export const tokenPaymasterABI = [
+export const tokenPaymasterAbi = [
   {
     inputs: [
       {

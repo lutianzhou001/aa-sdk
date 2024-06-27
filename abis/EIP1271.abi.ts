@@ -1,4 +1,4 @@
-export const EIP1271ABI = [
+export const eip1271Abi = [
   {
     type: "function",
     name: "eip712Domain",

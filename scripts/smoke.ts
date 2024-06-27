@@ -1,19 +1,8 @@
 import { privateKeyToAccount } from "viem/accounts";
-import {
-  createPublicClient,
-  createWalletClient,
-  Hex,
-  http,
-  publicActions,
-  PublicClient,
-  toHex,
-  WalletClient,
-  zeroAddress,
-} from "viem";
+import { createPublicClient, createWalletClient, Hex, http, publicActions, PublicClient, toHex, WalletClient, zeroAddress } from "viem";
 import { polygon } from "viem/chains";
 import { walletClientAASigner } from "../packages/plugins/signers/walletClientAASigner";
 import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartContractAccount";
-import { PaymasterMode } from "../packages/okxSmartAccount/types";
 
 async function smoke() {
   // this is a public client, it is necessary to have a public client to interact with the blockchain
@@ -55,7 +44,7 @@ async function smoke() {
       data: "0x",
       value: toHex(1),
       from: okxSmartContractAccount.getOKXSmartAccountAddress(),
-    },
+    }
     // {
     //   paymasterAddress: "0x505BBF2e6F7FC45c2D42C54a2578e541bab676A7",
     //   paymasterMode: PaymasterMode.FREE_GAS_MODE,
@@ -86,4 +75,4 @@ async function smoke() {
   console.log("successfully get the hash", res);
 }
 
-smoke().then((r) => console.log("successfully make a smoke test"));
+smoke().then(() => console.log("successfully make a smoke test"));

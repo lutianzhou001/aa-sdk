@@ -1,4 +1,4 @@
-export const HookABI = [
+export const hookAbi = [
   {
     inputs: [
       {

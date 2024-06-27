@@ -1,4 +1,4 @@
-export const initializeAccountABI = [
+export const initializeAccountAbi = [
   {
     inputs: [
       {

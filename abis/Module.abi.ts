@@ -1,4 +1,4 @@
-export const ModuleABI = [
+export const moduleAbi = [
   {
     inputs: [
       {

@@ -1,4 +1,4 @@
-export const ValidatorABI = [
+export const validatorAbi = [
   {
     inputs: [
       {

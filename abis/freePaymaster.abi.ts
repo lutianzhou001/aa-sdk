@@ -1,4 +1,4 @@
-export const freePaymasterABI = [
+export const freePaymasterAbi = [
   {
     inputs: [
       {
