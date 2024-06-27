@@ -51,7 +51,7 @@ import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
 import { Chain } from "viem/chains";
 import { randomBytes } from "node:crypto";
-import { BaseError } from "../common/error";
+import { BaseError, PaymasterError } from "../common/error";
 
 export class OKXSmartContractAccount extends BaseSmartContractAccount {
   version: string;
@@ -211,6 +211,20 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
   }
 
   /**
+   * get the smartAccountAddress, throw new error is not provided;
+   *
+   */
+  getOKXSmartAccountAddress(): Address {
+    if (!this.accountAddress) {
+      throw new BaseError(
+        "GET_ACCOUNT_ADDRESS_ERROR",
+        "OKXSmartAccountAddress is not provided",
+      );
+    }
+    return this.accountAddress;
+  }
+
+  /**
    * Encode execute to the calldata with the params {to, value, data} or [{to, value,data},...]
    *
    * - Docs: TODO: to impl
@@ -347,7 +361,10 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     userOperation: UserOperation<"v0.7">,
   ): Promise<Hex> {
     if (!this.paymasterClient) {
-      throw new Error("Paymaster client not set");
+      throw new PaymasterError(
+        "GET_PAYMASTER_AND_DATA_ERROR",
+        "Paymaster client not set",
+      );
     }
     const getPaymasterSignatureRes =
       await this.paymasterClient.getPaymasterData(userOperation);
@@ -481,7 +498,8 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
   ) {
     const batch = requests.map((request) => {
       if (!request.to) {
-        throw new Error(
+        throw new BaseError(
+          "BUILD_UOP_FROM_TXS_ERROR",
           "one transaction in the batch is missing a target address",
         );
       }

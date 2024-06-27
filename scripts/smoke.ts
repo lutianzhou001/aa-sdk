@@ -46,7 +46,7 @@ async function smoke() {
     },
   });
 
-  console.log(okxSmartContractAccount.getAddress());
+  console.log(okxSmartContractAccount.getOKXSmartAccountAddress());
 
   // act just like what you send transaction in ethers.js
   const hash = await okxSmartContractAccount.sendTransaction(
@@ -54,7 +54,7 @@ async function smoke() {
       to: zeroAddress,
       data: "0x",
       value: toHex(1),
-      from: await okxSmartContractAccount.getAddress(),
+      from: okxSmartContractAccount.getOKXSmartAccountAddress(),
     },
     // {
     //   paymasterAddress: "0x505BBF2e6F7FC45c2D42C54a2578e541bab676A7",
