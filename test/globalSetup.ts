@@ -1,4 +1,4 @@
 // @ts-ignore
-export default function setup({ provide: _ }) {
+export default function setup() {
   // getConfig()
 }

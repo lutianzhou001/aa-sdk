@@ -112,7 +112,7 @@ export abstract class BaseSmartContractAccount<TSigner extends OKXAASigner = OKX
     return this.signer.signMessage(msg);
   }
 
-  public abstract signUserOperation(userOperation: UserOperation<"v0.7">, sigType: SigType, sigTime?: BigInt): Promise<Hex>;
+  public abstract signUserOperation(userOperation: UserOperation<"v0.7">, sigType: SigType, sigTime?: bigint): Promise<Hex>;
 
   /**
    * If your contract supports UUPS, you can implement this method which can be
