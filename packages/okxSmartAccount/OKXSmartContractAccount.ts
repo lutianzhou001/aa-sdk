@@ -44,6 +44,7 @@ import {
 import {
   accountFactoryV3Abi,
   authenticationManagerAbi,
+  BaseValidatorAbi,
   initializeAccountAbi,
   smartAccountV3Abi,
 } from "../../abis";
@@ -222,6 +223,36 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       );
     }
     return this.accountAddress;
+  }
+
+  async getAdminValidatorAndSubject(): Promise<{
+    adminValidator: Address;
+    subject: Hex;
+  }> {
+    let adminValidator: Address;
+    let subject: Hex;
+    if (this.deploymentState === DeploymentState.DEPLOYED) {
+      adminValidator = (await this.rpcProvider.readContract({
+        address: this.authenticationManagerAddress,
+        abi: authenticationManagerAbi,
+        functionName: "adminValidator",
+        args: [],
+      })) as Address;
+      subject = (await this.rpcProvider.readContract({
+        address: adminValidator,
+        abi: BaseValidatorAbi,
+        functionName: "subject",
+        args: [],
+      })) as Hex;
+      return { adminValidator: adminValidator, subject: subject };
+    } else {
+      adminValidator = this.validatorAddress;
+      subject = await this.signer.getSubject();
+      return {
+        adminValidator: adminValidator,
+        subject: subject,
+      };
+    }
   }
 
   /**

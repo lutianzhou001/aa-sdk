@@ -13,3 +13,4 @@ export * from "./smartAccountV2WithInscriptionSupported.abi";
 export * from "./smartAccountV3.abi";
 export * from "./tokenPaymaster.abi";
 export * from "./validator.abi";
+export * from "./BaseValidator.abi";

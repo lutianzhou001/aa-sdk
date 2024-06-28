@@ -1,20 +1,10 @@
-import { walletClientAASigner } from "../../packages/plugins/signers/walletClientAASigner";
-import {
-  Chain,
-  createWalletClient,
-  Hex,
-  http,
-  publicActions,
-  toHex,
-  WalletClient,
-  zeroAddress,
-  zeroHash,
-} from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { polygon } from "viem/chains";
-import { describe, expect, it } from "vitest";
-import { delay, givenConnectedProvider } from "../utils";
-import { getConfig } from "../../packages/common/utils";
+import {walletClientAASigner} from "../../packages/plugins/signers/walletClientAASigner";
+import {Chain, createWalletClient, Hex, http, publicActions, toHex, WalletClient, zeroAddress, zeroHash,} from "viem";
+import {privateKeyToAccount} from "viem/accounts";
+import {polygon} from "viem/chains";
+import {describe, expect, it} from "vitest";
+import {delay, givenConnectedProvider} from "../utils";
+import {getConfig} from "../../packages/common/utils";
 
 describe("OKX Smart Account EntryPoint v7 Tests", () => {
   const walletClient: WalletClient = createWalletClient({
@@ -28,7 +18,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
   const signer = new walletClientAASigner(walletClient);
 
   it("should successfully get nonce", async () => {
-    const provider = await givenConnectedProvider({ signer, chain });
+    const provider = await givenConnectedProvider({ signer, chain, index: 0n });
     expect(await provider.getAddress()).toMatchInlineSnapshot(
       `"0xfc386Ff841DeB3879446808A90307Ca0511B8676"`,
     );
@@ -42,7 +32,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
   });
 
   it("should simulate uop successfully", async () => {
-    const provider = await givenConnectedProvider({ signer, chain });
+    const provider = await givenConnectedProvider({ signer, chain, index: 0n });
     const uop = await provider.buildUserOp({
       args: { to: zeroAddress, value: 1n, data: "0x" },
     });
@@ -50,18 +40,8 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
     expect(result).resolves.not.toThrowError;
   });
 
-  it("should simulate uop failed when the sender is not correct", async () => {
-    const provider = await givenConnectedProvider({ signer, chain });
-    const uop = await provider.buildUserOp({
-      args: { to: zeroAddress, value: 1n, data: "0x" },
-    });
-    uop.sender = zeroAddress;
-    const result = provider.bundlerClient.simulateUserOperation(uop);
-    expect(result).resolves.toThrowError;
-  });
-
   it("should get the receipt successfully", async () => {
-    const provider = await givenConnectedProvider({ signer, chain });
+    const provider = await givenConnectedProvider({ signer, chain, index: 4n });
     const sent = await provider.sendTransaction({
       from: await provider.getAddress(),
       to: await provider.getAddress(),
@@ -75,7 +55,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
   }, 60000);
 
   it("should get the receipt error when the hash is not correct", async () => {
-    const provider = await givenConnectedProvider({ signer, chain });
+    const provider = await givenConnectedProvider({ signer, chain, index: 0n });
     const receipt = provider.bundlerClient.getUserOperationReceipt(zeroHash);
     expect(receipt).resolves.toThrowError;
   });

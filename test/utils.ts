@@ -5,9 +5,11 @@ import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartCon
 export const givenConnectedProvider = async ({
   signer,
   chain,
+  index,
 }: {
   signer: OKXAASigner;
   chain: Chain;
+  index: bigint;
 }) => {
   const publicClient: PublicClient = createPublicClient({
     chain: chain,
@@ -17,7 +19,7 @@ export const givenConnectedProvider = async ({
     rpcProvider: publicClient,
     signer: signer,
     version: "3.0.2",
-    index: 0n,
+    index: index,
 
     bundlerClientConfig: {
       bundlerUrl: "https://beta.okex.org",
@@ -28,9 +30,11 @@ export const givenConnectedProvider = async ({
 export const givenConnectedProviderWithPaymaster = async ({
   signer,
   chain,
+  index,
 }: {
   signer: OKXAASigner;
   chain: Chain;
+  index: bigint;
 }) => {
   const publicClient: PublicClient = createPublicClient({
     chain: chain,
@@ -40,7 +44,7 @@ export const givenConnectedProviderWithPaymaster = async ({
     rpcProvider: publicClient,
     signer: signer,
     version: "3.0.2",
-    index: 0n,
+    index: index,
 
     bundlerClientConfig: {
       bundlerUrl: "https://beta.okex.org",

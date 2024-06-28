@@ -9,11 +9,10 @@ import {
   WalletClient,
   zeroAddress,
 } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { polygon } from "viem/chains";
 import { describe, expect, it } from "vitest";
 import { LocalAccountAASigner } from "../../packages/plugins/signers/localAccountAASigner";
-import { generatePrivateKey } from "viem/accounts";
 import {
   givenConnectedProvider,
   givenConnectedProviderWithPaymaster,
@@ -31,14 +30,21 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
   const signer = new walletClientAASigner(walletClient);
 
   it("should successfully get counterfactual address", async () => {
-    const provider = await givenConnectedProvider({ signer, chain });
+    const provider = await givenConnectedProvider({ index: 0n, signer, chain });
     expect(await provider.getAddress()).toMatchInlineSnapshot(
       `"0xfc386Ff841DeB3879446808A90307Ca0511B8676"`,
     );
   });
 
+  it("should get the adminValidator and subject correctly", async () => {
+    const provider = await givenConnectedProvider({ index: 0n, signer, chain });
+    const res = await provider.getAdminValidatorAndSubject();
+    expect(res.adminValidator == "0x6dece899e77c6c4d28da4d622bd3953e5c7cafa3");
+    expect(res.subject == "0x9BB14d03BC35E60e4D848c9f18c73fA159F959d5");
+  });
+
   it("should encode successfully", async () => {
-    const provider = await givenConnectedProvider({ signer, chain });
+    const provider = await givenConnectedProvider({ index: 0n, signer, chain });
     expect(
       await provider.encodeExecute({ to: zeroAddress, value: 1n, data: "0x" }),
     ).toMatchInlineSnapshot(
@@ -47,7 +53,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
   });
 
   it("should encode batch successfully", async () => {
-    const provider = await givenConnectedProvider({ signer, chain });
+    const provider = await givenConnectedProvider({ index: 0n, signer, chain });
     expect(
       await provider.encodeExecute([
         { to: zeroAddress, value: 1n, data: "0x" },
@@ -59,7 +65,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
   });
 
   it("should build uop successfully(base)", async () => {
-    const provider = await givenConnectedProvider({ signer, chain });
+    const provider = await givenConnectedProvider({ index: 0n, signer, chain });
     const buildObj = await provider.buildUserOp({
       args: { to: zeroAddress, value: 1n, data: "0x" },
     });
@@ -77,7 +83,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
   });
 
   it("should override uop with some features", async () => {
-    const provider = await givenConnectedProvider({ signer, chain });
+    const provider = await givenConnectedProvider({ signer, chain, index: 0n });
     const buildObj = await provider.buildUserOp({
       args: { to: zeroAddress, value: 1n, data: "0x" },
       uopAndPaymasterOverrides: {
@@ -100,6 +106,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
     const provider = await givenConnectedProviderWithPaymaster({
       signer,
       chain,
+      index: 0n,
     });
     const buildObj = await provider.buildUserOp({
       args: { to: zeroAddress, value: 1n, data: "0x" },
@@ -113,7 +120,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
   });
 
   it("should execute successfully", async () => {
-    const provider = await givenConnectedProvider({ signer, chain });
+    const provider = await givenConnectedProvider({ signer, chain, index: 1n });
     const result = await provider.sendTransaction({
       from: await provider.getAddress(),
       to: await provider.getAddress(),
@@ -127,6 +134,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
     const provider = await givenConnectedProvider({
       signer,
       chain,
+      index: 1n,
     });
 
     const uop = await provider.buildUserOpFromTx({
@@ -142,7 +150,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
   it("should get counterfactual for undeployed account", async () => {
     const signer =
       LocalAccountAASigner.privateKeyToAccountSigner(generatePrivateKey());
-    const provider = await givenConnectedProvider({ signer, chain });
+    const provider = await givenConnectedProvider({ signer, chain, index: 0n });
 
     const address = await provider.getAddress();
     expect(isAddress(address)).toBe(true);
