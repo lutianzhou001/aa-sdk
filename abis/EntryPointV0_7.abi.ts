@@ -330,7 +330,9 @@ export const entrypointV0_7Abi = [
     type: "event",
   },
   {
-    inputs: [{ internalType: "uint32", name: "unstakeDelaySec", type: "uint32" }],
+    inputs: [
+      { internalType: "uint32", name: "unstakeDelaySec", type: "uint32" },
+    ],
     name: "addStake",
     outputs: [],
     stateMutability: "payable",
@@ -594,7 +596,9 @@ export const entrypointV0_7Abi = [
       { internalType: "bytes", name: "context", type: "bytes" },
     ],
     name: "innerHandleOp",
-    outputs: [{ internalType: "uint256", name: "actualGasCost", type: "uint256" }],
+    outputs: [
+      { internalType: "uint256", name: "actualGasCost", type: "uint256" },
+    ],
     stateMutability: "nonpayable",
     type: "function",
   },

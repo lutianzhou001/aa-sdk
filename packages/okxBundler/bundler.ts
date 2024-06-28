@@ -35,7 +35,7 @@ export class BundlerClient implements IBundlerClient {
   async waitForConfirm(uopHash: Hash) {
     // 30s(15times)
     let n = 0;
-    while (n < 15) {
+    while (n < 20) {
       try {
         return await this.getUserOperationReceipt(uopHash);
       } catch (e) {}

@@ -1,0 +1,4 @@
+# Ignored
+build
+coverage
+node_modules
