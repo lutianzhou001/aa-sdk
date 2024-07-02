@@ -45,7 +45,10 @@ async function smoke() {
     },
   });
 
-  console.log(okxSmartContractAccount.getOKXSmartAccountAddress());
+  console.log(
+    "the smart account address is ",
+    okxSmartContractAccount.getOKXSmartAccountAddress(),
+  );
 
   // act just like what you send transaction in ethers.js
   const hash = await okxSmartContractAccount.sendTransaction(
