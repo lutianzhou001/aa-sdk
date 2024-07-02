@@ -44,9 +44,9 @@ import {
 import {
   accountFactoryV3Abi,
   authenticationManagerAbi,
-  BaseValidatorAbi,
   initializeAccountAbi,
   smartAccountV3Abi,
+  validatorAbi,
 } from "../../abis";
 import { ENTRYPOINT_ADDRESS_V07, getPackedUserOperation } from "permissionless";
 import { UserOperation } from "permissionless/types/userOperation";
@@ -240,7 +240,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       })) as Address;
       subject = (await this.rpcProvider.readContract({
         address: adminValidator,
-        abi: BaseValidatorAbi,
+        abi: validatorAbi,
         functionName: "subject",
         args: [],
       })) as Hex;

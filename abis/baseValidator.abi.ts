@@ -1,4 +1,4 @@
-export const BaseValidatorAbi = [
+export const baseValidatorAbi = [
   {
     inputs: [],
     name: "ALREADY_ACTIVATED",
