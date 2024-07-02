@@ -43,7 +43,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
 
   it("should simulate uop successfully", async () => {
     const provider = await givenConnectedProvider({ signer, chain, index: 0n });
-    const uop = await provider.buildUserOp({
+    const uop = await provider.buildUserOpAndSign({
       args: { to: zeroAddress, value: 1n, data: "0x" },
     });
     const result = provider.bundlerClient.simulateUserOperation(uop);
