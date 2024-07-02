@@ -704,6 +704,13 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     } else {
       uopToSign = gasEstimationRes;
     }
+    return uopToSign;
+  }
+
+  async buildUserOpAndSign(
+    params: BuildUserOpParams,
+  ): Promise<UserOperation<"v0.7">> {
+    const uopToSign = await this.buildUserOp(params);
     return {
       ...uopToSign,
       signature: await this.signUserOperation(
@@ -719,7 +726,6 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
    *
    * - Docs: TODO: to impl
    *
-   * @param params - BuildUserOpParams
    * @returns the uop built
    *
    * @example
@@ -739,6 +745,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
    *     signature:
    *       "0x0000000000000000000000000000000000000000000000000000000000667680f3b06e863d4dd76e284e8cf29ae58a357a135c160098970e3a484c690b83c1e65a555c317655fadf14de7ac36626b957f92c521b717513aff9f668a1c07c9b80311b",
    *   });
+   * @param userOperation
    */
   async sendUserOp(userOperation: UserOperation<"v0.7">): Promise<any> {
     const cleanedUop = cleanup(userOperation);

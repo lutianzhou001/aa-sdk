@@ -68,7 +68,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
 
   it("should build uop successfully(base)", async () => {
     const provider = await givenConnectedProvider({ index: 0n, signer, chain });
-    const buildObj = await provider.buildUserOp({
+    const buildObj = await provider.buildUserOpAndSign({
       args: { to: zeroAddress, value: 1n, data: "0x" },
     });
     expect(Number(buildObj.callGasLimit)).gte(0);
@@ -86,7 +86,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
 
   it("should override uop with some features", async () => {
     const provider = await givenConnectedProvider({ signer, chain, index: 0n });
-    const buildObj = await provider.buildUserOp({
+    const buildObj = await provider.buildUserOpAndSign({
       args: { to: zeroAddress, value: 1n, data: "0x" },
       uopAndPaymasterOverrides: {
         callGasLimit: 100000n,
@@ -110,7 +110,7 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
       chain,
       index: 0n,
     });
-    const buildObj = await provider.buildUserOp({
+    const buildObj = await provider.buildUserOpAndSign({
       args: { to: zeroAddress, value: 1n, data: "0x" },
       uopAndPaymasterOverrides: {
         paymasterAddress: policyPaymasterAddress,
