@@ -39,8 +39,10 @@ describe("OKX Smart Account EntryPoint v7 Tests", () => {
   it("should get the adminValidator and subject correctly", async () => {
     const provider = await givenConnectedProvider({ index: 0n, signer, chain });
     const res = await provider.getAdminValidatorAndSubject();
-    expect(res.adminValidator == "0x6dece899e77c6c4d28da4d622bd3953e5c7cafa3");
-    expect(res.subject == "0x9BB14d03BC35E60e4D848c9f18c73fA159F959d5");
+    expect(res.adminValidator).equal(
+      "0x6dece899e77c6c4d28da4d622bd3953e5c7cafa3",
+    );
+    expect(res.subject).equal("0x9BB14d03BC35E60e4D848c9f18c73fA159F959d5");
   });
 
   it("should encode successfully", async () => {
