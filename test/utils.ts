@@ -11,19 +11,13 @@ export const givenConnectedProvider = async ({
   chain: Chain;
   index: bigint;
 }) => {
-  const publicClient: PublicClient = createPublicClient({
-    chain: chain,
-    transport: http(),
-  });
   return await OKXSmartContractAccount.create({
-    rpcProvider: publicClient,
+    chain: chain,
     signer: signer,
     version: "3.0.2",
     index: index,
 
-    bundlerClientConfig: {
-      bundlerUrl: "https://beta.okex.org",
-    },
+    bundlerClient: "https://beta.okex.org",
   });
 };
 
@@ -41,17 +35,13 @@ export const givenConnectedProviderWithPaymaster = async ({
     transport: http(),
   });
   return await OKXSmartContractAccount.create({
-    rpcProvider: publicClient,
+    chain: chain,
     signer: signer,
     version: "3.0.2",
     index: index,
 
-    bundlerClientConfig: {
-      bundlerUrl: "https://beta.okex.org",
-    },
-    paymasterClientConfig: {
-      paymasterUrl: "https://beta.okex.org",
-    },
+    bundlerClient: "https://beta.okex.org",
+    paymasterClient: "https://beta.okex.org",
   });
 };
 

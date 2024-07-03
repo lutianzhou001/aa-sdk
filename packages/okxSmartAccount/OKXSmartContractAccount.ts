@@ -19,12 +19,14 @@ import { BundlerClient } from "../okxBundler/bundler";
 import { PaymasterClient } from "../okxPaymaster/paymaster";
 import {
   Address,
+  createPublicClient,
   encodeAbiParameters,
   encodeFunctionData,
   encodePacked,
   fromHex,
   Hex,
   hexToBigInt,
+  http,
   isHex,
   keccak256,
   PublicClient,
@@ -51,7 +53,7 @@ import {
 import { ENTRYPOINT_ADDRESS_V07, getPackedUserOperation } from "permissionless";
 import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
-import { Chain } from "viem/chains";
+import { Chain, mainnet } from "viem/chains";
 import { BaseError, PaymasterError } from "../common/error";
 import { supportedChains } from "../common/constants";
 
@@ -118,17 +120,26 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
   public static async create(
     params: OKXSmartContractAccountCreationParams,
   ): Promise<OKXSmartContractAccount> {
-    if (
-      !supportedChains.some((obj) => obj.chain === params.rpcProvider.chain)
-    ) {
+    if (!supportedChains.some((obj) => obj.chain === params.chain)) {
       throw new BaseError("CREATE_ACCOUNT_ERROR", "chain not supported");
     }
+
+    let chain: Chain;
+    const findChain =
+      typeof params.chain === "number"
+        ? supportedChains.find((item) => item.chainId === params.chain)
+        : supportedChains.find((item) => item.chain === params.chain);
+
+    if (findChain) {
+      chain = findChain.chain;
+    } else {
+      throw new BaseError("CREATE_ACCOUNT_ERROR", "chain not supported");
+    }
+
     const bundlerClient =
-      params.bundlerClientConfig.bundlerClient ??
-      new BundlerClient(
-        params.bundlerClientConfig.bundlerUrl as string,
-        params.rpcProvider.chain as Chain,
-      );
+      typeof params.bundlerClient === "string"
+        ? new BundlerClient(params.bundlerClient, chain)
+        : params.bundlerClient;
 
     const initializeData = encodeAbiParameters(initializeAccountAbi[0].inputs, [
       await params.signer.getSubject(),
@@ -158,9 +169,19 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       ],
     );
 
+    const rpcProvider = createPublicClient({
+      chain: chain,
+      transport: http(params.rpcUrl ?? undefined),
+    });
+
+    const mainnetRpcProvider = createPublicClient({
+      chain: mainnet,
+      transport: http(params.mainnetClientRpcUrl ?? undefined),
+    });
+
     const accountAddress: Address =
       params.smartAccountAddress ??
-      ((await params.rpcProvider.readContract({
+      ((await rpcProvider.readContract({
         address: getConfig(params.version ?? "3.0.2").factoryAddress,
         abi: accountFactoryV3Abi,
         functionName: "computeAddress",
@@ -190,7 +211,9 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     const commonParams = {
       ...params,
       accountAddress,
-      bundlerClient,
+      mainnetRpcProvider: mainnetRpcProvider,
+      bundlerClient: bundlerClient,
+      rpcProvider: rpcProvider,
       authenticationManagerAddress,
       smartAccountTemplate,
       validatorAddress,
@@ -200,20 +223,20 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       version: params.version ?? "3.0.2",
     };
 
-    if (params.paymasterClientConfig) {
+    if (params.paymasterClient) {
       const paymasterClient =
-        params.paymasterClientConfig.paymasterClient ??
-        new PaymasterClient(
-          params.paymasterClientConfig.paymasterUrl as string,
-          params.rpcProvider.chain as Chain,
-        );
-
+        typeof params.paymasterClient === "string"
+          ? new PaymasterClient(params.paymasterClient as string, chain)
+          : params.paymasterClient;
       return new OKXSmartContractAccount({
         ...commonParams,
         paymasterClient,
       });
     } else {
-      return new OKXSmartContractAccount(commonParams);
+      return new OKXSmartContractAccount({
+        ...commonParams,
+        paymasterClient: undefined,
+      });
     }
   }
 

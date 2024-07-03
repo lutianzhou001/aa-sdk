@@ -1,34 +1,18 @@
 import { privateKeyToAccount } from "viem/accounts";
 import {
-  createPublicClient,
   createWalletClient,
   Hex,
   http,
   publicActions,
-  PublicClient,
   toHex,
   WalletClient,
   zeroAddress,
 } from "viem";
-import { arbitrum, mainnet } from "viem/chains";
+import { arbitrum } from "viem/chains";
 import { walletClientAASigner } from "../packages/plugins";
 import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartContractAccount";
 
 async function smoke() {
-  // this is a public client, it is necessary to have a public client to interact with the blockchain
-  const publicClient: PublicClient = createPublicClient({
-    chain: arbitrum,
-    transport: http(),
-    // "https://arb-mainnet.g.alchemy.com/v2/47SxM1HQgXWeKVL9rYVS6A4LZ8B_Ktk0",
-  });
-
-  const main: PublicClient = createPublicClient({
-    chain: mainnet,
-    transport: http(
-      "https://eth-mainnet.g.alchemy.com/v2/DB0JapVSxzovPY3RaQSydinyWXPlpzi-",
-    ),
-  });
-
   // this is a signer, in this case, I use walletClient to act as a signer
   const walletClient: WalletClient = createWalletClient({
     account: privateKeyToAccount(process.env.WALLET_CLIENT_PRIVATE_KEY as Hex),
@@ -39,19 +23,17 @@ async function smoke() {
 
   // now we create an instance which contains: a rpcProvider(publicClient), a signer(in this case, it is a walletClientSigner), the name and version of the smart account, and the index of it)
   const okxSmartContractAccount = await OKXSmartContractAccount.create({
-    rpcProvider: publicClient,
+    chain: arbitrum,
+    // chain: 421614,
     signer: new walletClientAASigner(walletClient),
     index: 40n,
 
-    mainnetRpcProvider: main,
+    mainnetClientRpcUrl:
+      "https://eth-mainnet.g.alchemy.com/v2/DB0JapVSxzovPY3RaQSydinyWXPlpzi-",
 
     // we need to config the bundlerClient and paymasterClient(optional unless you need a gas sponsor)
-    bundlerClientConfig: {
-      bundlerUrl: "https://beta.okex.org",
-    },
-    paymasterClientConfig: {
-      paymasterUrl: "https://beta.okex.org",
-    },
+    bundlerClient: "https://beta.okex.org",
+    paymasterClient: "https://beta.okex.org",
   });
 
   console.log(okxSmartContractAccount.getOKXSmartAccountAddress());
