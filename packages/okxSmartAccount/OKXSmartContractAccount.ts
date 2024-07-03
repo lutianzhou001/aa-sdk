@@ -53,6 +53,7 @@ import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
 import { Chain } from "viem/chains";
 import { BaseError, PaymasterError } from "../common/error";
+import { supportedChains } from "../common/constants";
 
 export class OKXSmartContractAccount extends BaseSmartContractAccount {
   version: string;
@@ -117,6 +118,11 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
   public static async create(
     params: OKXSmartContractAccountCreationParams,
   ): Promise<OKXSmartContractAccount> {
+    if (
+      !supportedChains.some((obj) => obj.chain === params.rpcProvider.chain)
+    ) {
+      throw new BaseError("CREATE_ACCOUNT_ERROR", "chain not supported");
+    }
     const bundlerClient =
       params.bundlerClientConfig.bundlerClient ??
       new BundlerClient(
@@ -570,7 +576,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       maxPriorityFeePerGas,
     };
 
-    return this.buildUserOp({
+    return this.buildUserOpAndSign({
       args: batch,
       uopAndPaymasterOverrides: cleanup(_overrides),
     });
@@ -618,7 +624,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
             : undefined,
     };
     cleanup(_overrides);
-    return this.buildUserOp({
+    return this.buildUserOpAndSign({
       args: {
         to: request.to as Address,
         value: request.value ? fromHex(request.value, "bigint") : 0n,
@@ -879,8 +885,15 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     uopAndPaymasterOverrides?: UopAndPaymasterOverrides,
   ): Promise<UserOperation<"v0.7">> {
     const baseFeePerPrice = await this.rpcProvider.getGasPrice();
+
+    const findChain = supportedChains.find(
+      (item) => item.chain === this.rpcProvider.chain,
+    );
+
     const maxPriorityFeePerGas =
-      await this.rpcProvider.estimateMaxPriorityFeePerGas();
+      findChain?.isEIP1559 == true
+        ? await this.rpcProvider.estimateMaxPriorityFeePerGas()
+        : baseFeePerPrice;
 
     const preEstimation = {
       ...userOperation,
