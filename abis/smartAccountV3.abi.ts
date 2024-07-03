@@ -27,12 +27,22 @@ export const smartAccountV3Abi = [
   },
   {
     inputs: [],
+    name: "AlreadyInitialized",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "AuthenticationManagerNotAvailable",
     type: "error",
   },
   {
     inputs: [],
     name: "DelegateCallDisabled",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "ERC1167FailedCreateClone",
     type: "error",
   },
   {
@@ -44,6 +54,11 @@ export const smartAccountV3Abi = [
       },
     ],
     name: "IndexTooBig",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidInitialization",
     type: "error",
   },
   {
@@ -74,12 +89,27 @@ export const smartAccountV3Abi = [
   },
   {
     inputs: [],
+    name: "NotFromEntryPointOrController",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "NotFromEntryPointOrSelf",
     type: "error",
   },
   {
     inputs: [],
     name: "NotFromSelf",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "NotInitialized",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "NotInitializing",
     type: "error",
   },
   {
@@ -112,12 +142,28 @@ export const smartAccountV3Abi = [
   {
     inputs: [
       {
+        internalType: "ModeSelector",
+        name: "modeSelector",
+        type: "bytes4",
+      },
+    ],
+    name: "UnsupportedModeSelector",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
         internalType: "uint256",
         name: "moduleType",
         type: "uint256",
       },
     ],
     name: "UnsupportedModuleType",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "ZeroAddress",
     type: "error",
   },
   {
@@ -153,7 +199,26 @@ export const smartAccountV3Abi = [
         type: "bytes",
       },
     ],
-    name: "BatchExeFailed",
+    name: "ExeFailed",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "address",
+        name: "session",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "role",
+        type: "bytes32",
+      },
+    ],
+    name: "HookAssigned",
     type: "event",
   },
   {
@@ -174,9 +239,9 @@ export const smartAccountV3Abi = [
     inputs: [
       {
         indexed: false,
-        internalType: "uint8",
+        internalType: "uint64",
         name: "version",
-        type: "uint8",
+        type: "uint64",
       },
     ],
     name: "Initialized",
@@ -222,6 +287,63 @@ export const smartAccountV3Abi = [
   },
   {
     anonymous: false,
+    inputs: [],
+    name: "MyValidatorRemoved",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "address",
+        name: "newValidator",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "bytes",
+        name: "subject",
+        type: "bytes",
+      },
+    ],
+    name: "Recover",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [],
+    name: "RecoverCancelled",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "address",
+        name: "recoveryModule",
+        type: "address",
+      },
+    ],
+    name: "RecoveryModuleInstalled",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "address",
+        name: "recoveryModule",
+        type: "address",
+      },
+    ],
+    name: "RecoveryModuleUninstalledRequested",
+    type: "event",
+  },
+  {
+    anonymous: false,
     inputs: [
       {
         indexed: true,
@@ -237,6 +359,19 @@ export const smartAccountV3Abi = [
       },
     ],
     name: "SafeReceived",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "bytes",
+        name: "data",
+        type: "bytes",
+      },
+    ],
+    name: "UnresolvedFallbackdata",
     type: "event",
   },
   {
@@ -267,6 +402,19 @@ export const smartAccountV3Abi = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_owner",
+        type: "address",
+      },
+    ],
+    name: "Initialize",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -309,6 +457,13 @@ export const smartAccountV3Abi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "cancelRecover",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "ModeCode",
@@ -322,6 +477,24 @@ export const smartAccountV3Abi = [
       },
     ],
     name: "execute",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "ModeCode",
+        name: "mode",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes",
+        name: "executionCalldata",
+        type: "bytes",
+      },
+    ],
+    name: "executeFromEOA",
     outputs: [],
     stateMutability: "payable",
     type: "function",
@@ -366,6 +539,24 @@ export const smartAccountV3Abi = [
   {
     inputs: [
       {
+        internalType: "address",
+        name: "creator",
+        type: "address",
+      },
+      {
+        internalType: "bytes",
+        name: "",
+        type: "bytes",
+      },
+    ],
+    name: "initialize",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "bytes",
         name: "params",
         type: "bytes",
@@ -402,6 +593,24 @@ export const smartAccountV3Abi = [
   {
     inputs: [
       {
+        internalType: "address",
+        name: "recoveryModule",
+        type: "address",
+      },
+      {
+        internalType: "bytes",
+        name: "data",
+        type: "bytes",
+      },
+    ],
+    name: "installRecoveryModule",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "uint256",
         name: "moduleType",
         type: "uint256",
@@ -413,7 +622,7 @@ export const smartAccountV3Abi = [
       },
       {
         internalType: "bytes",
-        name: "additionalContext",
+        name: "",
         type: "bytes",
       },
     ],
@@ -453,6 +662,13 @@ export const smartAccountV3Abi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "migrate",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "address",
@@ -474,51 +690,24 @@ export const smartAccountV3Abi = [
   {
     inputs: [
       {
-        components: [
-          {
-            internalType: "uint64",
-            name: "validUntil",
-            type: "uint64",
-          },
-          {
-            internalType: "address",
-            name: "validator",
-            type: "address",
-          },
-        ],
-        internalType: "struct IAuthenticationManager.StaleValidator",
-        name: "staleValidator",
-        type: "tuple",
-      },
-      {
-        components: [
-          {
-            internalType: "uint64",
-            name: "validFrom",
-            type: "uint64",
-          },
-          {
-            internalType: "uint64",
-            name: "validUntil",
-            type: "uint64",
-          },
-          {
-            internalType: "bytes",
-            name: "subject",
-            type: "bytes",
-          },
-        ],
-        internalType: "struct ISession.Session",
-        name: "newValidator",
-        type: "tuple",
-      },
-      {
         internalType: "address",
         name: "newValidatorTemplate",
         type: "address",
       },
+      {
+        internalType: "bytes",
+        name: "_subject",
+        type: "bytes",
+      },
     ],
     name: "recover",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "removeMyValidator",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -582,6 +771,19 @@ export const smartAccountV3Abi = [
     name: "uninstallModule",
     outputs: [],
     stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "recoveryModule",
+        type: "address",
+      },
+    ],
+    name: "uninstallRecoveryModule",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
