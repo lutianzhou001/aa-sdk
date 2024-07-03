@@ -10,22 +10,29 @@ import {
   WalletClient,
   zeroAddress,
 } from "viem";
-import { polygon } from "viem/chains";
-import { walletClientAASigner } from "../packages/plugins/signers/walletClientAASigner";
+import { arbitrum, mainnet } from "viem/chains";
+import { walletClientAASigner } from "../packages/plugins";
 import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartContractAccount";
 
 async function smoke() {
   // this is a public client, it is necessary to have a public client to interact with the blockchain
   const publicClient: PublicClient = createPublicClient({
-    chain: polygon,
+    chain: arbitrum,
     transport: http(),
     // "https://arb-mainnet.g.alchemy.com/v2/47SxM1HQgXWeKVL9rYVS6A4LZ8B_Ktk0",
+  });
+
+  const main: PublicClient = createPublicClient({
+    chain: mainnet,
+    transport: http(
+      "https://eth-mainnet.g.alchemy.com/v2/DB0JapVSxzovPY3RaQSydinyWXPlpzi-",
+    ),
   });
 
   // this is a signer, in this case, I use walletClient to act as a signer
   const walletClient: WalletClient = createWalletClient({
     account: privateKeyToAccount(process.env.WALLET_CLIENT_PRIVATE_KEY as Hex),
-    chain: polygon,
+    chain: arbitrum,
     transport: http(),
     // "https://arb-mainnet.g.alchemy.com/v2/47SxM1HQgXWeKVL9rYVS6A4LZ8B_Ktk0",
   }).extend(publicActions);
@@ -34,7 +41,9 @@ async function smoke() {
   const okxSmartContractAccount = await OKXSmartContractAccount.create({
     rpcProvider: publicClient,
     signer: new walletClientAASigner(walletClient),
-    index: 4n,
+    index: 40n,
+
+    mainnetRpcProvider: main,
 
     // we need to config the bundlerClient and paymasterClient(optional unless you need a gas sponsor)
     bundlerClientConfig: {
