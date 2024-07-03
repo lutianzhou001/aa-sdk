@@ -1,18 +1,18 @@
-import {privateKeyToAccount} from "viem/accounts";
+import { privateKeyToAccount } from "viem/accounts";
 import {
-    createPublicClient,
-    createWalletClient,
-    Hex,
-    http,
-    publicActions,
-    toHex,
-    WalletClient,
-    zeroAddress,
+  createPublicClient,
+  createWalletClient,
+  Hex,
+  http,
+  publicActions,
+  toHex,
+  WalletClient,
+  zeroAddress,
 } from "viem";
-import {polygon} from "viem/chains";
-import {walletClientAASigner} from "../packages/plugins";
-import {OKXSmartContractAccount} from "../packages/okxSmartAccount/OKXSmartContractAccount";
-import {PaymasterMode} from "../packages/okxSmartAccount/types";
+import { polygon } from "viem/chains";
+import { walletClientAASigner } from "../packages/plugins";
+import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartContractAccount";
+import { PaymasterMode } from "../packages/okxSmartAccount/types";
 
 async function sendTransactionWithPaymaster() {
   const walletClient: WalletClient = createWalletClient({
