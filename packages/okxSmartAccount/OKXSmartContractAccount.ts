@@ -120,10 +120,6 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
   public static async create(
     params: OKXSmartContractAccountCreationParams,
   ): Promise<OKXSmartContractAccount> {
-    if (!supportedChains.some((obj) => obj.chain === params.chain)) {
-      throw new BaseError("CREATE_ACCOUNT_ERROR", "chain not supported");
-    }
-
     let chain: Chain;
     const findChain =
       typeof params.chain === "number"

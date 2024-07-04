@@ -1,5 +1,5 @@
-import { LocalAccountAASigner } from "../../packages/plugins/signers/localAccountAASigner";
-import { describe, it, expect } from "vitest";
+import { LocalAccountAASigner } from "../../packages/plugins";
+import { describe, expect, it } from "vitest";
 
 describe("Local Account Signer Tests", () => {
   describe("Using HD Account", () => {
