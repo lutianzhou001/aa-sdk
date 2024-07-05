@@ -57,6 +57,13 @@ export type BaseSmartContractAccountConstructParams<
   accountAddress?: Address;
 };
 
+export type OKXSmartContractAccountSDKParams = {
+  bundlerClientUrl: string;
+  paymasterClientUrl?: string;
+  mainnetClientUrl?: string;
+  rpcUrl?: string;
+};
+
 export type OKXSmartContractAccountConstructorParams<
   TSigner extends OKXAASigner = OKXAASigner,
 > = BaseSmartContractAccountConstructParams<TSigner> & {
@@ -72,6 +79,22 @@ export type OKXSmartContractAccountConstructorParams<
 
   // for layer2(s), need to get mainnet gasFee to make gas estimation
   mainnetRpcProvider?: PublicClient;
+};
+
+export type OKXSmartContractAccountCreationFromSDKParams<
+  TSigner extends OKXAASigner = OKXAASigner,
+> = {
+  signer: TSigner;
+  chain: number | Chain;
+
+  version?: string;
+  rpcUrl?: string;
+
+  smartAccountAddress?: Address;
+  factoryAddress?: Address;
+  smartAccountTemplate?: Address;
+  authenticationManagerTemplate?: Address;
+  index?: bigint;
 };
 
 export type OKXSmartContractAccountCreationParams<
