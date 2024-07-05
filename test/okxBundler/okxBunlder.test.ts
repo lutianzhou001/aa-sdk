@@ -1,4 +1,4 @@
-import { walletClientAASigner } from "../../packages/plugins/signers/walletClientAASigner";
+import { walletClientAASigner } from "../../packages/plugins";
 import {
   Chain,
   createWalletClient,

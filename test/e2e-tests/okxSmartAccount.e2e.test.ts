@@ -1,4 +1,7 @@
-import { walletClientAASigner } from "../../packages/plugins/signers/walletClientAASigner";
+import {
+  LocalAccountAASigner,
+  walletClientAASigner,
+} from "../../packages/plugins";
 import {
   Chain,
   createWalletClient,
@@ -12,7 +15,6 @@ import {
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { polygon } from "viem/chains";
 import { describe, expect, it } from "vitest";
-import { LocalAccountAASigner } from "../../packages/plugins/signers/localAccountAASigner";
 import {
   givenConnectedProvider,
   givenConnectedProviderWithPaymaster,

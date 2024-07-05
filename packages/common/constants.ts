@@ -30,48 +30,70 @@ export const configs: OKXSmartContractAccountConfig[] = [
 export const supportedChains = [
   { chain: polygon, isEIP1559: true },
   {
+    chainId: 421614,
     chain: arbitrumSepolia,
     isEIP1559: false,
+    layer2: true,
   },
   {
+    chainId: 196,
     chain: xLayer,
     isEIP1559: false,
+    layer2: true,
   },
   {
+    chainId: 195,
     chain: xLayerTestnet,
     isEIP1559: false,
+    layer2: true,
   },
   {
+    chainId: 11155111,
     chain: sepolia,
     isEIP1559: true,
+    layer2: false,
   },
   {
+    chainId: 56,
     chain: bsc,
     isEIP1559: false,
+    layer2: false,
   },
   {
+    chainId: 66,
     chain: okc,
     isEIP1559: false,
+    layer2: false,
   },
   {
+    chainId: 59144,
     chain: linea,
     isEIP1559: true,
+    layer2: true,
   },
   {
+    chainId: 43114,
     chain: avalanche,
     isEIP1559: true,
+    layer2: false,
   },
   {
+    chainId: 10,
     chain: optimism,
     isEIP1559: true,
+    layer2: true,
   },
   {
+    chainId: 1,
     chain: mainnet,
     isEIP1559: true,
+    layer2: false,
   },
   {
+    chainId: 42161,
     chain: arbitrum,
     isEIP1559: false,
+    layer2: true,
   },
 ];
 
