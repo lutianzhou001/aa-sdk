@@ -8,17 +8,12 @@ import {
   SignableMessage,
   SignTypedDataParameters,
 } from "viem";
-import { ENTRYPOINT_ADDRESS_V07, isSmartAccountDeployed } from "permissionless";
-import { ISmartContractAccount } from "./interfaces/ISmartAccount";
-import { entrypointV0_7Abi } from "../../abis";
-import { OKXAASigner } from "../plugins/interfaces/OKXAASigner";
-import {
-  BaseSmartContractAccountConstructParams,
-  ExecuteCallDataArgs,
-  ExecutionModeOverrides,
-  SigType,
-} from "./types";
-import { UserOperation } from "permissionless/types/userOperation";
+import {ENTRYPOINT_ADDRESS_V07, isSmartAccountDeployed} from "permissionless";
+import {ISmartContractAccount} from "./interfaces/ISmartAccount";
+import {entrypointV0_7Abi} from "../../abis";
+import {OKXAASigner} from "../plugins/interfaces/OKXAASigner";
+import {BaseSmartContractAccountConstructParams, ExecuteCallDataArgs, ExecutionModeOverrides, SigType,} from "./types";
+import {UserOperation} from "permissionless/types/userOperation";
 
 export enum DeploymentState {
   UNDEFINED = "0x0",
@@ -30,24 +25,17 @@ export abstract class BaseSmartContractAccount<
   TSigner extends OKXAASigner = OKXAASigner,
 > implements ISmartContractAccount<TSigner>
 {
+  readonly rpcProvider: PublicClient;
   protected factoryAddress: Address;
-
   protected deploymentState: DeploymentState = DeploymentState.UNDEFINED;
-
   protected accountAddress?: Address;
-
   protected accountInitCode?: Hex;
-
   protected signer: TSigner;
-
   protected entryPoint: GetContractReturnType<
     typeof entrypointV0_7Abi,
     PublicClient
   >;
-
   protected entryPointAddress: Address;
-
-  readonly rpcProvider: PublicClient;
 
   constructor(params: BaseSmartContractAccountConstructParams) {
     this.entryPointAddress = params.entryPointAddress ?? ENTRYPOINT_ADDRESS_V07;
@@ -84,17 +72,6 @@ export abstract class BaseSmartContractAccount<
   abstract encodeExecute(
     args: ExecuteCallDataArgs,
     execMode?: ExecutionModeOverrides,
-  ): Promise<Hex>;
-
-  /**
-   * this should return the init code that will be used to create an account if one does not exist.
-   * This is the concatenation of the account's factory address and the abi encoded function data of the account factory's `createAccount` method.
-   * https://github.com/eth-infinitism/account-abstraction/blob/abff2aca61a8f0934e533d0d352978055fddbd96/contracts/core/SenderCreator.sol#L12
-   */
-  protected abstract getAccountInitCode(): Promise<Hex>;
-
-  protected abstract getPaymasterAndData(
-    userOperation: UserOperation<"v0.7">,
   ): Promise<Hex>;
 
   /**
@@ -147,13 +124,17 @@ export abstract class BaseSmartContractAccount<
   ): Promise<Hex> => {
     throw new Error("Upgrade ToAndCall Not Supported");
   };
-  //#endregion optional-methods
 
   // Extra implementations
   async getNonce(nonceKey: bigint): Promise<bigint> {
     const address = await this.getAddress();
     // @ts-ignore
-    return await this.entryPoint.read.getNonce([address, nonceKey]);
+    return await this.rpcProvider.readContract({
+      address: this.entryPointAddress,
+      abi: entrypointV0_7Abi,
+      functionName: "getNonce",
+      args: [address, nonceKey],
+    });
   }
 
   async getInitCode(): Promise<Hex> {
@@ -174,6 +155,7 @@ export abstract class BaseSmartContractAccount<
 
     return this._getAccountInitCode();
   }
+  //#endregion optional-methods
 
   async getAddress(): Promise<Address> {
     if (!this.accountAddress) {
@@ -233,6 +215,17 @@ export abstract class BaseSmartContractAccount<
     }
     return this.deploymentState;
   }
+
+  /**
+   * this should return the init code that will be used to create an account if one does not exist.
+   * This is the concatenation of the account's factory address and the abi encoded function data of the account factory's `createAccount` method.
+   * https://github.com/eth-infinitism/account-abstraction/blob/abff2aca61a8f0934e533d0d352978055fddbd96/contracts/core/SenderCreator.sol#L12
+   */
+  protected abstract getAccountInitCode(): Promise<Hex>;
+
+  protected abstract getPaymasterAndData(
+    userOperation: UserOperation<"v0.7">,
+  ): Promise<Hex>;
 
   /**
    * https://eips.ethereum.org/EIPS/eip-4337#first-time-account-creation
