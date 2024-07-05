@@ -1,6 +1,9 @@
 import { OKXAASigner } from "../packages/plugins/interfaces/OKXAASigner";
 import { Chain, createPublicClient, http, PublicClient } from "viem";
-import { OKXSmartContractAccount } from "../packages/okxSmartAccount/OKXSmartContractAccount";
+import {
+  OKXSmartAccountSDK,
+  OKXSmartContractAccount,
+} from "../packages/okxSmartAccount/OKXSmartContractAccount";
 
 export const givenConnectedProvider = async ({
   signer,
@@ -11,13 +14,14 @@ export const givenConnectedProvider = async ({
   chain: Chain;
   index: bigint;
 }) => {
-  return await OKXSmartContractAccount.create({
+  const sdk = new OKXSmartAccountSDK({
+    bundlerClientUrl: "https://beta.okex.org",
+  });
+  return await sdk.createOKXSmartContractAccount({
     chain: chain,
     signer: signer,
     version: "3.0.2",
     index: index,
-
-    bundlerClient: "https://beta.okex.org",
   });
 };
 

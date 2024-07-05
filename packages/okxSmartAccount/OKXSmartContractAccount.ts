@@ -2,14 +2,15 @@ import {
   BaseSmartContractAccount,
   DeploymentState,
 } from "./BaseSmartContractAccount";
-import { IPaymasterClient } from "../okxPaymaster/interfaces/IPaymaster";
 import { IBundlerClient } from "../okxBundler/interfaces/IBundler";
 import {
   BuildUserOpParams,
   ExecuteCallDataArgs,
   ExecutionModeOverrides,
   OKXSmartContractAccountConstructorParams,
+  OKXSmartContractAccountCreationFromSDKParams,
   OKXSmartContractAccountCreationParams,
+  OKXSmartContractAccountSDKParams,
   PaymasterMode,
   SigType,
   UopAndPaymasterOverrides,
@@ -56,6 +57,38 @@ import { getChainId } from "viem/actions";
 import { Chain, mainnet } from "viem/chains";
 import { BaseError, PaymasterError } from "../common/error";
 import { supportedChains } from "../common/constants";
+import { IPaymasterClient } from "../okxPaymaster/interfaces/IPaymaster";
+
+export class OKXSmartAccountSDK {
+  bundlerClientUrl: string;
+  paymasterClientUrl?: string;
+  mainnetClientUrl?: string;
+  rpcUrl?: string;
+  constructor(params: OKXSmartContractAccountSDKParams) {
+    this.bundlerClientUrl = params.bundlerClientUrl;
+    this.paymasterClientUrl = params.paymasterClientUrl;
+    this.mainnetClientUrl = params.mainnetClientUrl;
+    this.rpcUrl = params.rpcUrl;
+  }
+  async createOKXSmartContractAccount(
+    params: OKXSmartContractAccountCreationFromSDKParams,
+  ) {
+    return await OKXSmartContractAccount.create({
+      signer: params.signer,
+      chain: params.chain,
+      index: params.index,
+      smartAccountAddress: params.smartAccountAddress,
+      version: params.version,
+      factoryAddress: params.factoryAddress,
+      smartAccountTemplate: params.smartAccountTemplate,
+      authenticationManagerTemplate: params.authenticationManagerTemplate,
+      mainnetClientRpcUrl: this.mainnetClientUrl,
+      bundlerClient: this.bundlerClientUrl,
+      paymasterClient: this.paymasterClientUrl,
+      rpcUrl: this.rpcUrl,
+    });
+  }
+}
 
 export class OKXSmartContractAccount extends BaseSmartContractAccount {
   version: string;
