@@ -37,9 +37,12 @@ export class walletClientAASigner<T extends WalletClient = WalletClient>
   }
 
   async signTypedData(args: SignTypedDataParameters): Promise<Hex> {
-    if (!this.inner.account) {
-      throw new Error("not impl");
+    if (!this.inner?.account?.signTypedData) {
+      return this.inner.signTypedData(args);
+    } else {
+      // now we use LocalAccount SignTypedData
+      // @ts-ignore
+      return this.inner.account.signTypedData(args);
     }
-    return (this.inner.account as unknown as WalletClient).signTypedData(args);
   }
 }
