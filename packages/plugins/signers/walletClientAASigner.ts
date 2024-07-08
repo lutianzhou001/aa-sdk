@@ -40,7 +40,6 @@ export class walletClientAASigner<T extends WalletClient = WalletClient>
     if (!this.inner.account) {
       throw new Error("not impl");
     }
-    // @ts-ignore
-    return this.inner.account.signTypedData(args);
+    return (this.inner.account as unknown as WalletClient).signTypedData(args);
   }
 }
