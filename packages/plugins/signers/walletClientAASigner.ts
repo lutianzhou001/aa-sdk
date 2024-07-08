@@ -32,7 +32,7 @@ export class walletClientAASigner<T extends WalletClient = WalletClient>
     const account = this.inner.account ?? (await this.getSubject());
     return this.inner.signMessage({
       account,
-      message,
+      message: { raw: message as `0x${string}` },
     });
   }
 

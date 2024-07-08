@@ -773,7 +773,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       ...uopToSign,
       signature: await this.signUserOperation(
         uopToSign,
-        params.sigType ?? SigType.EIP712,
+        params.sigType ?? SigType.EIP191,
         params.sigTime,
       ),
     };
