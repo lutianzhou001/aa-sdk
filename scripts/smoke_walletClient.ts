@@ -12,7 +12,7 @@ import { arbitrum } from "viem/chains";
 import { walletClientAASigner } from "../packages/plugins";
 import { OKXSmartAccountSDK } from "../packages/okxSmartAccount/OKXSmartContractAccount";
 
-async function smoke() {
+async function smoke_walletClient() {
   // this is a signer, in this case, I use walletClient to act as a signer
   const walletClient: WalletClient = createWalletClient({
     account: privateKeyToAccount(process.env.WALLET_CLIENT_PRIVATE_KEY as Hex),
@@ -38,8 +38,6 @@ async function smoke() {
       signer: new walletClientAASigner(walletClient),
       index: 40n,
     });
-
-  console.log(okxSmartContractAccount.getOKXSmartAccountAddress());
 
   // act just like what you send transaction in ethers.js
   const hash = await okxSmartContractAccount.sendTransaction(
@@ -79,4 +77,6 @@ async function smoke() {
   console.log("successfully get the hash", res);
 }
 
-smoke().then(() => console.log("successfully make a smoke test"));
+smoke_walletClient().then(() =>
+  console.log("successfully make a smoke_walletClient test"),
+);

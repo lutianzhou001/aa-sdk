@@ -18,7 +18,7 @@ yarn
 ## quick start
 
 ```typescript
-async function smoke() {
+async function smoke_walletClient() {
   // this is a public client, it is necessary to have a public client to interact with the blockchain
   const publicClient: PublicClient = createPublicClient({
     chain: polygon,
