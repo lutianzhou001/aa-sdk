@@ -425,6 +425,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     sigType: SigType,
     userOperation: UserOperation<"v0.7">,
   ): Promise<Hex> {
+    const packedUserOperation = getPackedUserOperation(cleanup(userOperation));
     const deploymentState: DeploymentState = await this.getDeploymentState();
     return (await this.rpcProvider.readContract({
       address:
@@ -436,7 +437,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       args: [
         sigType === SigType.EIP712 ? 0 : 1,
         ENTRYPOINT_ADDRESS_V07,
-        userOperation,
+        packedUserOperation,
       ],
     })) as Hex;
   }
