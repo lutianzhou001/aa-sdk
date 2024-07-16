@@ -34,7 +34,6 @@ import {
   RpcTransactionRequest,
   toHex,
   zeroAddress,
-  zeroHash,
 } from "viem";
 import {
   bigIntMax,
@@ -714,6 +713,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       throw new BaseError("BUILD_USER_OP_ERROR", "ACCOUNT_ADDRESS_NOT_FOUND");
     }
     const factoryAndFactoryData = await this.parseFactoryAddressAndData();
+    const sigTime = params.sigTime ?? (await getSigTime(this.rpcProvider));
     const userOperation: UserOperation<"v0.7"> = {
       factory:
         this.deploymentState === DeploymentState.DEPLOYED
@@ -731,7 +731,10 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       preVerificationGas: 0n,
       maxFeePerGas: 0n,
       maxPriorityFeePerGas: 0n,
-      signature: zeroHash,
+      signature: encodePacked(
+        ["uint8", "uint256"],
+        [params.sigType == "EIP712" ? 0 : 1, sigTime],
+      ),
       paymaster: params.uopAndPaymasterOverrides?.paymasterAddress ?? undefined,
       paymasterVerificationGasLimit: params.uopAndPaymasterOverrides
         ?.paymasterAddress
