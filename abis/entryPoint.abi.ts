@@ -1,4 +1,4 @@
-export const EntryPointAbi = [
+export const entryPointAbi = [
   {
     inputs: [
       {

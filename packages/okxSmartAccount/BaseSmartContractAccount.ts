@@ -10,7 +10,7 @@ import {
 } from "viem";
 import { ENTRYPOINT_ADDRESS_V07, isSmartAccountDeployed } from "permissionless";
 import { ISmartContractAccount } from "./interfaces/ISmartAccount";
-import { entrypointV0_7Abi } from "../../abis";
+import { entryPointV0_7Abi } from "../../abis";
 import { OKXAASigner } from "../plugins/interfaces/OKXAASigner";
 import {
   BaseSmartContractAccountConstructParams,
@@ -37,7 +37,7 @@ export abstract class BaseSmartContractAccount<
   protected accountInitCode?: Hex;
   protected signer: TSigner;
   protected entryPoint: GetContractReturnType<
-    typeof entrypointV0_7Abi,
+    typeof entryPointV0_7Abi,
     PublicClient
   >;
   protected entryPointAddress: Address;
@@ -55,7 +55,7 @@ export abstract class BaseSmartContractAccount<
 
     this.entryPoint = getContract({
       address: this.entryPointAddress,
-      abi: entrypointV0_7Abi,
+      abi: entryPointV0_7Abi,
       client: this.rpcProvider as PublicClient,
     });
   }
@@ -136,7 +136,7 @@ export abstract class BaseSmartContractAccount<
     // @ts-ignore
     return await this.rpcProvider.readContract({
       address: this.entryPointAddress,
-      abi: entrypointV0_7Abi,
+      abi: entryPointV0_7Abi,
       functionName: "getNonce",
       args: [address, nonceKey],
     });
