@@ -1,7 +1,7 @@
 import { encodePacked, Hex, keccak256, PublicClient, toHex } from "viem";
 import { Address } from "abitype";
 import axios from "axios";
-import { ExecutionModeOverrides, SigType } from "../okxSmartAccount/types";
+import { ExecutionModeOverrides } from "../okxSmartAccount/types";
 import { configs } from "./constants";
 
 export function bigIntToBytes16(bigInt: bigint): Uint8Array {
@@ -10,6 +10,31 @@ export function bigIntToBytes16(bigInt: bigint): Uint8Array {
     bytes[15 - i] = Number((bigInt >> (8n * BigInt(i))) & 0xffn);
   }
   return bytes;
+}
+
+export function convertToBigInt(value: object): any {
+  const result: { [key: string]: any } = {};
+  for (const [key, val] of Object.entries(value)) {
+    if (
+      typeof val == "string" &&
+      val.startsWith("0x") &&
+      [
+        "nonce",
+        "callGasLimit",
+        "verificationGasLimit",
+        "preVerificationGas",
+        "maxFeePerGas",
+        "maxPriorityFeePerGas",
+        "paymasterVerificationGasLimit",
+        "paymasterPostOpGasLimit",
+      ].includes(key)
+    ) {
+      result[key] = BigInt(val);
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
 }
 
 export function convertToHex(value: object): any {
