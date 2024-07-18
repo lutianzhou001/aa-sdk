@@ -3,6 +3,7 @@ import { arbitrum } from "viem/chains";
 import { remoteSigner } from "../packages/plugins";
 import { OKXSmartAccountSDK } from "../packages/okxSmartAccount/OKXSmartContractAccount";
 import { JWT_VALIDATOR_TEMPLATE } from "../packages/common/constants";
+import { convertToHex } from "../packages/common";
 
 async function smoke_remoteSigner() {
   // now we create an instance which contains: a rpcProvider(publicClient), a signer(in this case, it is a walletClientSigner), the name and version of the smart account, and the index of it)
@@ -26,7 +27,18 @@ async function smoke_remoteSigner() {
       index: 0n,
     });
 
-  await okxSmartContractAccount.buildUserOp({ args: "0x" });
+  const v = await okxSmartContractAccount.buildUserOp({
+    args: "0x",
+    uopAndPaymasterOverrides: {
+      callGasLimit: 900000n,
+      verificationGasLimit: 900000n,
+      preVerificationGas: 900000n,
+      maxFeePerGas: 10000000n,
+      maxPriorityFeePerGas: 10000000n,
+    },
+  });
+
+  console.log(convertToHex(v));
 }
 
 smoke_remoteSigner().then(() =>
