@@ -1,4 +1,4 @@
-import { Address, zeroAddress } from "viem";
+import { Address } from "viem";
 import { arbitrum } from "viem/chains";
 import { remoteSigner } from "../packages/plugins";
 import { OKXSmartAccountSDK } from "../packages/okxSmartAccount/OKXSmartContractAccount";
@@ -19,9 +19,14 @@ async function smoke_remoteSigner() {
     await okxSmartContractAccountSDK.createOKXSmartContractAccount({
       chain: arbitrum,
       // chain: 421614,
-      signer: new remoteSigner(zeroAddress, JWT_VALIDATOR_TEMPLATE as Address),
-      index: 40n,
+      signer: new remoteSigner(
+        "0x313031323432353730323934353239343330393038",
+        JWT_VALIDATOR_TEMPLATE as Address,
+      ),
+      index: 0n,
     });
+
+  console.log(okxSmartContractAccount);
 }
 
 smoke_remoteSigner().then(() =>
