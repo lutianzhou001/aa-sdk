@@ -1,4 +1,4 @@
-import { Address } from "viem";
+import { Address, Hex, hexToBigInt } from "viem";
 import { arbitrum } from "viem/chains";
 import { remoteSigner } from "../packages/plugins";
 import { OKXSmartAccountSDK } from "../packages/okxSmartAccount/OKXSmartContractAccount";
@@ -29,6 +29,7 @@ async function smoke_remoteSigner() {
 
   const v = await okxSmartContractAccount.buildUserOp({
     args: "0x",
+    sigTime: hexToBigInt("0x69696969" as Hex),
     uopAndPaymasterOverrides: {
       callGasLimit: 900000n,
       verificationGasLimit: 900000n,
