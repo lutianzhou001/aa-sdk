@@ -40,8 +40,13 @@ async function smoke_remoteSigner() {
       maxPriorityFeePerGas: 10000000n,
     },
   });
-
   console.log(convertToHex(v));
+
+  const signedUOPHash = await okxSmartContractAccount.getUOPSignedHash(
+    SigType.EIP712,
+    v,
+  );
+  console.log(signedUOPHash);
 }
 
 smoke_remoteSigner().then(() =>
