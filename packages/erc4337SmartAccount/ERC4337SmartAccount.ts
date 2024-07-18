@@ -631,6 +631,15 @@ export class ERC4337SmartAccount<
     });
   }
 
+  extend = <R>(fn: (self: this) => R): this & R => {
+    const extended = fn(this) as any;
+    // this should make it so extensions can't overwrite the base methods
+    for (const key in this) {
+      delete extended[key];
+    }
+    return Object.assign(this, extended);
+  };
+
   private async mockUserOperationPackedWithTokenPayMaster(
     tokenPayMaster: Address,
     tokenAddress: Address,
@@ -649,13 +658,4 @@ export class ERC4337SmartAccount<
       ],
     );
   }
-
-  extend = <R>(fn: (self: this) => R): this & R => {
-    const extended = fn(this) as any;
-    // this should make it so extensions can't overwrite the base methods
-    for (const key in this) {
-      delete extended[key];
-    }
-    return Object.assign(this, extended);
-  };
 }

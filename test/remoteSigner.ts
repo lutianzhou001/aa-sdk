@@ -1,4 +1,4 @@
-import {createPublicClient, http,} from "viem";
+import {createPublicClient, Hex, hexToBigInt, http,} from "viem";
 import {arbitrum} from "viem/chains";
 import {ERC4337SmartAccount} from "../packages/erc4337SmartAccount/ERC4337SmartAccount";
 import {ExternalSigner} from "../packages/plugins/signers/externalSigner";
@@ -22,9 +22,7 @@ async function remoteSignerTest() {
 
   const v = await smartAccount.accountManager.createNewAccount(0n, []);
 
-  console.log(v)
-
-  const generated = await smartAccount.generateUserOperation({sigType : "EIP712", uop: {sender: "0x8e3d83375ACD5a96C7d5B53F73210651C79504a5", callData: "0x"}})
+  const generated = await smartAccount.generateUserOperation({sigType : "EIP712", uop: {sender: "0x8e3d83375ACD5a96C7d5B53F73210651C79504a5", callData: "0x"}, _sigTime: hexToBigInt("0x69696969" as Hex)});
   console.log(generated);
 }
 
