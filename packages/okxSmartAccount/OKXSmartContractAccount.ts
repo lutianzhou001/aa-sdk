@@ -752,6 +752,8 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     };
     let uopToSign: UserOperation<"v0.7">;
     const gasEstimationRes = await this.gasEstimation(
+      params.sigType ?? SigType.EIP191,
+      sigTime,
       userOperation,
       params.uopAndPaymasterOverrides,
     );
@@ -937,6 +939,8 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
   }
 
   private async gasEstimation(
+    sigType: SigType,
+    sigTime: bigint,
     userOperation: UserOperation<"v0.7">,
     uopAndPaymasterOverrides?: UopAndPaymasterOverrides,
   ): Promise<UserOperation<"v0.7">> {
@@ -963,7 +967,6 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       preEstimation.maxFeePerGas = preEstimation.maxPriorityFeePerGas;
     }
 
-    console.log(preEstimation);
     const result =
       await this.bundlerClient.estimateUserOperationGas(preEstimation);
 
@@ -987,6 +990,10 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
 
     return {
       ...preEstimation,
+      signature: encodePacked(
+        ["uint8", "uint256"],
+        [sigType == "EIP712" ? 0 : 1, sigTime],
+      ),
       preVerificationGas:
         uopAndPaymasterOverrides?.preVerificationGas ?? preVerificationGas,
       verificationGasLimit:

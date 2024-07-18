@@ -4,6 +4,7 @@ import { remoteSigner } from "../packages/plugins";
 import { OKXSmartAccountSDK } from "../packages/okxSmartAccount/OKXSmartContractAccount";
 import { JWT_VALIDATOR_TEMPLATE } from "../packages/common/constants";
 import { convertToHex } from "../packages/common";
+import { SigType } from "../packages/okxSmartAccount/types";
 
 async function smoke_remoteSigner() {
   // now we create an instance which contains: a rpcProvider(publicClient), a signer(in this case, it is a walletClientSigner), the name and version of the smart account, and the index of it)
@@ -29,6 +30,7 @@ async function smoke_remoteSigner() {
 
   const v = await okxSmartContractAccount.buildUserOp({
     args: "0x",
+    sigType: SigType.EIP712,
     sigTime: hexToBigInt("0x69696969" as Hex),
     uopAndPaymasterOverrides: {
       callGasLimit: 900000n,
