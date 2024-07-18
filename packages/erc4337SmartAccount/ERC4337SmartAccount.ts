@@ -1,4 +1,4 @@
-import type { Address } from "abitype";
+import type {Address} from "abitype";
 import {
   type Chain,
   createPublicClient,
@@ -10,7 +10,6 @@ import {
   hexToBigInt,
   hexToBytes,
   http,
-  publicActions,
   SignTypedDataParameters,
   toHex,
   type Transport,
@@ -24,34 +23,26 @@ import {
   SigType,
   SmartAccountTransactionReceipt,
 } from "./types.js";
-import {
-  ERC4337SmartAccountSigner,
-  UserOperation0_7,
-  UserOperationDraft,
-} from "../plugins/types";
-import { configuration, networkConfigurations } from "../../configuration";
-import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
-import { UserOperation } from "permissionless/types/userOperation";
-import { getChainId } from "viem/actions";
-import { smartAccountV2ABI } from "../../abis/smartAccountV2.abi";
+import {ERC4337SmartAccountSigner, UserOperation0_7, UserOperationDraft,} from "../plugins/types";
+import {configuration, networkConfigurations} from "../../configuration";
+import {smartAccountV3ABI} from "../../abis/smartAccountV3.abi";
+import {UserOperation} from "permissionless/types/userOperation";
+import {getChainId} from "viem/actions";
+import {smartAccountV2ABI} from "../../abis/smartAccountV2.abi";
 import axios from "axios";
-import { Simulator } from "./simulator/simulator";
-import { AccountManager } from "./acountMananger/accountManager";
-import { PaymasterManager } from "./paymasterManager/paymaster";
+import {Simulator} from "./simulator/simulator";
+import {AccountManager} from "./acountMananger/accountManager";
+import {PaymasterManager} from "./paymasterManager/paymaster";
 import {
   GeneratePaymasterSignatureType,
   GenerateUserOperationAndPackedParams,
 } from "./dto/generateUserOperationAndPackedParams.dto";
-import { CreateERC4337SmartAccountParams } from "./dto/createERC4337SmartAccount.dto";
-import {
-  BaseSmartAccountError,
-  GasEstimationError,
-  SendUopError,
-} from "../error/constants";
-import { mainnet } from "viem/chains";
-import { EntryPointV0_7ABI } from "../../abis/EntryPointV0_7.abi";
-import { compileBigInt, compileMode, getSigTime } from "../common/utils";
-import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
+import {CreateERC4337SmartAccountParams} from "./dto/createERC4337SmartAccount.dto";
+import {BaseSmartAccountError, GasEstimationError, SendUopError,} from "../error/constants";
+import {mainnet} from "viem/chains";
+import {callClient, compileBigInt, compileMode, convertToHex, getSigTime,} from "../common/utils";
+import {authenticationManagerABI} from "../../abis/authenticationManager.abi";
+import {ENTRYPOINT_ADDRESS_V07} from "permissionless";
 
 export class ERC4337SmartAccount<
   TTransport extends Transport = Transport,
@@ -395,20 +386,45 @@ export class ERC4337SmartAccount<
       if (!walletClient) {
         throw new Error("wallet client must specified");
       } else {
-        const { request } = await walletClient
-          .extend(publicActions)
-          .simulateContract({
-            address: configuration.entryPoint.v0_7_0,
-            abi: EntryPointV0_7ABI,
-            functionName: "handleOps",
-            args: [[userOperation], walletClient.account?.address],
-          });
-        // @ts-ignore
-        const res = (await walletClient.writeContract(request)) as Hex;
-        return this.accountManager.pushAccountTransaction(
-          userOperation.sender,
-          res,
+        console.log(convertToHex(userOperation));
+        const chainId = 42161;
+        const payload = [convertToHex(userOperation), ENTRYPOINT_ADDRESS_V07];
+        const data1 = JSON.stringify({
+          id: 1,
+          jsonrpc: "2.0",
+          method: "eth_simulateUserOperation",
+          params: payload,
+        });
+        const simulateUserOperationRes = await callClient(
+          this.baseUrl +
+            `priapi/v5/wallet/smart-account/mp/${String(chainId)}/eth_simulateUserOperation`,
+          data1,
         );
+        const resSimulation = simulateUserOperationRes.data;
+        if (resSimulation.error) {
+          console.log(resSimulation.error);
+          throw new Error("SIMULATE_USER_OPERATION_ERROR");
+        }
+        console.log(resSimulation.result);
+
+        const data2 = JSON.stringify({
+          id: 1,
+          jsonrpc: "2.0",
+          method: "eth_sendUserOperation",
+          params: payload,
+        });
+        const sendUserOperationRes = await callClient(
+          this.baseUrl +
+            `priapi/v5/wallet/smart-account/mp/${String(chainId)}/eth_sendUserOperation`,
+          data2,
+        );
+        const resSendUserOperation = sendUserOperationRes.data;
+        if (resSendUserOperation.error) {
+          console.log("meet error");
+          throw new Error("ERROR!");
+        }
+        console.log(resSendUserOperation.result);
+        return resSendUserOperation.result;
       }
     }
   }

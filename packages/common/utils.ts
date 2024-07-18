@@ -1,19 +1,20 @@
 import {
-  http,
-  Hex,
-  type WalletClient,
   createWalletClient,
-  keccak256,
   encodePacked,
+  Hex,
+  http,
+  keccak256,
   PublicClient,
   toHex,
+  type WalletClient,
 } from "viem";
 import { type Account, privateKeyToAccount } from "viem/accounts";
-import { type Chain, goerli } from "viem/chains";
 import * as allChains from "viem/chains";
+import { type Chain, goerli } from "viem/chains";
 import { Address } from "abitype";
 import { BaseSmartAccountError } from "../error/constants";
 import { ExecutionMode } from "../erc4337SmartAccount/types";
+import axios from "axios";
 
 export async function getEoaWalletClient(): Promise<WalletClient> {
   const rpcUrl = process.env.RPC_URL;
@@ -93,6 +94,32 @@ export async function getSigTime(publicClient: PublicClient) {
   const block = await publicClient.getBlock();
   // add 3 days.
   return BigInt(block.timestamp) + BigInt(86400 * 3);
+}
+
+export function convertToHex(value: object): any {
+  const result: { [key: string]: any } = {};
+  for (const [key, val] of Object.entries(value)) {
+    if (typeof val == "bigint") {
+      result[key] = toHex(val);
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+
+export async function callClient(url: string, data: string) {
+  const config = {
+    method: "post",
+    maxBodyLength: Infinity,
+    url: url,
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: "locale=en-US",
+    },
+    data: JSON.stringify(JSON.parse(data)),
+  };
+  return await axios.request(config);
 }
 
 /**
