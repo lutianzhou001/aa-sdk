@@ -21,8 +21,11 @@ async function remoteSignerTest() {
   })
 
   const v = await smartAccount.accountManager.createNewAccount(0n, []);
-  console.log(v);
 
+  console.log(v)
+
+  const generated = await smartAccount.generateUserOperation({sigType : "EIP712", uop: {sender: "0x8e3d83375ACD5a96C7d5B53F73210651C79504a5", callData: "0x"}})
+  console.log(generated);
 }
 
 remoteSignerTest().then(r => console.log("tested"));
