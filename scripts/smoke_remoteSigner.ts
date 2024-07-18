@@ -26,7 +26,7 @@ async function smoke_remoteSigner() {
       index: 0n,
     });
 
-  console.log(okxSmartContractAccount);
+  await okxSmartContractAccount.buildUserOp({ args: "0x" });
 }
 
 smoke_remoteSigner().then(() =>

@@ -963,6 +963,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
       preEstimation.maxFeePerGas = preEstimation.maxPriorityFeePerGas;
     }
 
+    console.log(preEstimation);
     const result =
       await this.bundlerClient.estimateUserOperationGas(preEstimation);
 
