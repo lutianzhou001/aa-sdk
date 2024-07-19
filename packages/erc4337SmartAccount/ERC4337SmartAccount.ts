@@ -427,13 +427,12 @@ export class ERC4337SmartAccount<
           factory: factory,
           factoryData: factoryData,
           nonce: uop.nonce,
-          paymaster: "0x",
-          paymasterData: "0x",
           preVerificationGas: uop.preVerificationGas,
           sender: uop.sender,
           callData: uop.callData,
           signature: uop.signature,
         };
+        console.log(convertToHex(unpacked));
         const chainId = 42161;
         const payload = [convertToHex(unpacked), ENTRYPOINT_ADDRESS_V07];
         const data1 = JSON.stringify({
