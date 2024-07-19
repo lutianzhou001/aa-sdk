@@ -425,6 +425,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     userOperation: UserOperation<"v0.7">,
   ): Promise<Hex> {
     const packedUserOperation = getPackedUserOperation(cleanup(userOperation));
+    console.log("PACKED", packedUserOperation);
     const deploymentState: DeploymentState = await this.getDeploymentState();
     return (await this.rpcProvider.readContract({
       address:
