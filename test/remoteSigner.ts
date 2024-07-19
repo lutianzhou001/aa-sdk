@@ -2,7 +2,6 @@ import {createPublicClient, Hex, hexToBigInt, http,} from "viem";
 import {arbitrum} from "viem/chains";
 import {ERC4337SmartAccount} from "../packages/erc4337SmartAccount/ERC4337SmartAccount";
 import {ExternalSigner} from "../packages/plugins/signers/externalSigner";
-import {JWT_VALIDATOR_TEMPLATE} from "../dist/packages/common/constants";
 
 async function remoteSignerTest() {
   console.log("this is the begin of a test")
@@ -11,7 +10,7 @@ async function remoteSignerTest() {
     transport: http(),
   })
 
-  const owner = new ExternalSigner("signer", client as any, "0x313031323432353730323934353239343330393038", JWT_VALIDATOR_TEMPLATE)
+  const owner = new ExternalSigner("signer", client as any, "0x313031323432353730323934353239343330393038", "0x98c43cCc7F515Bebe8E161B2B7A301f3B8d2c7ae")
 
   const smartAccount = new ERC4337SmartAccount({
     owner,
