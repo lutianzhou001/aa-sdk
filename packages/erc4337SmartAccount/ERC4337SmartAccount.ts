@@ -1,16 +1,20 @@
 import type { Address } from "abitype";
 import {
   type Chain,
+  concat,
   createPublicClient,
   encodeAbiParameters,
   encodeFunctionData,
   encodePacked,
+  getAddress,
   type Hash,
   type Hex,
   hexToBigInt,
   hexToBytes,
   http,
+  pad,
   SignTypedDataParameters,
+  slice,
   toHex,
   type Transport,
   WalletClient,
@@ -30,7 +34,7 @@ import {
 } from "../plugins/types";
 import { configuration, networkConfigurations } from "../../configuration";
 import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
-import { UserOperation } from "permissionless/types/userOperation";
+import { type Hex32, UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
 import { smartAccountV2ABI } from "../../abis/smartAccountV2.abi";
 import axios from "axios";
@@ -57,11 +61,6 @@ import {
 } from "../common/utils";
 import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
 import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
-import {
-  unpackAccountGasLimits,
-  unpackGasLimits,
-  unPackInitCode,
-} from "permissionless/_types/utils/getPackedUserOperation";
 
 export class ERC4337SmartAccount<
   TTransport extends Transport = Transport,
@@ -725,4 +724,40 @@ export class ERC4337SmartAccount<
 // Function to remove a parameter by name
 function removeParameter(obj: { [key: string]: any }, paramName: string): void {
   delete obj[paramName];
+}
+
+export function unpackAccountGasLimits(accountGasLimits: Hex) {
+  return {
+    verificationGasLimit: BigInt(slice(accountGasLimits, 0, 16)),
+    callGasLimit: BigInt(slice(accountGasLimits, 16)),
+  };
+}
+
+export function getGasLimits(unpackedUserOperation: UserOperation<"v0.7">) {
+  return concat([
+    pad(toHex(unpackedUserOperation.maxPriorityFeePerGas), {
+      size: 16,
+    }),
+    pad(toHex(unpackedUserOperation.maxFeePerGas), { size: 16 }),
+  ]) as Hex32;
+}
+
+export function unpackGasLimits(gasLimits: Hex) {
+  return {
+    maxPriorityFeePerGas: BigInt(slice(gasLimits, 0, 16)),
+    maxFeePerGas: BigInt(slice(gasLimits, 16)),
+  };
+}
+
+export function unPackInitCode(initCode: Hex) {
+  if (initCode === "0x") {
+    return {
+      factory: null,
+      factoryData: null,
+    };
+  }
+  return {
+    factory: getAddress(slice(initCode, 0, 20)),
+    factoryData: slice(initCode, 20),
+  };
 }
