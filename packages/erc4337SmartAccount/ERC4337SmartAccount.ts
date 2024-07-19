@@ -406,26 +406,35 @@ export class ERC4337SmartAccount<
         const { maxPriorityFeePerGas, maxFeePerGas } = unpackGasLimits(
           uop.gasFees,
         );
+        let unpacked: UserOperation<"v0.7">;
         const { factory, factoryData } = unPackInitCode(uop.initCode);
         if (factory == null) {
-          throw new Error("factory cannot be null");
+          unpacked = {
+            verificationGasLimit: verificationGasLimit,
+            callGasLimit: callGasLimit,
+            maxFeePerGas: maxFeePerGas,
+            maxPriorityFeePerGas: maxPriorityFeePerGas,
+            nonce: uop.nonce,
+            preVerificationGas: uop.preVerificationGas,
+            sender: uop.sender,
+            callData: uop.callData,
+            signature: uop.signature,
+          };
+        } else {
+          unpacked = {
+            verificationGasLimit: verificationGasLimit,
+            callGasLimit: callGasLimit,
+            maxFeePerGas: maxFeePerGas,
+            maxPriorityFeePerGas: maxPriorityFeePerGas,
+            factory: factory,
+            factoryData: factoryData,
+            nonce: uop.nonce,
+            preVerificationGas: uop.preVerificationGas,
+            sender: uop.sender,
+            callData: uop.callData,
+            signature: uop.signature,
+          };
         }
-        if (factoryData == null) {
-          throw new Error("factory data cannot be null");
-        }
-        const unpacked: UserOperation<"v0.7"> = {
-          verificationGasLimit: verificationGasLimit,
-          callGasLimit: callGasLimit,
-          maxFeePerGas: maxFeePerGas,
-          maxPriorityFeePerGas: maxPriorityFeePerGas,
-          factory: factory,
-          factoryData: factoryData,
-          nonce: uop.nonce,
-          preVerificationGas: uop.preVerificationGas,
-          sender: uop.sender,
-          callData: uop.callData,
-          signature: uop.signature,
-        };
         console.log(convertToHex(unpacked));
         const chainId = 42161;
         const payload = [convertToHex(unpacked), ENTRYPOINT_ADDRESS_V07];
@@ -445,24 +454,23 @@ export class ERC4337SmartAccount<
           console.log(resSimulation.error);
           throw new Error("SIMULATE_USER_OPERATION_ERROR");
         }
-
-        // const data2 = JSON.stringify({
-        //   id: 1,
-        //   jsonrpc: "2.0",
-        //   method: "eth_sendUserOperation",
-        //   params: payload,
-        // });
-        // const sendUserOperationRes = await callClient(
-        //   this.baseUrl +
-        //     `priapi/v5/wallet/smart-account/mp/${String(chainId)}/eth_sendUserOperation`,
-        //   data2,
-        // );
-        // const resSendUserOperation = sendUserOperationRes.data;
-        // if (resSendUserOperation.error) {
-        //   console.log("meet error");
-        //   throw new Error("ERROR!");
-        // }
-        // console.log(resSendUserOperation.result);
+        const data2 = JSON.stringify({
+          id: 1,
+          jsonrpc: "2.0",
+          method: "eth_sendUserOperation",
+          params: payload,
+        });
+        const sendUserOperationRes = await callClient(
+          this.baseUrl +
+            `priapi/v5/wallet/smart-account/mp/${String(chainId)}/eth_sendUserOperation`,
+          data2,
+        );
+        const resSendUserOperation = sendUserOperationRes.data;
+        if (resSendUserOperation.error) {
+          console.log("meet error");
+          throw new Error("ERROR!");
+        }
+        console.log(resSendUserOperation.result);
         // return resSendUserOperation.result;
       }
     }
