@@ -25,7 +25,6 @@ import {
   ExecuteCallDataArgs,
   ISmartContractAccount,
   SigType,
-  SmartAccountTransactionReceipt,
 } from "./types.js";
 import {
   ERC4337SmartAccountSigner,
@@ -367,7 +366,7 @@ export class ERC4337SmartAccount<
   async sendUserOperationByERC4337Bundler(
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
     walletClient?: WalletClient,
-  ): Promise<SmartAccountTransactionReceipt> {
+  ): Promise<void> {
     if (this.version.slice(0, 1) == "2") {
       const req = {
         method: "post",
@@ -395,10 +394,6 @@ export class ERC4337SmartAccount<
           res.data.error.message,
         );
       } else {
-        return this.accountManager.pushAccountTransaction(
-          userOperation.sender,
-          res.data.result,
-        );
       }
     } else {
       if (!walletClient) {
@@ -450,26 +445,25 @@ export class ERC4337SmartAccount<
           console.log(resSimulation.error);
           throw new Error("SIMULATE_USER_OPERATION_ERROR");
         }
-        console.log(resSimulation.result);
 
-        const data2 = JSON.stringify({
-          id: 1,
-          jsonrpc: "2.0",
-          method: "eth_sendUserOperation",
-          params: payload,
-        });
-        const sendUserOperationRes = await callClient(
-          this.baseUrl +
-            `priapi/v5/wallet/smart-account/mp/${String(chainId)}/eth_sendUserOperation`,
-          data2,
-        );
-        const resSendUserOperation = sendUserOperationRes.data;
-        if (resSendUserOperation.error) {
-          console.log("meet error");
-          throw new Error("ERROR!");
-        }
-        console.log(resSendUserOperation.result);
-        return resSendUserOperation.result;
+        // const data2 = JSON.stringify({
+        //   id: 1,
+        //   jsonrpc: "2.0",
+        //   method: "eth_sendUserOperation",
+        //   params: payload,
+        // });
+        // const sendUserOperationRes = await callClient(
+        //   this.baseUrl +
+        //     `priapi/v5/wallet/smart-account/mp/${String(chainId)}/eth_sendUserOperation`,
+        //   data2,
+        // );
+        // const resSendUserOperation = sendUserOperationRes.data;
+        // if (resSendUserOperation.error) {
+        //   console.log("meet error");
+        //   throw new Error("ERROR!");
+        // }
+        // console.log(resSendUserOperation.result);
+        // return resSendUserOperation.result;
       }
     }
   }

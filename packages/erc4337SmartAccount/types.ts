@@ -1,11 +1,5 @@
 import type { Address } from "abitype";
-import type {
-  Hash,
-  Hex,
-  SignTypedDataParameters,
-  Transport,
-  WalletClient,
-} from "viem";
+import type { Hash, Hex, SignTypedDataParameters, WalletClient } from "viem";
 import { UserOperation0_7, UserOperationDraft } from "../plugins/types";
 import { UserOperation } from "permissionless/types/userOperation";
 import {
@@ -85,6 +79,8 @@ export type UserOperationSimulationResponse = {
 };
 
 export interface ISmartContractAccount {
+  extend: <R>(extendFn: (self: this) => R) => this & R;
+
   generateUserOperationWithGasEstimation(
     userOperationDraft: UserOperationDraft,
     role: Hex,
@@ -107,20 +103,20 @@ export interface ISmartContractAccount {
   sendUserOperationByERC4337Bundler(
     userOperation: UserOperation<"v0.6"> | UserOperation0_7,
     walletClient: WalletClient,
-  ): Promise<SmartAccountTransactionReceipt>;
+  ): Promise<void>;
 
   signUserOperationHash(uopHash: Hash): Promise<Hash>;
+
   signMessage(msg: string | Uint8Array | Hex): Promise<Hex>;
+
   signTypedData(args: SignTypedDataParameters): Promise<Hash>;
+  // uninstallValidator(): Promise<Hex>;
 
   installValidator(
     accountAddress: Address,
     newValidatorAddress: Address,
     validateTemplate: Address,
   ): Hex;
-  // uninstallValidator(): Promise<Hex>;
 
   encodeExecute(args: ExecuteCallDataArgs): Hex;
-
-  extend: <R>(extendFn: (self: this) => R) => this & R;
 }
