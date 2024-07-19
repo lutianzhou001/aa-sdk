@@ -454,23 +454,23 @@ export class ERC4337SmartAccount<
           console.log(resSimulation.error);
           throw new Error("SIMULATE_USER_OPERATION_ERROR");
         }
-        const data2 = JSON.stringify({
-          id: 1,
-          jsonrpc: "2.0",
-          method: "eth_sendUserOperation",
-          params: payload,
-        });
-        const sendUserOperationRes = await callClient(
-          this.baseUrl +
-            `priapi/v5/wallet/smart-account/mp/${String(chainId)}/eth_sendUserOperation`,
-          data2,
-        );
-        const resSendUserOperation = sendUserOperationRes.data;
-        if (resSendUserOperation.error) {
-          console.log("meet error");
-          throw new Error("ERROR!");
-        }
-        console.log(resSendUserOperation.result);
+        // const data2 = JSON.stringify({
+        //   id: 1,
+        //   jsonrpc: "2.0",
+        //   method: "eth_sendUserOperation",
+        //   params: payload,
+        // });
+        // const sendUserOperationRes = await callClient(
+        //   this.baseUrl +
+        //     `priapi/v5/wallet/smart-account/mp/${String(chainId)}/eth_sendUserOperation`,
+        //   data2,
+        // );
+        // const resSendUserOperation = sendUserOperationRes.data;
+        // if (resSendUserOperation.error) {
+        //   console.log("meet error");
+        //   throw new Error("ERROR!");
+        // }
+        // console.log(resSendUserOperation.result);
         // return resSendUserOperation.result;
       }
     }
