@@ -1,4 +1,4 @@
-import type {Address} from "abitype";
+import type { Address } from "abitype";
 import {
   type Chain,
   createPublicClient,
@@ -23,26 +23,45 @@ import {
   SigType,
   SmartAccountTransactionReceipt,
 } from "./types.js";
-import {ERC4337SmartAccountSigner, UserOperation0_7, UserOperationDraft,} from "../plugins/types";
-import {configuration, networkConfigurations} from "../../configuration";
-import {smartAccountV3ABI} from "../../abis/smartAccountV3.abi";
-import {UserOperation} from "permissionless/types/userOperation";
-import {getChainId} from "viem/actions";
-import {smartAccountV2ABI} from "../../abis/smartAccountV2.abi";
+import {
+  ERC4337SmartAccountSigner,
+  UserOperation0_7,
+  UserOperationDraft,
+} from "../plugins/types";
+import { configuration, networkConfigurations } from "../../configuration";
+import { smartAccountV3ABI } from "../../abis/smartAccountV3.abi";
+import { UserOperation } from "permissionless/types/userOperation";
+import { getChainId } from "viem/actions";
+import { smartAccountV2ABI } from "../../abis/smartAccountV2.abi";
 import axios from "axios";
-import {Simulator} from "./simulator/simulator";
-import {AccountManager} from "./acountMananger/accountManager";
-import {PaymasterManager} from "./paymasterManager/paymaster";
+import { Simulator } from "./simulator/simulator";
+import { AccountManager } from "./acountMananger/accountManager";
+import { PaymasterManager } from "./paymasterManager/paymaster";
 import {
   GeneratePaymasterSignatureType,
   GenerateUserOperationAndPackedParams,
 } from "./dto/generateUserOperationAndPackedParams.dto";
-import {CreateERC4337SmartAccountParams} from "./dto/createERC4337SmartAccount.dto";
-import {BaseSmartAccountError, GasEstimationError, SendUopError,} from "../error/constants";
-import {mainnet} from "viem/chains";
-import {callClient, compileBigInt, compileMode, convertToHex, getSigTime,} from "../common/utils";
-import {authenticationManagerABI} from "../../abis/authenticationManager.abi";
-import {ENTRYPOINT_ADDRESS_V07} from "permissionless";
+import { CreateERC4337SmartAccountParams } from "./dto/createERC4337SmartAccount.dto";
+import {
+  BaseSmartAccountError,
+  GasEstimationError,
+  SendUopError,
+} from "../error/constants";
+import { mainnet } from "viem/chains";
+import {
+  callClient,
+  compileBigInt,
+  compileMode,
+  convertToHex,
+  getSigTime,
+} from "../common/utils";
+import { authenticationManagerABI } from "../../abis/authenticationManager.abi";
+import { ENTRYPOINT_ADDRESS_V07 } from "permissionless";
+import {
+  unpackAccountGasLimits,
+  unpackGasLimits,
+  unPackInitCode,
+} from "permissionless/_types/utils/getPackedUserOperation";
 
 export class ERC4337SmartAccount<
   TTransport extends Transport = Transport,
@@ -347,7 +366,7 @@ export class ERC4337SmartAccount<
   }
 
   async sendUserOperationByERC4337Bundler(
-    userOperation: UserOperation<"v0.6">,
+    userOperation: UserOperation<"v0.6"> | UserOperation0_7,
     walletClient?: WalletClient,
   ): Promise<SmartAccountTransactionReceipt> {
     if (this.version.slice(0, 1) == "2") {
@@ -386,9 +405,37 @@ export class ERC4337SmartAccount<
       if (!walletClient) {
         throw new Error("wallet client must specified");
       } else {
-        console.log(convertToHex(userOperation));
+        const uop = userOperation as UserOperation0_7;
+        const { verificationGasLimit, callGasLimit } = unpackAccountGasLimits(
+          uop.accountGasLimits,
+        );
+        const { maxPriorityFeePerGas, maxFeePerGas } = unpackGasLimits(
+          uop.gasFees,
+        );
+        const { factory, factoryData } = unPackInitCode(uop.initCode);
+        if (factory == null) {
+          throw new Error("factory cannot be null");
+        }
+        if (factoryData == null) {
+          throw new Error("factory data cannot be null");
+        }
+        const unpacked: UserOperation<"v0.7"> = {
+          verificationGasLimit: verificationGasLimit,
+          callGasLimit: callGasLimit,
+          maxFeePerGas: maxFeePerGas,
+          maxPriorityFeePerGas: maxPriorityFeePerGas,
+          factory: factory,
+          factoryData: factoryData,
+          nonce: uop.nonce,
+          paymaster: "0x",
+          paymasterData: "0x",
+          preVerificationGas: uop.preVerificationGas,
+          sender: uop.sender,
+          callData: uop.callData,
+          signature: uop.signature,
+        };
         const chainId = 42161;
-        const payload = [convertToHex(userOperation), ENTRYPOINT_ADDRESS_V07];
+        const payload = [convertToHex(unpacked), ENTRYPOINT_ADDRESS_V07];
         const data1 = JSON.stringify({
           id: 1,
           jsonrpc: "2.0",
@@ -674,4 +721,9 @@ export class ERC4337SmartAccount<
       ],
     );
   }
+}
+
+// Function to remove a parameter by name
+function removeParameter(obj: { [key: string]: any }, paramName: string): void {
+  delete obj[paramName];
 }
