@@ -427,7 +427,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     const packedUserOperation = getPackedUserOperation(cleanup(userOperation));
     console.log("packed", packedUserOperation);
     const deploymentState: DeploymentState = await this.getDeploymentState();
-    return (await this.rpcProvider.readContract({
+    const uopSignedHash = (await this.rpcProvider.readContract({
       address:
         deploymentState == DeploymentState.DEPLOYED
           ? this.authenticationManagerAddress
@@ -440,6 +440,8 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         packedUserOperation,
       ],
     })) as Hex;
+    console.log("uopSignedHash", uopSignedHash);
+    return uopSignedHash;
   }
 
   /**

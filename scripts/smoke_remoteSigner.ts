@@ -3,7 +3,6 @@ import { arbitrum } from "viem/chains";
 import { remoteSigner } from "../packages/plugins";
 import { OKXSmartAccountSDK } from "../packages/okxSmartAccount/OKXSmartContractAccount";
 import { JWT_VALIDATOR_TEMPLATE } from "../packages/common/constants";
-import { convertToHex } from "../packages/common";
 import { SigType } from "../packages/okxSmartAccount/types";
 
 async function smoke_remoteSigner() {
@@ -40,13 +39,8 @@ async function smoke_remoteSigner() {
       maxPriorityFeePerGas: 10000000n,
     },
   });
-  console.log(convertToHex(v));
 
-  const signedUOPHash = await okxSmartContractAccount.getUOPSignedHash(
-    SigType.EIP712,
-    v,
-  );
-  console.log(signedUOPHash);
+  await okxSmartContractAccount.getUOPSignedHash(SigType.EIP712, v);
 }
 
 smoke_remoteSigner().then(() =>
