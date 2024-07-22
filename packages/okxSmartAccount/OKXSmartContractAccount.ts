@@ -425,7 +425,6 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
     userOperation: UserOperation<"v0.7">,
   ): Promise<Hex> {
     const packedUserOperation = getPackedUserOperation(cleanup(userOperation));
-    console.log("packed", packedUserOperation);
     const deploymentState: DeploymentState = await this.getDeploymentState();
     const uopSignedHash = (await this.rpcProvider.readContract({
       address:
@@ -440,7 +439,6 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         packedUserOperation,
       ],
     })) as Hex;
-    console.log("uopSignedHash", uopSignedHash);
     return uopSignedHash;
   }
 
@@ -1001,16 +999,18 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         uopAndPaymasterOverrides?.preVerificationGas ?? preVerificationGas,
       verificationGasLimit:
         uopAndPaymasterOverrides?.verificationGasLimit ??
-        BigInt(result.verificationGasLimit) * BigInt(3),
+        (BigInt(result.verificationGasLimit) * BigInt(105)) / BigInt(100),
       callGasLimit:
-        uopAndPaymasterOverrides?.callGasLimit ?? BigInt(result.callGasLimit),
+        uopAndPaymasterOverrides?.callGasLimit ??
+        (BigInt(result.callGasLimit) * BigInt(120)) / BigInt(100),
       paymasterVerificationGasLimit: userOperation.paymaster
         ? uopAndPaymasterOverrides?.paymasterVerificationGasLimit ??
-          BigInt(result.paymasterVerificationGasLimit)
+          (BigInt(result.paymasterVerificationGasLimit) * BigInt(120)) /
+            BigInt(100)
         : undefined,
       paymasterPostOpGasLimit: userOperation.paymaster
         ? uopAndPaymasterOverrides?.paymasterPostOpGasLimit ??
-          BigInt(result.paymasterPostOpGasLimit)
+          BigInt(result.paymasterPostOpGasLimit) * BigInt(2)
         : undefined,
     };
   }
