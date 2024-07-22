@@ -999,7 +999,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         uopAndPaymasterOverrides?.preVerificationGas ?? preVerificationGas,
       verificationGasLimit:
         uopAndPaymasterOverrides?.verificationGasLimit ??
-        (BigInt(result.verificationGasLimit) * BigInt(150)) / BigInt(100),
+        BigInt(result.verificationGasLimit) * BigInt(2),
       callGasLimit:
         uopAndPaymasterOverrides?.callGasLimit ??
         (BigInt(result.callGasLimit) * BigInt(120)) / BigInt(100),
