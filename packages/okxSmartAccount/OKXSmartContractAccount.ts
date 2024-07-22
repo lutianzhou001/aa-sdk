@@ -426,7 +426,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
   ): Promise<Hex> {
     const packedUserOperation = getPackedUserOperation(cleanup(userOperation));
     const deploymentState: DeploymentState = await this.getDeploymentState();
-    const uopSignedHash = (await this.rpcProvider.readContract({
+    return (await this.rpcProvider.readContract({
       address:
         deploymentState == DeploymentState.DEPLOYED
           ? this.authenticationManagerAddress
@@ -439,7 +439,6 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         packedUserOperation,
       ],
     })) as Hex;
-    return uopSignedHash;
   }
 
   /**
@@ -999,7 +998,7 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         uopAndPaymasterOverrides?.preVerificationGas ?? preVerificationGas,
       verificationGasLimit:
         uopAndPaymasterOverrides?.verificationGasLimit ??
-        BigInt(result.verificationGasLimit) * BigInt(2),
+        BigInt(result.verificationGasLimit) * BigInt(3),
       callGasLimit:
         uopAndPaymasterOverrides?.callGasLimit ??
         (BigInt(result.callGasLimit) * BigInt(120)) / BigInt(100),
