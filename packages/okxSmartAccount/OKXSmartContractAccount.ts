@@ -55,7 +55,7 @@ import { UserOperation } from "permissionless/types/userOperation";
 import { getChainId } from "viem/actions";
 import { Chain, mainnet } from "viem/chains";
 import { BaseError, PaymasterError } from "../common/error";
-import { supportedChains } from "../common/constants";
+import { JWT_VALIDATOR_TEMPLATE, supportedChains } from "../common/constants";
 import { IPaymasterClient } from "../okxPaymaster/interfaces/IPaymaster";
 
 export class OKXSmartAccountSDK {
@@ -998,9 +998,11 @@ export class OKXSmartContractAccount extends BaseSmartContractAccount {
         uopAndPaymasterOverrides?.preVerificationGas ?? preVerificationGas,
       verificationGasLimit:
         uopAndPaymasterOverrides?.verificationGasLimit ??
-        (this.deploymentState == DeploymentState.DEPLOYED
-          ? BigInt(result.verificationGasLimit) * BigInt(3)
-          : BigInt(result.verificationGasLimit) * BigInt(2)),
+        this.authenticationManagerTemplateAddress != JWT_VALIDATOR_TEMPLATE
+          ? BigInt(result.verificationGasLimit)
+          : this.deploymentState == DeploymentState.DEPLOYED
+            ? BigInt(result.verificationGasLimit) * BigInt(3)
+            : BigInt(result.verificationGasLimit) * BigInt(2),
       callGasLimit:
         uopAndPaymasterOverrides?.callGasLimit ??
         (BigInt(result.callGasLimit) * BigInt(120)) / BigInt(100),
